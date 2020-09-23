@@ -1,0 +1,12 @@
+spring:
+  redis:
+    host: redis-mall.tst.jianke-inc.com
+    password: redis_jk20190911
+    port: 6379
+    timeout: 2000
+    database: 14
+  data:
+    mongodb:
+      host: mongodb-mall.tst.jianke-inc.com
+      port: 27017
+      database: joker-im
