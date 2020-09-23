@@ -1,4 +1,4 @@
-package org.im.joker.core;
+package org.im.joker;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
