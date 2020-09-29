@@ -1,4 +1,4 @@
-package org.im.joker;
+package im.joker;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

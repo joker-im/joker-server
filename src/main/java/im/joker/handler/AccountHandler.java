@@ -1,4 +1,4 @@
-package org.im.joker.handler;
+package im.joker.handler;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

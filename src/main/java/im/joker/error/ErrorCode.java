@@ -1,4 +1,4 @@
-package org.im.joker.error;
+package im.joker.error;
 
 public enum ErrorCode {
 

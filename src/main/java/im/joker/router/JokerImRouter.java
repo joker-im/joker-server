@@ -1,9 +1,9 @@
-package org.im.joker.router;
+package im.joker.router;
 
 
-import org.im.joker.handler.AccountHandler;
-import org.im.joker.handler.RoomHandler;
-import org.im.joker.handler.SyncHandler;
+import im.joker.handler.AccountHandler;
+import im.joker.handler.SyncHandler;
+import im.joker.handler.RoomHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;

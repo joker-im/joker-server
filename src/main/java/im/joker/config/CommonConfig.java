@@ -1,4 +1,4 @@
-package org.im.joker.config;
+package im.joker.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

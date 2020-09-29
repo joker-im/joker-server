@@ -1,6 +1,6 @@
-package org.im.joker.exception;
+package im.joker.exception;
 
-import org.im.joker.error.ErrorCode;
+import im.joker.error.ErrorCode;
 import org.springframework.http.HttpStatus;
 
 public class JokerImException extends RuntimeException {

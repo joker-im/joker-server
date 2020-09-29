@@ -1,4 +1,4 @@
-package org.im.joker.api;
+package im.joker.api;
 
 import lombok.Data;
 
