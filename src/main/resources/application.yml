@@ -3,10 +3,13 @@ spring:
     host: redis-mall.tst.jianke-inc.com
     password: redis_jk20190911
     port: 6379
-    timeout: 2000
     database: 14
+    timeout:
   data:
     mongodb:
       host: mongodb-mall.tst.jianke-inc.com
       port: 27017
       database: joker-im
+
+  jackson:
+    property-naming-strategy: CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES

@@ -1,7 +1,9 @@
 package org.im.joker.router;
 
 
+import org.im.joker.handler.AccountHandler;
 import org.im.joker.handler.RoomHandler;
+import org.im.joker.handler.SyncHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -13,6 +15,7 @@ import static org.springframework.web.reactive.function.server.RequestPredicates
 
 @Configuration
 public class JokerImRouter {
+
 
     @Bean
     public RouterFunction<ServerResponse> routeRoom(RoomHandler roomHandler) {
@@ -45,9 +48,29 @@ public class JokerImRouter {
         return RouterFunctions
                 .route(POST("/_matrix/client/r0/register")
                         .and(accept(MediaType.APPLICATION_JSON)), accountHandler::register)
+                .andRoute(POST("/_matrix/client/r0/register")
+                        .and(accept(MediaType.APPLICATION_JSON)), accountHandler::register)
+                .andRoute(POST("/_matrix/client/r0/register")
+                        .and(accept(MediaType.APPLICATION_JSON)), accountHandler::register)
+                .andRoute(POST("/_matrix/client/r0/register")
+                        .and(accept(MediaType.APPLICATION_JSON)), accountHandler::register)
+                .andRoute(POST("/_matrix/client/r0/register")
+                        .and(accept(MediaType.APPLICATION_JSON)), accountHandler::register)
+
+
                 ;
 
 
+    }
+
+    @Bean
+    public RouterFunction<ServerResponse> routeSync(SyncHandler syncHandler) {
+        return RouterFunctions
+                // sync  https://matrix.org/docs/spec/client_server/r0.6.1#get-matrix-client-r0-sync
+                .route(GET("/_matrix/client/r0/sync"), syncHandler::sync)
+
+
+                ;
     }
 
 

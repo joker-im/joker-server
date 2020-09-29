@@ -68,6 +68,18 @@
             <version>3.11</version>
         </dependency>
 
+        <!--参数校验包-->
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <version>6.1.5.Final</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish</groupId>
+            <artifactId>jakarta.el</artifactId>
+            <version>3.0.3</version>
+        </dependency>
+
 
     </dependencies>
 

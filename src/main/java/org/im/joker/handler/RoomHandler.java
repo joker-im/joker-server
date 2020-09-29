@@ -1,21 +1,36 @@
 package org.im.joker.handler;
 
-import org.im.joker.error.ErrorCode;
-import org.im.joker.exception.JokerImException;
-import org.springframework.http.HttpStatus;
+import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
+
+
 @Service
+@Slf4j
 public class RoomHandler {
 
 
+    @Autowired
+    private ReactiveStringRedisTemplate redisTemplate;
+    @Autowired
+    private ReactiveMongoTemplate mongoTemplate;
+
+
     public Mono<ServerResponse> createRoom(ServerRequest serverRequest) {
-        return ServerResponse.ok().build().map(e -> {
-            throw new JokerImException(ErrorCode.UNRECOGNIZED, HttpStatus.BAD_REQUEST);
-        });
+        return null;
     }
 
     public Mono<ServerResponse> searchJoinedRooms(ServerRequest serverRequest) {
