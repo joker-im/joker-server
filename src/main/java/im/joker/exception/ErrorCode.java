@@ -1,4 +1,4 @@
-package im.joker.error;
+package im.joker.exception;
 
 public enum ErrorCode {
 
@@ -23,22 +23,22 @@ public enum ErrorCode {
     INVALID_PARAM( "无效的请求参数"),
     TOO_LARGE( "请求过大"),
     INVALID_USERNAME( "无效的用户名"),
-    CANNOT_LEAVE_SERVER_NOTICE_ROOM( ""),
-    RESOURCE_LIMIT_EXCEEDED( ""),
-    UNSUPPORTED_ROOM_VERSION( ""),
-    INCOMPATIBLE_ROOM_VERSION( ""),
-    WRONG_ROOM_KEYS_VERSION( ""),
-    EXPIRED_ACCOUNT( ""),
-    PASSWORD_TOO_SHORT( ""),
-    PASSWORD_NO_DIGIT( ""),
-    PASSWORD_NO_UPPERCASE( ""),
-    PASSWORD_NO_LOWERCASE( ""),
-    PASSWORD_NO_SYMBOL( ""),
-    PASSWORD_IN_DICTIONARY( ""),
-    WEAK_PASSWORD( ""),
-    INVALID_SIGNATURE( ""),
-    USER_DEACTIVATED( ""),
-    BAD_ALIAS( "");
+    CANNOT_LEAVE_SERVER_NOTICE_ROOM( "不允许退出通知房间"),
+    RESOURCE_LIMIT_EXCEEDED( "资源超过限额"),
+    UNSUPPORTED_ROOM_VERSION( "不支持该房间版本"),
+    INCOMPATIBLE_ROOM_VERSION( "不兼容的房间版本"),
+    WRONG_ROOM_KEYS_VERSION( "房间密钥版本错误"),
+    EXPIRED_ACCOUNT( "账号过期"),
+    PASSWORD_TOO_SHORT( "密码太短"),
+    PASSWORD_NO_DIGIT( "密码没有包含数字"),
+    PASSWORD_NO_UPPERCASE( "密码没有包含大写字母"),
+    PASSWORD_NO_LOWERCASE( "密码没有包含小写字母"),
+    PASSWORD_NO_SYMBOL( "密码没有包含特殊字符"),
+    PASSWORD_IN_DICTIONARY( "密码容易被猜到"),
+    WEAK_PASSWORD( "密码太弱"),
+    INVALID_SIGNATURE( "签名错误"),
+    USER_DEACTIVATED( "用户被禁用"),
+    BAD_ALIAS( "别名错误");
 
     private String msg;
 
