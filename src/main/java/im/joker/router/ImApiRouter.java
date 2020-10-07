@@ -14,8 +14,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import static org.springframework.web.reactive.function.server.RequestPredicates.*;
 
 @Configuration
-public class JokerImRouter {
-
+public class ImApiRouter {
 
     @Bean
     public RouterFunction<ServerResponse> routeRoom(RoomHandler roomHandler) {
@@ -72,6 +71,4 @@ public class JokerImRouter {
 
                 ;
     }
-
-
 }

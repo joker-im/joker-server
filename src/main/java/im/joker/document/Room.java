@@ -1,4 +1,4 @@
-package im.joker.domain;
+package im.joker.document;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;

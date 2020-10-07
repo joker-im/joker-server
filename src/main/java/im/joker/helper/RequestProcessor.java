@@ -1,8 +1,8 @@
-package im.joker.assist;
+package im.joker.helper;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
-import im.joker.exception.JokerImException;
+import im.joker.exception.ImException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
@@ -16,7 +16,7 @@ import reactor.core.publisher.Mono;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static im.joker.error.ErrorCode.INVALID_PARAM;
+import static im.joker.exception.ErrorCode.INVALID_PARAM;
 
 @Component
 public class RequestProcessor {
@@ -39,7 +39,7 @@ public class RequestProcessor {
         T result = objectMapper.convertValue(valueMap, clazz);
         String message = validateMessage(result);
         if (StringUtils.isNoneBlank(message)) {
-            throw new JokerImException(INVALID_PARAM, HttpStatus.BAD_REQUEST, message);
+            throw new ImException(INVALID_PARAM, HttpStatus.BAD_REQUEST, message);
         }
         return Mono.just(result);
     }
@@ -52,7 +52,7 @@ public class RequestProcessor {
     public void validate(Object validTarget) {
         String message = validateMessage(validTarget);
         if (StringUtils.isNoneBlank(message)) {
-            throw new JokerImException(INVALID_PARAM, HttpStatus.BAD_REQUEST, message);
+            throw new ImException(INVALID_PARAM, HttpStatus.BAD_REQUEST, message);
         }
     }
 

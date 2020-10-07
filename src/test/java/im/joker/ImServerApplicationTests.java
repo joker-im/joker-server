@@ -10,7 +10,7 @@ import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 
 @Slf4j
 @SpringBootTest
-class CoreApplicationTests {
+class ImServerApplicationTests {
 
     @Autowired
     private ReactiveStringRedisTemplate redisTemplate;

@@ -1,9 +1,8 @@
 package im.joker.exception;
 
-import im.joker.error.ErrorCode;
 import org.springframework.http.HttpStatus;
 
-public class JokerImException extends RuntimeException {
+public class ImException extends RuntimeException {
 
     private final ErrorCode errorCode;
 
@@ -18,7 +17,7 @@ public class JokerImException extends RuntimeException {
      * @param errorCode
      * @param httpStatus
      */
-    public JokerImException(ErrorCode errorCode, HttpStatus httpStatus) {
+    public ImException(ErrorCode errorCode, HttpStatus httpStatus) {
         super(errorCode.getMsg());
         this.errorCode = errorCode;
         this.httpStatus = httpStatus;
@@ -31,7 +30,7 @@ public class JokerImException extends RuntimeException {
      * @param httpStatus
      * @param customMsg
      */
-    public JokerImException(ErrorCode errorCode, HttpStatus httpStatus, String customMsg) {
+    public ImException(ErrorCode errorCode, HttpStatus httpStatus, String customMsg) {
         super(errorCode.getMsg());
         this.errorCode = errorCode;
         this.httpStatus = httpStatus;

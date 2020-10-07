@@ -2,7 +2,6 @@ package im.joker.exception;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import im.joker.error.ErrorCode;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -21,7 +20,7 @@ import java.util.Map;
 @Configuration
 @Order(-2)
 @Slf4j
-public class JokerExceptionHandler implements ErrorWebExceptionHandler {
+public class ImExceptionHandler implements ErrorWebExceptionHandler {
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -32,11 +31,11 @@ public class JokerExceptionHandler implements ErrorWebExceptionHandler {
     public Mono<Void> handle(ServerWebExchange exchange, Throwable ex) {
         log.error("接口路径:{}, 异常信息:{},异常栈:{} ", exchange.getRequest().getPath(), ex.getMessage(), ex.getStackTrace());
         exchange.getResponse().getHeaders().add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        if (ex instanceof JokerImException) {
-            ErrorCode errorCode = ((JokerImException) ex).getErrorCode();
-            HttpStatus httpStatus = ((JokerImException) ex).getHttpStatus();
+        if (ex instanceof ImException) {
+            ErrorCode errorCode = ((ImException) ex).getErrorCode();
+            HttpStatus httpStatus = ((ImException) ex).getHttpStatus();
             exchange.getResponse().setStatusCode(httpStatus);
-            String msg = StringUtils.defaultIfBlank(((JokerImException) ex).getCustomMsg(), errorCode.getMsg());
+            String msg = StringUtils.defaultIfBlank(((ImException) ex).getCustomMsg(), errorCode.getMsg());
 
             return Mono.fromCallable(() -> objectMapper.writeValueAsBytes(Map.of("error_code", errorCode.name(), "msg", msg)))
                     .map(e -> exchange.getResponse().bufferFactory().wrap(e))
