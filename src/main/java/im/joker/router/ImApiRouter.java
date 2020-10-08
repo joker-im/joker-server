@@ -1,9 +1,11 @@
 package im.joker.router;
 
 
+import com.mongodb.internal.connection.Server;
 import im.joker.handler.AccountHandler;
 import im.joker.handler.SyncHandler;
 import im.joker.handler.RoomHandler;
+import im.joker.handler.VersionHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -15,6 +17,13 @@ import static org.springframework.web.reactive.function.server.RequestPredicates
 
 @Configuration
 public class ImApiRouter {
+    @Bean
+    public RouterFunction<ServerResponse> routeVersions(VersionHandler versionHandler) {
+        return RouterFunctions
+                // 获取版本号
+                .route(GET("_matrix/client/versions")
+                        .and(accept(MediaType.APPLICATION_JSON)), versionHandler::versions);
+    }
 
     @Bean
     public RouterFunction<ServerResponse> routeRoom(RoomHandler roomHandler) {
