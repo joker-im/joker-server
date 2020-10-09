@@ -38,7 +38,8 @@ public enum ErrorCode {
     WEAK_PASSWORD( "密码太弱"),
     INVALID_SIGNATURE( "签名错误"),
     USER_DEACTIVATED( "用户被禁用"),
-    BAD_ALIAS( "别名错误");
+    BAD_ALIAS( "别名错误"),
+    M_MALFORMED_EVENT("事件格式异常");
 
     private String msg;
 

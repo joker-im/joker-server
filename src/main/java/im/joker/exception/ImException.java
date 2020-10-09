@@ -37,6 +37,12 @@ public class ImException extends RuntimeException {
         this.customMsg = customMsg;
     }
 
+    public ImException(ErrorCode errorCode, HttpStatus httpStatus, String customMsg, Throwable t) {
+        super(errorCode.getMsg(), t);
+        this.errorCode = errorCode;
+        this.httpStatus = httpStatus;
+        this.customMsg = customMsg;
+    }
 
     public ErrorCode getErrorCode() {
         return errorCode;
