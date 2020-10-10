@@ -34,14 +34,27 @@ public class RequestProcessor {
      * @param <T>
      * @return
      */
-    public <T> Mono<T> parameterToBean(ServerRequest serverRequest, Class<T> clazz) {
-        Map<String, String> valueMap = serverRequest.queryParams().toSingleValueMap();
-        T result = objectMapper.convertValue(valueMap, clazz);
+    public <T> Mono<T> parameterToMono(ServerRequest serverRequest, Class<T> clazz) {
+        T result = convert(serverRequest, clazz);
         String message = validateMessage(result);
         if (StringUtils.isNoneBlank(message)) {
             throw new ImException(INVALID_PARAM, HttpStatus.BAD_REQUEST, message);
         }
         return Mono.just(result);
+    }
+
+    public <T> T parameterToBean(ServerRequest serverRequest, Class<T> clazz) {
+        T result = convert(serverRequest, clazz);
+        String message = validateMessage(result);
+        if (StringUtils.isNoneBlank(message)) {
+            throw new ImException(INVALID_PARAM, HttpStatus.BAD_REQUEST, message);
+        }
+        return result;
+    }
+
+    private <T> T convert(ServerRequest serverRequest, Class<T> clazz) {
+        Map<String, String> valueMap = serverRequest.queryParams().toSingleValueMap();
+        return objectMapper.convertValue(valueMap, clazz);
     }
 
     /**

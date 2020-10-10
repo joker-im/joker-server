@@ -1,8 +1,7 @@
 package im.joker.router;
 
 
-import com.mongodb.internal.connection.Server;
-import im.joker.handler.AccountHandler;
+import im.joker.handler.UserHandler;
 import im.joker.handler.SyncHandler;
 import im.joker.handler.RoomHandler;
 import im.joker.handler.VersionHandler;
@@ -51,23 +50,23 @@ public class ImApiRouter {
     }
 
     @Bean
-    public RouterFunction<ServerResponse> routeAccount(AccountHandler accountHandler) {
+    public RouterFunction<ServerResponse> routeAccount(UserHandler userHandler) {
         // 注册一个用户,会返回access_token和device_id #https://matrix.org/docs/spec/client_server/r0.6.1#post-matrix-client-r0-register
         return RouterFunctions
                 .route(POST("/_matrix/client/r0/register")
-                        .and(accept(MediaType.APPLICATION_JSON)), accountHandler::register)
-                .andRoute(POST("/_matrix/client/r0/register")
-                        .and(accept(MediaType.APPLICATION_JSON)), accountHandler::register)
-                .andRoute(POST("/_matrix/client/r0/register")
-                        .and(accept(MediaType.APPLICATION_JSON)), accountHandler::register)
-                .andRoute(POST("/_matrix/client/r0/register")
-                        .and(accept(MediaType.APPLICATION_JSON)), accountHandler::register)
-                .andRoute(POST("/_matrix/client/r0/register")
-                        .and(accept(MediaType.APPLICATION_JSON)), accountHandler::register)
+                        .and(accept(MediaType.APPLICATION_JSON)), userHandler::register)
+                /// 查询登录类型
+                .andRoute(GET("/_matrix/client/r0/login")
+                        .and(accept(MediaType.APPLICATION_JSON)), userHandler::queryLoginFlows)
+                // 登录操作
+                .andRoute(POST("/_matrix/client/r0/login")
+                        .and(accept(MediaType.APPLICATION_JSON)), userHandler::login)
 
-
+                .andRoute(POST("/_matrix/client/r0/register")
+                        .and(accept(MediaType.APPLICATION_JSON)), userHandler::register)
+                .andRoute(POST("/_matrix/client/r0/register")
+                        .and(accept(MediaType.APPLICATION_JSON)), userHandler::register)
                 ;
-
 
     }
 

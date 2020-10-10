@@ -18,7 +18,7 @@ public class SyncHandler {
 
 
     public Mono<ServerResponse> sync(ServerRequest serverRequest) {
-        return requestProcessor.parameterToBean(serverRequest, SyncRequest.class)
+        return requestProcessor.parameterToMono(serverRequest, SyncRequest.class)
                 .flatMap(e -> ServerResponse.ok().bodyValue(e));
     }
 
