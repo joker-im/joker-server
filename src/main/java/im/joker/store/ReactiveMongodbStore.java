@@ -41,15 +41,7 @@ public class ReactiveMongodbStore implements IStore {
         return mongoTemplate.createCollection(COLLECTION_NAME_ROOMS)
                 // 创建room的索引
                 .map(o -> o.createIndex(Document.parse("{room_id: 1}"), new IndexOptions().unique(true)))
-                // 创建room_state
-                .then(mongoTemplate.createCollection(COLLECTION_NAME_ROOM_STATES))
-                // 创建room_state索引
-                .map(o -> {
-                    IndexModel index1 = new IndexModel(Document.parse("{room_id: -1, event_id: -1}"));
-                    IndexModel index2 = new IndexModel(Document.parse("{room_id: -1, _id: -1}"));
-                    List<IndexModel> indexes = List.of(index1, index2);
-                    return o.createIndexes(indexes);
-                }).then();
+                .then();
     }
 
     private Mono<Void> createEventCollection() {

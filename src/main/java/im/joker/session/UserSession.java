@@ -2,7 +2,6 @@ package im.joker.session;
 
 import im.joker.device.IDevice;
 import im.joker.helper.GlobalStateHolder;
-import im.joker.session.IUserSession;
 import im.joker.user.IUser;
 import lombok.AllArgsConstructor;
 import lombok.Data;

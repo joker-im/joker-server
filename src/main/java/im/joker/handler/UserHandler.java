@@ -2,6 +2,8 @@ package im.joker.handler;
 
 import im.joker.api.vo.*;
 import im.joker.device.DeviceManager;
+import im.joker.exception.ErrorCode;
+import im.joker.exception.ImException;
 import im.joker.helper.RequestProcessor;
 import im.joker.store.ReactiveMongodbStore;
 import im.joker.session.AuthManager;
@@ -11,6 +13,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -55,6 +60,48 @@ public class UserHandler {
                                         .build();
                                 return ServerResponse.ok().bodyValue(registerResponse);
                             });
+                })
+                .onErrorResume(throwable -> {
+                    String result = """
+                                {
+                                            "session": "FsfiufEOEvnjQXJRBSyTTdNr",
+                                            "flows": [
+                                                {
+                                                    "stages": [
+                                                        "m.login.recaptcha",
+                                                        "m.login.terms",
+                                                        "m.login.dummy"
+                                                    ]
+                                                },
+                                                {
+                                                    "stages": [
+                                                        "m.login.recaptcha",
+                                                        "m.login.terms",
+                                                        "m.login.email.identity"
+                                                    ]
+                                                }
+                                            ],
+                                            "params": {
+                                                "m.login.recaptcha": {
+                                                    "public_key": "6LcgI54UAAAAABGdGmruw6DdOocFpYVdjYBRe4zb"
+                                                },
+                                                "m.login.terms": {
+                                                    "policies": {
+                                                        "privacy_policy": {
+                                                            "version": "1.0",
+                                                            "en": {
+                                                                "name": "Terms and Conditions",
+                                                                "url": "https://matrix-client.matrix.org/_matrix/consent?v=1.0"
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                            """;
+                    return ServerResponse.status(HttpStatus.UNAUTHORIZED)
+                            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                            .bodyValue(result);
                 });
     }
 
