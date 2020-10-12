@@ -1,10 +1,7 @@
 package im.joker.router;
 
 
-import im.joker.handler.UserHandler;
-import im.joker.handler.SyncHandler;
-import im.joker.handler.RoomHandler;
-import im.joker.handler.VersionHandler;
+import im.joker.handler.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
@@ -75,6 +72,14 @@ public class ImApiRouter {
         return RouterFunctions
                 // sync  https://matrix.org/docs/spec/client_server/r0.6.1#get-matrix-client-r0-sync
                 .route(GET("/_matrix/client/r0/sync"), syncHandler::sync)
+
+
+                ;
+    }
+
+    public RouterFunction<ServerResponse> routePushRules(RuleHandler ruleHandler) {
+        return RouterFunctions
+                .route(GET("/_matrix/client/r0/pushrules"), ruleHandler::retrievePushRules)
 
 
                 ;
