@@ -71,17 +71,35 @@ public class ImApiRouter {
     public RouterFunction<ServerResponse> routeSync(SyncHandler syncHandler) {
         return RouterFunctions
                 // sync  https://matrix.org/docs/spec/client_server/r0.6.1#get-matrix-client-r0-sync
-                .route(GET("/_matrix/client/r0/sync"), syncHandler::sync)
+                .route(GET("/_matrix/client/r0/sync")
+                        .and(accept(MediaType.APPLICATION_JSON)), syncHandler::sync)
+                .andRoute(POST("/_matrix/client/r0/user/{userId}/filter")
+                        .and(accept(MediaType.APPLICATION_JSON)), syncHandler::filter)
+                ;
+    }
+
+    @Bean
+    public RouterFunction<ServerResponse> routePresence(PresenceHandler presenceHandler) {
+        return RouterFunctions
+                .route(PUT("/_matrix/client/r0/presence/{userId}/status")
+                        .and(accept(MediaType.APPLICATION_JSON)), presenceHandler::setPresence);
+    }
+
+
+    @Bean
+    public RouterFunction<ServerResponse> routePushRules(RuleHandler ruleHandler) {
+        return RouterFunctions
+                .route(GET("/_matrix/client/r0/pushrules/")
+                        .and(accept(MediaType.APPLICATION_JSON)), ruleHandler::retrievePushRules)
 
 
                 ;
     }
 
-    public RouterFunction<ServerResponse> routePushRules(RuleHandler ruleHandler) {
+    @Bean
+    public RouterFunction<ServerResponse> routeVoip(VoipHandler voipHandler) {
         return RouterFunctions
-                .route(GET("/_matrix/client/r0/pushrules"), ruleHandler::retrievePushRules)
-
-
-                ;
+                .route(GET("/_matrix/client/r0/voip/turnServer")
+                        .and(accept(MediaType.APPLICATION_JSON)), voipHandler::retrieveVoipServer);
     }
 }

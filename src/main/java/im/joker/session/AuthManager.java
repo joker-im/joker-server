@@ -14,6 +14,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import static im.joker.constants.ImRedisKeys.TOKEN_USER;
+
 @Component
 @Slf4j
 public class AuthManager {
@@ -38,7 +40,6 @@ public class AuthManager {
                     IDevice device = tuple2.getT2();
                     return Mono.just(new UserSession(device, user, globalStateHolder));
                 });
-
 
     }
 

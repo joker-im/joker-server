@@ -12,7 +12,7 @@ spring:
       database: joker-im
 
   jackson:
-    property-naming-strategy: CAMEL_CASE_TO_LOWER_CASE_WITH_UNDERSCORES
+    property-naming-strategy: SNAKE_CASE
     serialization:
       FAIL_ON_EMPTY_BEANS: false
     visibility:

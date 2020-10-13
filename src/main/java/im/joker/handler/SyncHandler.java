@@ -1,5 +1,6 @@
 package im.joker.handler;
 
+import im.joker.api.vo.FilterResponse;
 import lombok.extern.slf4j.Slf4j;
 import im.joker.api.vo.SyncRequest;
 import im.joker.helper.RequestProcessor;
@@ -8,6 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
+
+import java.util.UUID;
+import java.util.logging.Filter;
 
 @Service
 @Slf4j
@@ -23,4 +27,10 @@ public class SyncHandler {
     }
 
 
+    public Mono<ServerResponse> filter(ServerRequest serverRequest) {
+        return Mono.just(FilterResponse.builder().filterId(UUID.randomUUID().toString()).build())
+                .flatMap(e ->
+                        ServerResponse.ok().bodyValue(e)
+                );
+    }
 }
