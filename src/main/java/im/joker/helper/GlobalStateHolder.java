@@ -4,6 +4,7 @@ import im.joker.device.DeviceManager;
 import im.joker.session.AuthManager;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,6 +15,8 @@ public class GlobalStateHolder {
     private AuthManager authManager;
     @Autowired
     private DeviceManager deviceManager;
+    @Autowired
+    private ReactiveStringRedisTemplate redisTemplate;
 
 
 }

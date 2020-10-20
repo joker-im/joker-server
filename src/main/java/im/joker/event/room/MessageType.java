@@ -3,7 +3,7 @@ package im.joker.event.room;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * 房间消息类型的msgtype的类型。
+ * 房间消息类型的msgType的类型。
  *
  * @author linyurong
  */
@@ -38,7 +38,7 @@ public enum MessageType {
     AUDIO("m.audio"),
     VIDEO("m.video");
 
-    private String type;
+    private final String type;
 
     MessageType(String type) {
         this.type = type;

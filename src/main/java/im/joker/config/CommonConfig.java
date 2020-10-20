@@ -36,9 +36,9 @@ public class CommonConfig {
                 ServerHttpResponse response = ctx.getResponse();
                 HttpHeaders headers = response.getHeaders();
                 headers.add("Access-Control-Allow-Origin", "*");
-                headers.add("Access-Control-Allow-Methods", "*");
+                headers.add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
                 headers.add("Access-Control-Max-Age", "18000L");
-                headers.add("Access-Control-Allow-Headers", "x-requested-with, authorization, Content-Type, Authorization, credential, X-XSRF-TOKEN,token,username,client");
+                headers.add("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
                 headers.add("Access-Control-Expose-Headers", "*");
                 headers.add("Access-Control-Allow-Credentials", "true");
                 if (request.getMethod() == HttpMethod.OPTIONS) {

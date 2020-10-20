@@ -6,6 +6,7 @@ import im.joker.event.room.IRoomEvent;
 import im.joker.room.IRoom;
 import im.joker.user.IUser;
 import im.joker.user.User;
+import lombok.RequiredArgsConstructor;
 import org.bson.Document;
 import org.springframework.data.mongodb.core.ChangeStreamOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
@@ -14,6 +15,7 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.PostConstruct;
 import java.util.List;
 
 /**
@@ -21,6 +23,7 @@ import java.util.List;
  * @date 2020/9/30 16:55
  */
 @Component
+@RequiredArgsConstructor
 public class ReactiveMongodbStore implements IStore {
 
     private final ReactiveMongoTemplate mongoTemplate;
@@ -33,19 +36,18 @@ public class ReactiveMongodbStore implements IStore {
 
     private static final String COLLECTION_USER = "users";
 
-    public ReactiveMongodbStore(ReactiveMongoTemplate mongoTemplate) {
-        this.mongoTemplate = mongoTemplate;
+    @PostConstruct
+    public void init() {
         createCollectionAndIndex().subscribe();
     }
 
-    private Mono<Void> createRoomCollection() {
+    private Mono<String> createRoomCollection() {
         return mongoTemplate.createCollection(COLLECTION_NAME_ROOMS)
                 // 创建room的索引
-                .flatMap(o -> Mono.from(o.createIndex(Document.parse("{room_id: 1}"), new IndexOptions().unique(true))))
-                .then();
+                .flatMap(o -> Mono.from(o.createIndex(Document.parse("{room_id: 1}"), new IndexOptions().unique(true))));
     }
 
-    private Mono<Void> createEventCollection() {
+    private Mono<String> createEventCollection() {
         return mongoTemplate.createCollection(COLLECTION_NAME_EVENTS)
                 .flatMap(o -> {
                     IndexModel index1 = new IndexModel(Document.parse("{room_id: 1, _id: -1}"));
@@ -53,22 +55,21 @@ public class ReactiveMongodbStore implements IStore {
                     IndexModel index3 = new IndexModel(Document.parse("{\"room_id\": 1, \"json.type\": 1, \"json.sender\": 1}"));
                     List<IndexModel> indexes = List.of(index1, index2, index3);
                     return Mono.from(o.createIndexes(indexes));
-                }).then();
+                });
     }
 
 
-    private Mono<Void> createUserCollection() {
+    private Mono<String> createUserCollection() {
         return mongoTemplate.createCollection(COLLECTION_USER)
                 // 创建user的索引
                 .flatMap(o -> {
                     IndexModel index1 = new IndexModel(Document.parse("{username:1}"), new IndexOptions().unique(true));
                     IndexModel index2 = new IndexModel(Document.parse("{create_time:-1}"));
                     return Mono.from(o.createIndexes(List.of(index1, index2)));
-                })
-                .then();
+                });
     }
 
-    private Mono<Void> createRoomStateCollection() {
+    private Mono<String> createRoomStateCollection() {
         return mongoTemplate.createCollection(COLLECTION_NAME_ROOM_STATES)
                 // 创建room_state索引
                 .flatMap(o -> {
@@ -76,7 +77,7 @@ public class ReactiveMongodbStore implements IStore {
                     IndexModel index2 = new IndexModel(Document.parse("{room_id: -1, _id: -1}"));
                     List<IndexModel> indexes = List.of(index1, index2);
                     return Mono.from(o.createIndexes(indexes));
-                }).then();
+                });
     }
 
     private Mono<Void> createCollectionAndIndex() {
@@ -112,7 +113,7 @@ public class ReactiveMongodbStore implements IStore {
                     } else {
                         return Mono.empty();
                     }
-                });
+                }).then();
 
     }
 

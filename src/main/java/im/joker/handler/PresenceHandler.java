@@ -12,6 +12,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
+import static im.joker.config.filter.AuthFilter.getLoginDevice;
 import static im.joker.constants.ImRedisKeys.USER_PRESENCE;
 
 @Component
@@ -26,12 +27,12 @@ public class PresenceHandler {
         return serverRequest.bodyToMono(PresenceRequest.class)
                 .zipWith(Mono.subscriberContext())
                 .flatMap(e -> {
-                    IDevice loginDevice = e.getT2().get("device");
+                    IDevice loginDevice = e.getT2().get(getLoginDevice());
                     PresenceRequest p = e.getT1();
                     return redisTemplate.opsForValue()
                             .set(String.format(USER_PRESENCE, loginDevice.getUsername()),
                                     p.getPresence(),
-                                    Duration.ofHours(1));
+                                    Duration.ofHours(6));
                 })
                 .flatMap(e -> ServerResponse.ok().build());
     }
