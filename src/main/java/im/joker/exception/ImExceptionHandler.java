@@ -9,13 +9,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.reactive.error.ErrorWebExceptionHandler;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.MonoSink;
 
 import java.util.Map;
+import java.util.function.Consumer;
 
 @Configuration
 @Order(-2)
@@ -36,16 +39,19 @@ public class ImExceptionHandler implements ErrorWebExceptionHandler {
             HttpStatus httpStatus = ((ImException) ex).getHttpStatus();
             exchange.getResponse().setStatusCode(httpStatus);
             String msg = StringUtils.defaultIfBlank(((ImException) ex).getCustomMsg(), errorCode.getMsg());
-
-            return Mono.fromCallable(() -> objectMapper.writeValueAsBytes(Map.of("error_code", errorCode.name(), "msg", msg)))
-                    .map(e -> exchange.getResponse().bufferFactory().wrap(e))
-                    .flatMap(e -> exchange.getResponse().writeWith(Mono.just(e)));
+            return Mono.create((Consumer<MonoSink<DataBuffer>>) monoSink -> {
+                byte[] jsonBytes = objectMapper.writeValueAsBytes(Map.of("error_code", errorCode.name(), "msg", msg));
+                DataBuffer dataBuffer = exchange.getResponse().bufferFactory().wrap(jsonBytes);
+                monoSink.success(dataBuffer);
+            }).flatMap(e -> exchange.getResponse().writeWith(Mono.just(e)));
 
         } else {
             exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
-            return Mono.fromCallable(() -> objectMapper.writeValueAsBytes(Map.of("error_code", ErrorCode.UNKNOWN.name(), "msg", ErrorCode.UNKNOWN.getMsg())))
-                    .map(e -> exchange.getResponse().bufferFactory().wrap(e))
-                    .flatMap(e -> exchange.getResponse().writeWith(Mono.just(e)));
+            return Mono.create((Consumer<MonoSink<DataBuffer>>) monoSink -> {
+                byte[] jsonBytes = objectMapper.writeValueAsBytes(Map.of("error_code", ErrorCode.UNKNOWN.name(), "msg", ErrorCode.UNKNOWN.getMsg()));
+                DataBuffer dataBuffer = exchange.getResponse().bufferFactory().wrap(jsonBytes);
+                monoSink.success(dataBuffer);
+            }).flatMap(e -> exchange.getResponse().writeWith(Mono.just(e)));
         }
 
     }
