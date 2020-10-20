@@ -7,6 +7,8 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import static im.joker.config.filter.AuthFilter.getLoginDevice;
+
 @Service
 @Slf4j
 public class RuleHandler {
@@ -316,7 +318,7 @@ public class RuleHandler {
 
         return Mono.subscriberContext()
                 .map(e -> {
-                    IDevice device = e.get("device");
+                    IDevice device = e.get(getLoginDevice());
                     String userName = device.getUsername();
                     return String.format(rules, userName);
                 })
