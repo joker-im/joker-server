@@ -40,7 +40,12 @@ public class ImExceptionHandler implements ErrorWebExceptionHandler {
             exchange.getResponse().setStatusCode(httpStatus);
             String msg = StringUtils.defaultIfBlank(((ImException) ex).getCustomMsg(), errorCode.getMsg());
             return Mono.create((Consumer<MonoSink<DataBuffer>>) monoSink -> {
-                byte[] jsonBytes = objectMapper.writeValueAsBytes(Map.of("error_code", errorCode.name(), "msg", msg));
+                byte[] jsonBytes = new byte[0];
+                try {
+                    jsonBytes = objectMapper.writeValueAsBytes(Map.of("error_code", errorCode.name(), "msg", msg));
+                } catch (Exception e) {
+                    log.error("json转换异常", e);
+                }
                 DataBuffer dataBuffer = exchange.getResponse().bufferFactory().wrap(jsonBytes);
                 monoSink.success(dataBuffer);
             }).flatMap(e -> exchange.getResponse().writeWith(Mono.just(e)));
@@ -48,7 +53,12 @@ public class ImExceptionHandler implements ErrorWebExceptionHandler {
         } else {
             exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
             return Mono.create((Consumer<MonoSink<DataBuffer>>) monoSink -> {
-                byte[] jsonBytes = objectMapper.writeValueAsBytes(Map.of("error_code", ErrorCode.UNKNOWN.name(), "msg", ErrorCode.UNKNOWN.getMsg()));
+                byte[] jsonBytes = new byte[0];
+                try {
+                    jsonBytes = objectMapper.writeValueAsBytes(Map.of("error_code", ErrorCode.UNKNOWN.name(), "msg", ErrorCode.UNKNOWN.getMsg()));
+                } catch (Exception e) {
+                    log.error("json转换异常", e);
+                }
                 DataBuffer dataBuffer = exchange.getResponse().bufferFactory().wrap(jsonBytes);
                 monoSink.success(dataBuffer);
             }).flatMap(e -> exchange.getResponse().writeWith(Mono.just(e)));

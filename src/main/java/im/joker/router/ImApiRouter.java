@@ -75,7 +75,7 @@ public class ImApiRouter {
                         .and(accept(MediaType.APPLICATION_JSON)), syncHandler::sync)
                 .andRoute(POST("/_matrix/client/r0/user/{userId}/filter")
                         .and(accept(MediaType.APPLICATION_JSON)), syncHandler::filter)
-                ;
+                .andRoute(GET("/inject"), syncHandler::inject);
     }
 
     @Bean

@@ -63,18 +63,17 @@ public class DeviceManager {
 
 
     public Mono<IDevice> find(String token) {
-        return Flux.zip(redisTemplate.opsForHash().entries(String.format(TOKEN_USER, token)), Mono.just(new ConcurrentHashMap<String, String>(8)))
-                .map(o -> {
-                    Map.Entry<Object, Object> entry = o.getT1();
-                    o.getT2().put(entry.getKey().toString(), entry.getValue().toString());
-                    return o.getT2();
+        Map<String, String> tempMap = new ConcurrentHashMap<>(8);
+        return redisTemplate.opsForHash().entries(String.format(TOKEN_USER, token))
+                .doOnNext(o -> {
+                    tempMap.put(o.getKey().toString(), o.getValue().toString());
                 })
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.UNKNOWN_TOKEN, HttpStatus.FORBIDDEN)))
                 .last()
                 .map(e ->
                         Device.builder()
-                                .username(e.get("username"))
-                                .deviceId(e.get("device_id"))
+                                .username(tempMap.get("username"))
+                                .deviceId(tempMap.get("device_id"))
                                 .accessToken(token)
                                 .build()
                 );
