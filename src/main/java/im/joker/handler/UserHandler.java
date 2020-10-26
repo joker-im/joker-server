@@ -2,11 +2,10 @@ package im.joker.handler;
 
 import im.joker.api.vo.*;
 import im.joker.device.DeviceManager;
-import im.joker.exception.ErrorCode;
-import im.joker.exception.ImException;
+import im.joker.helper.PasswordEncoder;
 import im.joker.helper.RequestProcessor;
-import im.joker.store.ReactiveMongodbStore;
 import im.joker.session.AuthManager;
+import im.joker.store.ReactiveMongodbStore;
 import im.joker.user.IUser;
 import im.joker.user.User;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +35,8 @@ public class UserHandler {
     private DeviceManager deviceManager;
     @Autowired
     private AuthManager authManager;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     public Mono<ServerResponse> register(ServerRequest serverRequest) {
         return serverRequest.bodyToMono(RegisterRequest.class)
@@ -44,6 +45,7 @@ public class UserHandler {
                     User user = new User();
                     user.setRegisterDeviceId(StringUtils.defaultIfBlank(registerRequest.getDeviceId(), UUID.randomUUID().toString()));
                     BeanUtils.copyProperties(registerRequest, user);
+                    user.setPassword(passwordEncoder.encode(user.getPassword()));
                     return mongodbStore.addUser(user);
                 })
                 .flatMap(tuple2 -> {

@@ -43,11 +43,8 @@ public class DeviceManager {
                 // redis中找不到token的时候就往redis里面存一个
                 .get(String.format(DEVICE_TOKEN, deviceId, username))
                 .switchIfEmpty(createNewToken(deviceId, username))
-                .flatMap(e -> {
-                    IDevice device = Device.builder().accessToken(e).deviceId(finalDeviceId).username(username)
-                            .name(name).build();
-                    return Mono.just(device);
-                });
+                .map(e -> Device.builder().accessToken(e).deviceId(finalDeviceId).username(username)
+                        .name(name).build());
 
     }
 

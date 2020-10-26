@@ -2,6 +2,7 @@ package im.joker.handler;
 
 import im.joker.api.vo.FilterResponse;
 import im.joker.config.filter.AuthFilter;
+import im.joker.device.Device;
 import im.joker.device.IDevice;
 import lombok.extern.slf4j.Slf4j;
 import im.joker.api.vo.SyncRequest;
@@ -33,13 +34,14 @@ public class SyncHandler {
     public Mono<ServerResponse> sync(ServerRequest serverRequest) {
         return requestProcessor.parameterToMono(serverRequest, SyncRequest.class)
                 .zipWith(Mono.subscriberContext())
-                .delayUntil(tuple2 -> Mono.create((Consumer<MonoSink<Boolean>>) monoSink -> {
+                .flatMap(tuple2 -> Mono.create((Consumer<MonoSink<Boolean>>) monoSink -> {
                     IDevice loginDevice = tuple2.getT2().get(AuthFilter.getLoginDevice());
                     monoSinkMap.put(loginDevice.getDeviceId(), monoSink);
                 }))
                 .flatMap(e -> ServerResponse.ok().build())
                 .timeout(Duration.ofSeconds(30), ServerResponse.notFound().build());
     }
+
 
 
     public Mono<ServerResponse> filter(ServerRequest serverRequest) {
@@ -49,14 +51,4 @@ public class SyncHandler {
                 );
     }
 
-    public Mono<ServerResponse> inject(ServerRequest serverRequest) {
-        return Mono.subscriberContext()
-                .flatMap(context -> {
-                    IDevice loginDevice = context.get(AuthFilter.getLoginDevice());
-                    log.info("inject loginDevice:{}", loginDevice);
-                    MonoSink<Boolean> booleanMonoSink = monoSinkMap.get(loginDevice.getDeviceId());
-                    booleanMonoSink.success(true);
-                    return ServerResponse.ok().build();
-                });
-    }
 }

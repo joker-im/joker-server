@@ -1,5 +1,7 @@
 package im.joker.config;
 
+import im.joker.helper.NoOpPasswordEncoder;
+import im.joker.helper.PasswordEncoder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -48,6 +50,11 @@ public class CommonConfig {
             }
             return chain.filter(ctx);
         };
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new NoOpPasswordEncoder();
     }
 
 }

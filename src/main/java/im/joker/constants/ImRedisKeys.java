@@ -21,4 +21,10 @@ public class ImRedisKeys {
      */
     public final static String USER_PRESENCE = "im.joker:user_presence:%s";
 
+
+    /**
+     * stream的自增序列
+     */
+    public final static String EVENT_STREAM_SEQUENCE = "im.joker:event_stream_sequence";
+
 }
