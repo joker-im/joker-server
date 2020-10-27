@@ -1,6 +1,6 @@
 package im.joker.room;
 
-import im.joker.event.IContentEvent;
+import im.joker.event.ImEvent;
 
 /**
  * @author linyurong
@@ -14,7 +14,7 @@ public interface IRoom {
      * @param ev
      * @return eventId
      */
-    String inject(IContentEvent ev);
+    String inject(ImEvent ev);
 
 
     /**

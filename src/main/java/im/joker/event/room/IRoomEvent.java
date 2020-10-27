@@ -1,13 +1,13 @@
 package im.joker.event.room;
 
-import im.joker.event.IContentEvent;
+import im.joker.event.ImEvent;
 
 /**
  * 房间事件。
  *
  * @author linyurong
  **/
-public interface IRoomEvent<T> extends IContentEvent<T> {
+public interface IRoomEvent extends ImEvent {
     /**
      * 房间id。
      *
@@ -16,9 +16,40 @@ public interface IRoomEvent<T> extends IContentEvent<T> {
     String getRoomId();
 
     /**
-     * 状态的key, 同一种状态和同一个key在房间内只有一个最新的事件。
+     * 事件id
      *
-     * @return stateKey
+     * @return eventId
      */
-    String getStateKey();
+    String getEventId();
+
+
+    /**
+     * 事件的发送者。
+     *
+     * @return sender
+     */
+    String getSender();
+
+    /**
+     * 事件生成的时间，为服务器端的事件。
+     *
+     * @return server timestamp
+     */
+    Long getOriginServerTs();
+
+    /**
+     * 事件的事务id，用于防止重复提交同一事件(如在重试时)。
+     *
+     * @return transaction id to prevent duplicate
+     */
+    String getTransactionId();
+
+
+    /**
+     * 可以包含一些额外信息
+     *
+     * @return UnsignedData
+     */
+    UnsignedData getUnsignedData();
+
 }

@@ -47,11 +47,17 @@ public class CreateRoomRequest {
      */
     private StateEvent initialState;
 
+    /**
+     * 房间是否公有可见, 默认是私有
+     * public, private
+     */
+    private String visibility;
 
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
     public static class StateEvent {
+
         private String type;
 
         private String stateKey;

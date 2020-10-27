@@ -1,4 +1,4 @@
-package im.joker.event.room;
+package im.joker.event;
 
 import org.apache.commons.lang3.StringUtils;
 

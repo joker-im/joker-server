@@ -1,6 +1,6 @@
 package im.joker.room;
 
-import im.joker.event.IContentEvent;
+import im.joker.event.ImEvent;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,7 +27,7 @@ public class Room implements IRoom {
 
 
     @Override
-    public String inject(IContentEvent ev) {
+    public String inject(ImEvent ev) {
         return null;
     }
 
