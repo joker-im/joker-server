@@ -3,7 +3,7 @@ package im.joker.event.room;
 import lombok.Data;
 
 @Data
-public abstract class AbsMessageEvent implements IRoomEvent {
+public abstract class AbstractMessageEvent implements IRoomEvent {
 
     protected String roomId;
 
@@ -15,7 +15,7 @@ public abstract class AbsMessageEvent implements IRoomEvent {
 
     protected String transactionId;
 
-    protected UnsignedData unsignedData;
+    protected UnsignedData unsigned;
 
     protected String sender;
 

@@ -1,5 +1,6 @@
-package im.joker.event.content;
+package im.joker.event.content.state;
 
+import im.joker.event.content.IContent;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,6 +14,9 @@ public class CreateContent implements IContent {
 
     private String roomVersion;
 
+    /**
+     * 这个用于客户端升级房间使用的
+     */
     private PreviousRoom predecessor;
 
 

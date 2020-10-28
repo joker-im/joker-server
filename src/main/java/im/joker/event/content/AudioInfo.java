@@ -1,4 +1,4 @@
-package im.joker.event.content.message;
+package im.joker.event.content;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -7,10 +7,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Data
 @NoArgsConstructor
-public class ThumbnailInfo {
+public class AudioInfo {
 
-    private Integer h;
-    private Integer w;
+    private Integer duration;
+
     private String mimetype;
+
     private Integer size;
 }

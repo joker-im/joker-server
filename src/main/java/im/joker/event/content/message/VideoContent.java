@@ -1,42 +1,20 @@
 package im.joker.event.content.message;
 
-import im.joker.event.content.IContent;
+import im.joker.event.content.AbstractMessageContent;
+import im.joker.event.content.VideoInfo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+@EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
 @Data
 @NoArgsConstructor
-public class VideoContent implements IContent {
-
-    private String body;
+public class VideoContent extends AbstractMessageContent {
 
     private VideoInfo info;
 
-    private String msgType = "m.video";
-
     private String url;
 
-
-    @AllArgsConstructor
-    @Data
-    @NoArgsConstructor
-    public static class VideoInfo {
-
-        private Integer duration;
-
-        private Integer h;
-
-        private Integer w;
-
-        private String mimetype;
-
-        private Integer size;
-
-        private String thumbnailUrl;
-
-        private ThumbnailInfo thumbnailInfo;
-
-    }
 }

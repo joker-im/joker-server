@@ -1,6 +1,7 @@
 package im.joker.event;
 
-import org.apache.commons.lang3.StringUtils;
+import im.joker.event.content.IContent;
+import im.joker.event.content.message.*;
 
 /**
  * 房间消息类型的msgType的类型。
@@ -8,47 +9,32 @@ import org.apache.commons.lang3.StringUtils;
  * @author linyurong
  */
 public enum MessageType {
-    /**
-     * e.g.:
-     * <pre>
-     *      "content": {
-     *         "body": "This is an example text message",
-     *         "msgtype": "m.text"
-     *     },
-     * </pre>
-     */
-    TEXT("m.text"),
-    /**
-     * e.g.:
-     * <pre>
-     *     "content": {
-     *         "body": "filename.jpg",
-     *         "info": {
-     *             "h": 398,
-     *             "mimetype": "image/jpeg",
-     *             "size": 31037,
-     *             "w": 394
-     *         },
-     *         "msgtype": "m.image",
-     *         "url": "mxc://localhost/JWEIFJgwEIhweiWJE"
-     *     },
-     * </pre>
-     */
-    IMAGE("m.image"),
-    AUDIO("m.audio"),
-    VIDEO("m.video");
+
+
+    TEXT("m.text", CommonTextContent.class),
+    EMOTE("m.emote", CommonTextContent.class),
+    NOTICE("m.notice", CommonTextContent.class),
+    LOCATION("m.location", LocationContent.class),
+    IMAGE("m.image", ImageContent.class),
+    AUDIO("m.audio", AudioContent.class),
+    VIDEO("m.video", VideoContent.class),
+    FILE("m.file", FileContent.class);
 
     private final String type;
 
-    MessageType(String type) {
+    private final Class<? extends IContent> contentClass;
+
+    MessageType(String type, Class<? extends IContent> clazz) {
         this.type = type;
+        this.contentClass = clazz;
     }
 
-    public String get() {
+    public String getType() {
         return type;
     }
 
-    public boolean is(String type) {
-        return StringUtils.equals(this.type, type);
+    public Class<? extends IContent> getContentClass() {
+        return contentClass;
     }
+
 }

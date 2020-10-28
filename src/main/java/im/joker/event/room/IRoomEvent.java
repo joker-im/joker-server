@@ -50,6 +50,6 @@ public interface IRoomEvent extends ImEvent {
      *
      * @return UnsignedData
      */
-    UnsignedData getUnsignedData();
+    UnsignedData getUnsigned();
 
 }

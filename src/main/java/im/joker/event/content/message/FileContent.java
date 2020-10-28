@@ -1,40 +1,26 @@
 package im.joker.event.content.message;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import im.joker.event.content.IContent;
+import im.joker.event.content.AbstractMessageContent;
+import im.joker.event.content.FileInfo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+@EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
 @Data
 @NoArgsConstructor
-public class FileContent implements IContent {
+public class FileContent extends AbstractMessageContent {
 
-    private String body;
 
     private String filename;
 
     private FileInfo info;
-    @JsonProperty("msgtype")
-    private String msgType = "m.file";
 
     private String url;
 
 
-    @AllArgsConstructor
-    @Data
-    @NoArgsConstructor
-    public static class FileInfo {
-
-        private String mimetype;
-
-        private Integer size;
-
-        private String thumbnailUrl;
-
-        private ThumbnailInfo thumbnailInfo;
-    }
 
 }
 

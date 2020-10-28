@@ -1,10 +1,9 @@
 package im.joker.event.room;
 
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 @Data
-public abstract class AbsStateEvent implements StateEvent {
+public abstract class AbstractStateEvent implements StateEvent {
 
     protected String stateKey;
 

@@ -1,12 +1,17 @@
-package im.joker.event.content;
+package im.joker.event.content.state;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import im.joker.event.content.IContent;
+import im.joker.event.room.UnsignedData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotNull;
 
+/**
+ * 就是文档的EventContent类型
+ */
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
@@ -19,7 +24,7 @@ public class MembershipContent implements IContent {
 
 
     /**
-     * ["invite", "join", "knock", "leave", "ban"]
+     * ["invite", "join", "knock", "leave", "ban"] 必须为这其一
      */
     @NotNull
     private String membership;

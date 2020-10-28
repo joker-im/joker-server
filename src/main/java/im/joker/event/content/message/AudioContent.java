@@ -1,33 +1,22 @@
 package im.joker.event.content.message;
 
-import im.joker.event.content.IContent;
+import im.joker.event.content.AbstractMessageContent;
+import im.joker.event.content.AudioInfo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+@EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
 @Data
 @NoArgsConstructor
-public class AudioContent implements IContent {
+public class AudioContent extends AbstractMessageContent {
 
-    private String body;
-
-    private String msgType = "m.audio";
 
     private String url;
 
     private AudioInfo info;
 
-    @AllArgsConstructor
-    @Data
-    @NoArgsConstructor
-    public static class AudioInfo {
 
-        private Integer duration;
-
-        private String mimetype;
-
-        private Integer size;
-    }
-    
 }

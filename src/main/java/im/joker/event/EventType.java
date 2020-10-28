@@ -1,6 +1,7 @@
 package im.joker.event;
 
-import im.joker.event.room.RoomCreateEvent;
+import im.joker.event.room.message.MessageEvent;
+import im.joker.event.room.state.*;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.stream.Stream;
@@ -16,6 +17,20 @@ public enum EventType {
      * 房间创建
      */
     Creation("m.room.create", true, RoomCreateEvent.class),
+
+    Membership("m.room.member", true, MembershipEvent.class),
+
+    PowerLevel("m.room.power_levels", true, PowerLevelEvent.class),
+
+    Redaction("m.room.redaction", false, RedactionEvent.class),
+
+    RoomMessage("m.room.message", false, MessageEvent.class),
+
+    RoomName("m.room.name", true, RoomNameEvent.class),
+
+    RoomTopic("m.room.topic", true, RoomTopicEvent.class),
+
+    RoomAvatar("m.room.avatar", true, RoomAvatarEvent.class),
 
     Unknown(null, false, null);
 
@@ -33,5 +48,16 @@ public enum EventType {
         this.eventClass = eventClass;
     }
 
+    public String getId() {
+        return id;
+    }
+
+    public boolean isState() {
+        return isState;
+    }
+
+    public Class<? extends ImEvent> getEventClass() {
+        return eventClass;
+    }
 
 }
