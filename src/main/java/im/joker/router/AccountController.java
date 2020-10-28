@@ -5,6 +5,8 @@ import im.joker.api.vo.LoginFlowResponse;
 import im.joker.api.vo.LoginRequest;
 import im.joker.api.vo.LoginResponse;
 import im.joker.api.vo.RegisterRequest;
+import im.joker.config.filter.AuthFilter;
+import im.joker.device.IDevice;
 import im.joker.handler.UserHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,6 +87,12 @@ public class AccountController {
     @PostMapping("/login")
     public Mono<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
         return userHandler.login(loginRequest);
+    }
+
+    @PostMapping("/logout")
+    public Mono<Void> logout() {
+        Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> context.get(AuthFilter.getLoginDevice()));
+        return loginDevice.flatMap(e -> userHandler.logout(e));
     }
 
 

@@ -8,16 +8,14 @@ import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static im.joker.constants.ImRedisKeys.DEVICE_TOKEN;
+import static im.joker.constants.ImRedisKeys.USER_DEVICE_TOKEN;
 import static im.joker.constants.ImRedisKeys.TOKEN_USER;
 
 @Component
@@ -41,7 +39,7 @@ public class DeviceManager {
         String finalDeviceId = deviceId;
         return redisTemplate.opsForValue()
                 // redis中找不到token的时候就往redis里面存一个
-                .get(String.format(DEVICE_TOKEN, deviceId, username))
+                .get(String.format(USER_DEVICE_TOKEN, deviceId, username))
                 .switchIfEmpty(createNewToken(deviceId, username))
                 .map(e -> Device.builder().accessToken(e).deviceId(finalDeviceId).username(username)
                         .name(name).build());
@@ -51,7 +49,7 @@ public class DeviceManager {
     private Mono<String> createNewToken(String deviceId, String username) {
         String token = UUID.randomUUID().toString();
         Duration duration = Duration.ofDays(1L);
-        Mono<Boolean> saveOps1 = redisTemplate.opsForValue().set(String.format(DEVICE_TOKEN, deviceId, username), token, duration);
+        Mono<Boolean> saveOps1 = redisTemplate.opsForValue().set(String.format(USER_DEVICE_TOKEN, deviceId, username), token, duration);
         Map<String, String> userInfo = Map.of("username", username, "device_id", deviceId);
         Mono<Boolean> expireOps = redisTemplate.expire(String.format(TOKEN_USER, token), duration);
         Mono<Boolean> saveOps2 = redisTemplate.opsForHash().putAll(String.format(TOKEN_USER, token), userInfo).then(expireOps);
@@ -74,5 +72,11 @@ public class DeviceManager {
                                 .accessToken(token)
                                 .build()
                 );
+    }
+
+    public Mono<Void> removeDevice(IDevice e) {
+        String userDevice = String.format(USER_DEVICE_TOKEN, e.getUsername(), e.getDeviceId());
+        String tokenUser = String.format(TOKEN_USER, e.getAccessToken());
+        return redisTemplate.delete(userDevice, tokenUser).then();
     }
 }

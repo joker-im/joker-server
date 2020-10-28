@@ -2,6 +2,7 @@ package im.joker.handler;
 
 import im.joker.api.vo.*;
 import im.joker.device.DeviceManager;
+import im.joker.device.IDevice;
 import im.joker.helper.PasswordEncoder;
 import im.joker.helper.RequestProcessor;
 import im.joker.session.AuthManager;
@@ -86,5 +87,9 @@ public class UserHandler {
                         .deviceId(tuple2.getDevice().getDeviceId())
                         .build());
 
+    }
+
+    public Mono<Void> logout(IDevice e) {
+        return authManager.logout(e);
     }
 }

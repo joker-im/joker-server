@@ -44,4 +44,7 @@ public class AuthManager {
 
     }
 
+    public Mono<Void> logout(IDevice e) {
+        return deviceManager.removeDevice(e);
+    }
 }
