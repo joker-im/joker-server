@@ -19,6 +19,11 @@ public class CreateContent implements IContent {
      */
     private PreviousRoom predecessor;
 
+    /**
+     * 其他服务器上的用户是否能加入本房间
+     */
+    private Boolean mFederate;
+
 
     @AllArgsConstructor
     @NoArgsConstructor

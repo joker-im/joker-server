@@ -31,20 +31,14 @@ public class SyncHandler {
     private Map<String, MonoSink<Boolean>> monoSinkMap = new ConcurrentHashMap<>();
 
 
-    public Mono<ServerResponse> sync(ServerRequest serverRequest) {
-        return requestProcessor.parameterToMono(serverRequest, SyncRequest.class)
-                .zipWith(Mono.subscriberContext())
-                .flatMap(tuple2 -> Mono.create((Consumer<MonoSink<Boolean>>) monoSink -> {
-                    IDevice loginDevice = tuple2.getT2().get(AuthFilter.getLoginDevice());
-                    monoSinkMap.put(loginDevice.getDeviceId(), monoSink);
-                }))
+    public Mono<ServerResponse> sync(SyncRequest syncRequest, IDevice loginDevice) {
+        return Mono.create((Consumer<MonoSink<Boolean>>) monoSink -> monoSinkMap.put(loginDevice.getDeviceId(), monoSink))
                 .flatMap(e -> ServerResponse.ok().build())
                 .timeout(Duration.ofSeconds(30), ServerResponse.notFound().build());
     }
 
 
-
-    public Mono<ServerResponse> filter(ServerRequest serverRequest) {
+    public Mono<ServerResponse> filter(String userId) {
         return Mono.just(FilterResponse.builder().filterId(UUID.randomUUID().toString()).build())
                 .flatMap(e ->
                         ServerResponse.ok().bodyValue(e)

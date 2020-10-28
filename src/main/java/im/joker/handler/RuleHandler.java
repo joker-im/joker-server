@@ -14,7 +14,7 @@ import static im.joker.config.filter.AuthFilter.getLoginDevice;
 public class RuleHandler {
 
 
-    public Mono<ServerResponse> retrievePushRules(ServerRequest serverRequest) {
+    public Mono<String> retrievePushRules(IDevice device) {
         String rules = """
                     {
                       "global": {
@@ -315,15 +315,8 @@ public class RuleHandler {
                       "device": {}
                     }
                 """;
+        return Mono.just(String.format(rules, device.getUsername()));
 
-        return Mono.subscriberContext()
-                .map(e -> {
-                    IDevice device = e.get(getLoginDevice());
-                    String userName = device.getUsername();
-                    return String.format(rules, userName);
-                })
-
-                .flatMap(e -> ServerResponse.ok().bodyValue(e));
 
     }
 }

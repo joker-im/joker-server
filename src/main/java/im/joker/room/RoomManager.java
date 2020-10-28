@@ -1,7 +1,7 @@
 package im.joker.room;
 
-import im.joker.api.vo.CreateRoomRequest;
-import im.joker.api.vo.CreateRoomResponse;
+import im.joker.api.vo.room.CreateRoomRequest;
+import im.joker.api.vo.room.CreateRoomResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;

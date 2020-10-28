@@ -11,7 +11,7 @@ import reactor.core.publisher.Mono;
 public class VoipHandler {
 
 
-    public Mono<ServerResponse> retrieveVoipServer(ServerRequest serverRequest) {
+    public Mono<String> retrieveVoipServer() {
         String result = """
                     {
                       "username": "1443779631:@user:example.com",
@@ -25,7 +25,6 @@ public class VoipHandler {
                     }
                 """;
 
-        return Mono.just(result)
-                .flatMap(e -> ServerResponse.ok().bodyValue(result));
+        return Mono.just(result);
     }
 }

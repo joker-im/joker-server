@@ -17,7 +17,7 @@ public abstract class AbstractStateEvent implements StateEvent {
 
     protected String transactionId;
 
-    protected UnsignedData unsignedData;
+    protected UnsignedData unsigned;
 
     protected String sender;
 

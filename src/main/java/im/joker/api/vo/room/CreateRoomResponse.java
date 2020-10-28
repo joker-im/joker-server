@@ -1,4 +1,4 @@
-package im.joker.api.vo;
+package im.joker.api.vo.room;
 
 import lombok.Builder;
 import lombok.Data;

@@ -13,7 +13,6 @@ public class MembershipEvent extends AbstractStateEvent {
 
     private MembershipContent content;
 
-    private UnsignedData unsigned;
 
 
     @Override

@@ -1,5 +1,6 @@
-package im.joker.api.vo;
+package im.joker.api.vo.room;
 
+import im.joker.event.content.IContent;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -45,7 +46,7 @@ public class CreateRoomRequest {
     /**
      * 创房的时候可以放一堆事件到这里,成为附加事件
      */
-    private StateEvent initialState;
+    private List<StateEvent> initialState;
 
     /**
      * 房间是否公有可见, 默认是私有
@@ -62,7 +63,7 @@ public class CreateRoomRequest {
 
         private String stateKey;
 
-        private String content;
+        private IContent content;
 
 
     }

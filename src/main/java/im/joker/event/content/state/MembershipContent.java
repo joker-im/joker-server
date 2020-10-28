@@ -2,7 +2,6 @@ package im.joker.event.content.state;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import im.joker.event.content.IContent;
-import im.joker.event.room.UnsignedData;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

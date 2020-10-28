@@ -23,17 +23,10 @@ public class PresenceHandler {
     private ReactiveStringRedisTemplate redisTemplate;
 
 
-    public Mono<ServerResponse> setPresence(ServerRequest serverRequest) {
-        return serverRequest.bodyToMono(PresenceRequest.class)
-                .zipWith(Mono.subscriberContext())
-                .flatMap(e -> {
-                    IDevice loginDevice = e.getT2().get(getLoginDevice());
-                    PresenceRequest p = e.getT1();
-                    return redisTemplate.opsForValue()
-                            .set(String.format(USER_PRESENCE, loginDevice.getUsername()),
-                                    p.getPresence(),
-                                    Duration.ofHours(6));
-                })
-                .flatMap(e -> ServerResponse.ok().build());
+    public Mono<Void> setPresence(PresenceRequest presenceRequest, IDevice loginDevice) {
+        return redisTemplate.opsForValue()
+                .set(String.format(USER_PRESENCE, loginDevice.getUsername()),
+                        presenceRequest.getPresence(),
+                        Duration.ofHours(6)).then();
     }
 }
