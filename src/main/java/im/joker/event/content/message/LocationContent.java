@@ -1,6 +1,5 @@
 package im.joker.event.content.message;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import im.joker.event.content.AbstractMessageContent;
 import im.joker.event.content.LocationInfo;
 import lombok.AllArgsConstructor;

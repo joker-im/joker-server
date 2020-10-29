@@ -4,8 +4,10 @@ import im.joker.event.ImageInfo;
 import im.joker.event.content.AbstractMessageContent;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+@EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
 @Data
 @NoArgsConstructor

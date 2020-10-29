@@ -11,12 +11,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class RoomCreateEvent extends AbstractRoomStateEvent {
 
-    private CreateContent createContent;
+    private CreateContent content;
 
 
     @Override
     public IContent getContent() {
-        return createContent;
+        return content;
     }
 
 }
