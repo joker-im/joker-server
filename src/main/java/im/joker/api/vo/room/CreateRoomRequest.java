@@ -1,5 +1,6 @@
 package im.joker.api.vo.room;
 
+import im.joker.event.content.AbstractStateContent;
 import im.joker.event.content.IContent;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -63,7 +64,7 @@ public class CreateRoomRequest {
 
         private String stateKey;
 
-        private IContent content;
+        private AbstractStateContent content;
 
 
     }

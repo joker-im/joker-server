@@ -3,11 +3,7 @@ package im.joker.handler;
 import im.joker.device.IDevice;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.server.ServerRequest;
-import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
-
-import static im.joker.config.filter.AuthFilter.getLoginDevice;
 
 @Service
 @Slf4j

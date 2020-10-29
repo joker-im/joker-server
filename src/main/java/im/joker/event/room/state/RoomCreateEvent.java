@@ -2,14 +2,14 @@ package im.joker.event.room.state;
 
 import im.joker.event.content.IContent;
 import im.joker.event.content.state.CreateContent;
-import im.joker.event.room.AbstractStateEvent;
+import im.joker.event.room.AbstractRoomStateEvent;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
 
 @AllArgsConstructor
 @NoArgsConstructor
-public class RoomCreateEvent extends AbstractStateEvent {
+public class RoomCreateEvent extends AbstractRoomStateEvent {
 
     private CreateContent createContent;
 

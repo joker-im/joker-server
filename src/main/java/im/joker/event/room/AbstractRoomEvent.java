@@ -1,9 +1,18 @@
 package im.joker.event.room;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
+/**
+ * 房间事件。
+ *
+ * @author linyurong
+ **/
+@AllArgsConstructor
+@NoArgsConstructor
 @Data
-public abstract class AbstractMessageEvent implements IRoomEvent {
+public abstract class AbstractRoomEvent implements IRoomEvent {
 
     protected String roomId;
 
@@ -18,9 +27,4 @@ public abstract class AbstractMessageEvent implements IRoomEvent {
     protected UnsignedData unsigned;
 
     protected String sender;
-
-
-
-
-
 }

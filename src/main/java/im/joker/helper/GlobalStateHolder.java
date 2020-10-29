@@ -2,6 +2,7 @@ package im.joker.helper;
 
 import im.joker.device.DeviceManager;
 import im.joker.session.AuthManager;
+import im.joker.store.ReactiveMongodbStore;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
@@ -17,6 +18,8 @@ public class GlobalStateHolder {
     private DeviceManager deviceManager;
     @Autowired
     private ReactiveStringRedisTemplate redisTemplate;
+    @Autowired
+    private ReactiveMongodbStore mongodbStore;
 
 
 }

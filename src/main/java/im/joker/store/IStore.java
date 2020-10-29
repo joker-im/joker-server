@@ -1,6 +1,6 @@
 package im.joker.store;
 
-import im.joker.event.room.IRoomEvent;
+import im.joker.event.room.AbstractRoomEvent;
 import im.joker.room.IRoom;
 import im.joker.user.IUser;
 import reactor.core.publisher.Mono;
@@ -11,13 +11,44 @@ import reactor.core.publisher.Mono;
  */
 public interface IStore {
 
-    void addRoom(IRoom room);
+    /**
+     * 插入房间
+     *
+     * @param room
+     * @return
+     */
+    Mono<IRoom> addRoom(IRoom room);
 
-    IRoomEvent addEvent(IRoomEvent event);
+    /**
+     * 插入事件
+     *
+     * @param event
+     * @return
+     */
+    Mono<AbstractRoomEvent> addEvent(AbstractRoomEvent event);
 
+
+    /**
+     * 添加用户
+     *
+     * @param user
+     * @return
+     */
     Mono<IUser> addUser(IUser user);
 
+    /**
+     * 检索用户
+     *
+     * @param id
+     * @return
+     */
     Mono<IUser> retrieveById(String id);
 
+    /**
+     * 检索用户
+     *
+     * @param username
+     * @return
+     */
     Mono<IUser> retrieveByUsername(String username);
 }

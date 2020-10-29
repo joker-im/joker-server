@@ -2,13 +2,12 @@ package im.joker.store;
 
 import com.mongodb.client.model.IndexModel;
 import com.mongodb.client.model.IndexOptions;
-import im.joker.event.room.IRoomEvent;
+import im.joker.event.room.AbstractRoomEvent;
 import im.joker.room.IRoom;
 import im.joker.user.IUser;
 import im.joker.user.User;
 import lombok.RequiredArgsConstructor;
 import org.bson.Document;
-import org.springframework.data.mongodb.core.ChangeStreamOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -32,7 +31,7 @@ public class ReactiveMongodbStore implements IStore {
 
     private static final String COLLECTION_NAME_ROOM_STATES = "room_states";
 
-    private static final String COLLECTION_NAME_EVENTS = "pdus";
+    private static final String COLLECTION_NAME_EVENTS = "events";
 
     private static final String COLLECTION_USER = "users";
 
@@ -119,13 +118,13 @@ public class ReactiveMongodbStore implements IStore {
     }
 
     @Override
-    public void addRoom(IRoom room) {
-
+    public Mono<IRoom> addRoom(IRoom room) {
+        return mongoTemplate.insert(room, COLLECTION_NAME_ROOMS);
     }
 
     @Override
-    public IRoomEvent addEvent(IRoomEvent event) {
-        return null;
+    public Mono<AbstractRoomEvent> addEvent(AbstractRoomEvent event) {
+        return mongoTemplate.insert(event, COLLECTION_NAME_ROOMS);
     }
 
     @Override

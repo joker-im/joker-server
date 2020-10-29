@@ -1,6 +1,5 @@
-package im.joker.event.content.state;
+package im.joker.event.room;
 
-import im.joker.event.content.AbstractStateContent;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -10,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class RoomNameContent extends AbstractStateContent {
+public abstract class AbstractRoomStateEvent extends AbstractRoomEvent implements IRoomStateEvent {
 
-    private String name;
+    protected String stateKey;
 }
