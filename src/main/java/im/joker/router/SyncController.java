@@ -3,15 +3,19 @@ package im.joker.router;
 
 import im.joker.api.vo.sync.SyncRequest;
 import im.joker.config.filter.AuthFilter;
-import im.joker.device.Device;
 import im.joker.device.IDevice;
 import im.joker.handler.SyncHandler;
 import im.joker.helper.RequestProcessor;
+import im.joker.sync.entity.SyncResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.server.ServerRequest;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
@@ -34,11 +38,10 @@ public class SyncController {
      * @return
      */
     @GetMapping("/sync")
-    public Mono<Void> sync(@RequestParam Map<String, Object> param) {
+    public Mono<SyncResponse> sync(@RequestParam Map<String, Object> param) {
         SyncRequest syncRequest = requestProcessor.convert(param, SyncRequest.class);
         Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> Mono.just(context.get(AuthFilter.getLoginDevice())));
-        return loginDevice.flatMap(e -> syncHandler.sync(syncRequest, e)).then();
-
+        return loginDevice.flatMap(e -> syncHandler.sync(syncRequest, e));
     }
 
     @PostMapping("/user/{userId}/filter")

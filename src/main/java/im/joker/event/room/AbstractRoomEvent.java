@@ -27,4 +27,6 @@ public abstract class AbstractRoomEvent implements IRoomEvent {
     protected UnsignedData unsigned;
 
     protected String sender;
+
+    protected Long streamId;
 }

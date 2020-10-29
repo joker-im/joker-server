@@ -47,5 +47,10 @@ public interface IRoomEvent extends ImEvent {
      */
     String getSender();
 
-
+    /**
+     * 时序id
+     *
+     * @return
+     */
+    Long getStreamId();
 }
