@@ -1,36 +1,29 @@
 package im.joker.handler;
 
 import im.joker.api.vo.sync.FilterResponse;
-import im.joker.device.IDevice;
-import lombok.extern.slf4j.Slf4j;
 import im.joker.api.vo.sync.SyncRequest;
-import im.joker.helper.RequestProcessor;
+import im.joker.device.IDevice;
+import im.joker.sync.RealTimeSynchronizer;
+import im.joker.sync.entity.SyncResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.MonoSink;
 
 import java.time.Duration;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 
 @Service
 @Slf4j
 public class SyncHandler {
 
     @Autowired
-    private RequestProcessor requestProcessor;
+    private RealTimeSynchronizer realTimeSynchronizer;
 
-    private Map<String, MonoSink<Boolean>> monoSinkMap = new ConcurrentHashMap<>();
-
-
-    public Mono<ServerResponse> sync(SyncRequest syncRequest, IDevice loginDevice) {
-        return Mono.create((Consumer<MonoSink<Boolean>>) monoSink -> monoSinkMap.put(loginDevice.getDeviceId(), monoSink))
-                .flatMap(e -> ServerResponse.ok().build())
-                .timeout(Duration.ofSeconds(30), ServerResponse.notFound().build());
+    public Mono<SyncResponse> sync(SyncRequest syncRequest, IDevice device) {
+        return realTimeSynchronizer.syncProcess(syncRequest, device)
+                .timeout(Duration.ofSeconds(30), Mono.just(new SyncResponse()));
     }
 
 
