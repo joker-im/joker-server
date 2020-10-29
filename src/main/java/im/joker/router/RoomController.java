@@ -2,6 +2,7 @@ package im.joker.router;
 
 import im.joker.api.vo.room.*;
 import im.joker.config.filter.AuthFilter;
+import im.joker.device.IDevice;
 import im.joker.handler.RoomHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +12,7 @@ import reactor.core.publisher.Mono;
 
 @RestController
 @Slf4j
-@RequestMapping(path = "/_matrix/client/r0/", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = "/_matrix/client/r0", produces = MediaType.APPLICATION_JSON_VALUE)
 public class RoomController {
 
     @Autowired
@@ -26,8 +27,9 @@ public class RoomController {
      */
     @PostMapping("/createRoom")
     public Mono<CreateRoomResponse> createRoom(@RequestBody CreateRoomRequest roomRequest) {
-        return Mono.subscriberContext()
-                .flatMap(context -> roomHandler.createRoom(context.get(AuthFilter.getLoginDevice()), roomRequest));
+        Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> Mono.just(context.get(AuthFilter.getLoginDevice())));
+        return loginDevice
+                .flatMap(e -> roomHandler.createRoom(e, roomRequest));
     }
 
     /**
@@ -37,8 +39,9 @@ public class RoomController {
      */
     @GetMapping("/joined_rooms")
     public Mono<JoinedRoomResponse> searchJoinedRooms() {
-        return Mono.subscriberContext()
-                .flatMap(context -> roomHandler.searchJoinedRooms(context.get(AuthFilter.getLoginDevice())));
+        Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> Mono.just(context.get(AuthFilter.getLoginDevice())));
+        return loginDevice
+                .flatMap(e -> roomHandler.searchJoinedRooms(e));
     }
 
     /**
@@ -50,8 +53,8 @@ public class RoomController {
      */
     @PostMapping("/rooms/{roomId}/invite")
     public Mono<Void> inviteToRoom(@PathVariable String roomId, @RequestBody InviteRequest inviteRequest) {
-        return Mono.subscriberContext()
-                .flatMap(context -> roomHandler.inviteToRoom(roomId, inviteRequest, context.get(AuthFilter.getLoginDevice())));
+        Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> Mono.just(context.get(AuthFilter.getLoginDevice())));
+        return loginDevice.flatMap(e -> roomHandler.inviteToRoom(roomId, inviteRequest, e));
     }
 
     /**
@@ -62,8 +65,9 @@ public class RoomController {
      */
     @PostMapping("/rooms/{roomId}/join")
     public Mono<JoinRoomResponse> joinRoom(@PathVariable String roomId) {
-        return Mono.subscriberContext()
-                .flatMap(context -> roomHandler.joinRoom(context.get(AuthFilter.getLoginDevice()), roomId));
+        Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> Mono.just(context.get(AuthFilter.getLoginDevice())));
+
+        return loginDevice.flatMap(e -> roomHandler.joinRoom(e, roomId));
     }
 
 
@@ -75,8 +79,9 @@ public class RoomController {
      */
     @PostMapping("/rooms/{roomId}/leave")
     public Mono<Void> leaveRoom(@PathVariable String roomId) {
-        return Mono.subscriberContext()
-                .flatMap(context -> roomHandler.levelRoom(context.get(AuthFilter.getLoginDevice()), roomId));
+        Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> Mono.just(context.get(AuthFilter.getLoginDevice())));
+
+        return loginDevice.flatMap(e -> roomHandler.levelRoom(e, roomId));
     }
 
 

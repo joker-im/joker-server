@@ -1,8 +1,9 @@
 package im.joker.router;
 
 
-import im.joker.api.vo.SyncRequest;
+import im.joker.api.vo.sync.SyncRequest;
 import im.joker.config.filter.AuthFilter;
+import im.joker.device.Device;
 import im.joker.device.IDevice;
 import im.joker.handler.SyncHandler;
 import im.joker.helper.RequestProcessor;
@@ -14,9 +15,11 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
+import java.util.Map;
+
 @RestController
 @Slf4j
-@RequestMapping(path = "/_matrix/client/r0/", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = "/_matrix/client/r0", produces = MediaType.APPLICATION_JSON_VALUE)
 public class SyncController {
 
     @Autowired
@@ -27,15 +30,14 @@ public class SyncController {
     /**
      * https://matrix.org/docs/spec/client_server/r0.6.1#get-matrix-client-r0-sync
      *
-     * @param serverRequest
+     * @param param
      * @return
      */
     @GetMapping("/sync")
-    public Mono<ServerResponse> sync(ServerRequest serverRequest) {
-
-        SyncRequest syncRequest = requestProcessor.parameterToBean(serverRequest, SyncRequest.class);
-        Mono<IDevice> loginDeviceMono = Mono.subscriberContext().flatMap(context -> context.get(AuthFilter.getLoginDevice()));
-        return loginDeviceMono.flatMap(e -> syncHandler.sync(syncRequest, e));
+    public Mono<Void> sync(@RequestParam Map<String, Object> param) {
+        SyncRequest syncRequest = requestProcessor.convert(param, SyncRequest.class);
+        Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> Mono.just(context.get(AuthFilter.getLoginDevice())));
+        return loginDevice.flatMap(e -> syncHandler.sync(syncRequest, e)).then();
 
     }
 

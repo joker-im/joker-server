@@ -12,13 +12,13 @@ import reactor.core.publisher.Mono;
 
 @RestController
 @Slf4j
-@RequestMapping(path = "/_matrix/client/r0/", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = "/_matrix/client/r0", produces = MediaType.APPLICATION_JSON_VALUE)
 public class VoipController {
 
     @Autowired
     private VoipHandler voipHandler;
 
-    @GetMapping("/r0/voip/turnServer")
+    @GetMapping("/voip/turnServer")
     public Mono<String> queryTurnServers() {
         return voipHandler.retrieveVoipServer();
     }

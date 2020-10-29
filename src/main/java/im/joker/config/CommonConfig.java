@@ -1,5 +1,6 @@
 package im.joker.config;
 
+import im.joker.helper.BCryptPasswordEncoder;
 import im.joker.helper.NoOpPasswordEncoder;
 import im.joker.helper.PasswordEncoder;
 import org.springframework.context.annotation.Bean;
@@ -54,7 +55,7 @@ public class CommonConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new NoOpPasswordEncoder();
+        return new BCryptPasswordEncoder();
     }
 
 }

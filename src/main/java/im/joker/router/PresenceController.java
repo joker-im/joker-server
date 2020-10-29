@@ -1,6 +1,6 @@
 package im.joker.router;
 
-import im.joker.api.vo.PresenceRequest;
+import im.joker.api.vo.presence.PresenceRequest;
 import im.joker.config.filter.AuthFilter;
 import im.joker.device.IDevice;
 import im.joker.handler.PresenceHandler;
@@ -12,15 +12,15 @@ import reactor.core.publisher.Mono;
 
 @RestController
 @Slf4j
-@RequestMapping(path = "/_matrix/client/r0/", produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = "/_matrix/client/r0", produces = MediaType.APPLICATION_JSON_VALUE)
 public class PresenceController {
 
     @Autowired
     private PresenceHandler presenceHandler;
 
-    @PostMapping("/presence/{userId}/status")
+    @PutMapping("/presence/{userId}/status")
     public Mono<Void> setPresence(@PathVariable String userId, @RequestBody PresenceRequest presenceRequest) {
-        Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(e -> e.get(AuthFilter.getLoginDevice()));
+        Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> Mono.just(context.get(AuthFilter.getLoginDevice())));
         return loginDevice.flatMap(iDevice -> presenceHandler.setPresence(presenceRequest, iDevice));
     }
 

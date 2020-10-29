@@ -1,19 +1,21 @@
-package im.joker.api.vo;
+package im.joker.api.vo.account;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-@AllArgsConstructor
 @NoArgsConstructor
-@Data
+@AllArgsConstructor
 @Builder
-public class RegisterResponse {
+@Data
+public class LoginResponse {
 
     private String userId;
 
     private String accessToken;
 
     private String deviceId;
+
+
 }

@@ -1,6 +1,6 @@
 package im.joker.sync;
 
-import im.joker.api.vo.SyncRequest;
+import im.joker.api.vo.sync.SyncRequest;
 import reactor.core.publisher.Mono;
 
 /**

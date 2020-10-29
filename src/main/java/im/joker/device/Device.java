@@ -21,6 +21,8 @@ public class Device implements IDevice {
 
     private String name;
 
+    private String userId;
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -37,5 +39,10 @@ public class Device implements IDevice {
     @Override
     public int hashCode() {
         return Objects.hash(deviceId, username);
+    }
+
+    @Override
+    public String getUserId() {
+        return userId;
     }
 }

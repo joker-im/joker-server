@@ -52,6 +52,10 @@ public class RequestProcessor {
         return result;
     }
 
+    public <T> T convert(Map<String, Object> param, Class<T> clazz) {
+        return objectMapper.convertValue(param, clazz);
+    }
+
     private <T> T convert(ServerRequest serverRequest, Class<T> clazz) {
         Map<String, String> valueMap = serverRequest.queryParams().toSingleValueMap();
         return objectMapper.convertValue(valueMap, clazz);
@@ -70,7 +74,7 @@ public class RequestProcessor {
     }
 
 
-    private String validateMessage(Object validTarget) {
+    public String validateMessage(Object validTarget) {
         Errors errors = new BeanPropertyBindingResult(validTarget, validTarget.getClass().getName());
         validator.validate(validTarget, errors);
         if (errors.hasErrors()) {

@@ -1,4 +1,4 @@
-package im.joker.api.vo;
+package im.joker.api.vo.account;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;

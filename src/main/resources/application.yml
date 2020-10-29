@@ -17,3 +17,7 @@ spring:
       FAIL_ON_EMPTY_BEANS: false
     visibility:
       FIELD: PUBLIC_ONLY
+
+
+im:
+  web-domain: www.jokerim.org

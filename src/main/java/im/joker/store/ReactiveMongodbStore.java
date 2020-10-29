@@ -65,7 +65,8 @@ public class ReactiveMongodbStore implements IStore {
                 .flatMap(o -> {
                     IndexModel index1 = new IndexModel(Document.parse("{username:1}"), new IndexOptions().unique(true));
                     IndexModel index2 = new IndexModel(Document.parse("{create_time:-1}"));
-                    return Mono.from(o.createIndexes(List.of(index1, index2)));
+                    IndexModel index3 = new IndexModel(Document.parse("{user_id:-1}"), new IndexOptions().unique(true));
+                    return Mono.from(o.createIndexes(List.of(index1, index2, index3)));
                 });
     }
 

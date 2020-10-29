@@ -20,6 +20,8 @@ public class User implements IUser {
     @Id
     private String id;
 
+    private String userId;
+
     private String username;
 
     private transient GlobalStateHolder globalStateHolder;

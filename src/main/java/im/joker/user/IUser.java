@@ -10,12 +10,6 @@ public interface IUser {
      */
     String getUsername();
 
-    /**
-     * 获得用户id
-     *
-     * @return
-     */
-    String getId();
 
     /**
      * 获取注册时的deviceId
@@ -30,5 +24,11 @@ public interface IUser {
      * @return
      */
     String getPassword();
+
+    /**
+     * 获取userId,
+     * @return
+     */
+    String getUserId();
 
 }

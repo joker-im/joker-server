@@ -1,28 +1,28 @@
 package im.joker.handler;
 
-import im.joker.api.vo.*;
+import im.joker.api.vo.account.*;
 import im.joker.device.DeviceManager;
 import im.joker.device.IDevice;
+import im.joker.exception.ErrorCode;
+import im.joker.exception.ImException;
 import im.joker.helper.PasswordEncoder;
 import im.joker.helper.RequestProcessor;
 import im.joker.session.AuthManager;
 import im.joker.store.ReactiveMongodbStore;
-import im.joker.user.IUser;
 import im.joker.user.User;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.server.ServerRequest;
-import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.UUID;
+
+import static im.joker.exception.ErrorCode.INVALID_PARAM;
 
 @Service
 @Slf4j
@@ -38,25 +38,28 @@ public class UserHandler {
     private AuthManager authManager;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Value("${im.web-domain}")
+    private String webDomain;
 
     public Mono<RegisterResponse> register(RegisterRequest registerRequest) {
-        requestProcessor.validate(registerRequest);
+        String s = requestProcessor.validateMessage(registerRequest);
+        if (StringUtils.isNoneBlank(s)) {
+            return Mono.error(new ImException(INVALID_PARAM, HttpStatus.BAD_REQUEST, s));
+        }
         User user = new User();
         user.setRegisterDeviceId(StringUtils.defaultIfBlank(registerRequest.getDeviceId(), UUID.randomUUID().toString()));
         BeanUtils.copyProperties(registerRequest, user);
+        user.setUserId("@" + webDomain + user.getUsername());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return mongodbStore.addUser(user)
                 .flatMap(e -> deviceManager.findOrCreateDevice(user.getRegisterDeviceId(),
-                        user.getUsername(),
+                        user.getUsername(), user.getUserId(),
                         registerRequest.getInitialDeviceDisplayName()))
-                .map(e -> {
-                    RegisterResponse response = RegisterResponse.builder()
-                            .deviceId(e.getDeviceId())
-                            .accessToken(e.getAccessToken())
-                            .userId(user.getId())
-                            .build();
-                    return response;
-                });
+                .map(e -> RegisterResponse.builder()
+                        .deviceId(e.getDeviceId())
+                        .accessToken(e.getAccessToken())
+                        .userId(user.getUserId())
+                        .build());
     }
 
 
@@ -91,5 +94,9 @@ public class UserHandler {
 
     public Mono<Void> logout(IDevice e) {
         return authManager.logout(e);
+    }
+
+    public Mono<Void> logoutAll(IDevice e) {
+        return authManager.logoutAll(e);
     }
 }

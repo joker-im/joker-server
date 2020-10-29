@@ -21,7 +21,7 @@ public class PushRuleController {
 
     @GetMapping("/pushrules/")
     public Mono<String> searchPushRules() {
-        Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> context.get(AuthFilter.getLoginDevice()));
+        Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> Mono.just(context.get(AuthFilter.getLoginDevice())));
         return loginDevice.flatMap(e -> ruleHandler.retrievePushRules(e));
     }
 }

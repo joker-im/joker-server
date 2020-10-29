@@ -29,4 +29,11 @@ public interface IDevice {
      * @return
      */
     String getName();
+
+    /**
+     * 获取用户id
+     *
+     * @return
+     */
+    String getUserId();
 }
