@@ -32,11 +32,9 @@ public enum EventType {
 
     RoomAvatar("m.room.avatar", true, RoomAvatarEvent.class),
 
-    Unknown(null, false, null);
+    GuestAccess("m.room.guest_access",true, GuestAccessEvent.class);
 
-    public static EventType from(String type) {
-        return Stream.of(EventType.values()).filter(t -> StringUtils.equals(t.id, type)).findAny().orElse(Unknown);
-    }
+
 
     private final String id;
     private final boolean isState;

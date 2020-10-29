@@ -1,5 +1,6 @@
-package im.joker.event.content.state;
+package im.joker.event.content.message;
 
+import im.joker.event.content.AbstractMessageContent;
 import im.joker.event.content.AbstractStateContent;
 import im.joker.event.content.IContent;
 import lombok.AllArgsConstructor;
@@ -11,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
-public class RedactionContent extends AbstractStateContent {
+public class RedactionContent extends AbstractMessageContent {
 
     private String reason;
 }

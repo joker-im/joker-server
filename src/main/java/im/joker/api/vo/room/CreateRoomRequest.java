@@ -1,7 +1,7 @@
 package im.joker.api.vo.room;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import im.joker.event.content.AbstractStateContent;
-import im.joker.event.content.IContent;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -64,6 +64,7 @@ public class CreateRoomRequest {
 
         private String stateKey;
 
+        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type", visible = true)
         private AbstractStateContent content;
 
 

@@ -1,13 +1,19 @@
 package im.joker.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.NamedType;
+import im.joker.event.EventContentType;
+import im.joker.event.EventType;
 import im.joker.helper.BCryptPasswordEncoder;
 import im.joker.helper.NoOpPasswordEncoder;
 import im.joker.helper.PasswordEncoder;
+import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -19,6 +25,21 @@ import reactor.core.publisher.Mono;
 
 @Configuration
 public class CommonConfig {
+
+
+    @Bean
+    public Jackson2ObjectMapperBuilder objectMapperBuilder() {
+        return new Jackson2ObjectMapperBuilder() {
+            @Override
+            public void configure(ObjectMapper objectMapper) {
+                for (EventContentType e : EventContentType.values()) {
+                    objectMapper.registerSubtypes(new NamedType(e.getEventClass(), e.getId()));
+                }
+                super.configure(objectMapper);
+            }
+        };
+    }
+
 
 
     @Bean
