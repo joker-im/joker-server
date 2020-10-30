@@ -14,9 +14,9 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
-import static im.joker.constants.ImRedisKeys.USER_DEVICES_TOKENS_HASH;
-import static im.joker.constants.ImRedisKeys.TOKEN_USER_HASH;
+import static im.joker.constants.ImRedisKeys.*;
 
 @Component
 public class DeviceManager {
@@ -65,24 +65,25 @@ public class DeviceManager {
         String token = UUID.randomUUID().toString();
         Duration duration = Duration.ofDays(1L);
         Mono<Boolean> saveOps1 = redisTemplate.opsForHash().put(String.format(USER_DEVICES_TOKENS_HASH, username), deviceId, token);
-        Map<String, String> userInfo = Map.of("username", username, "device_id", deviceId, "user_id", userId);
+        Map<String, String> userInfoMap = Map.of(TOKEN_USER_HASH_KEY_USERNAME, username,
+                TOKEN_USER_HASH_KEY_DEVICE_ID, deviceId,
+                TOKEN_USER_HASH_HASH_KEY_USER_ID, userId);
         Mono<Boolean> expireOps = redisTemplate.expire(String.format(TOKEN_USER_HASH, token), duration);
-        Mono<Boolean> saveOps2 = redisTemplate.opsForHash().putAll(String.format(TOKEN_USER_HASH, token), userInfo).then(expireOps);
-        return Mono.zip(saveOps1, saveOps2).map(e -> token);
+        Mono<Boolean> expireOps2 = redisTemplate.expire(String.format(USER_DEVICES_TOKENS_HASH, username), duration);
+        Mono<Void> saveOps2 = redisTemplate.opsForHash().putAll(String.format(TOKEN_USER_HASH, token), userInfoMap).then();
+        return Mono.zip(saveOps1, saveOps2).then(Mono.zip(expireOps, expireOps2)).flatMap(e -> Mono.just(token));
     }
 
 
     public Mono<IDevice> find(String token) {
-        Map<String, String> tempMap = new ConcurrentHashMap<>(8);
         return redisTemplate.opsForHash().entries(String.format(TOKEN_USER_HASH, token))
-                .doOnNext(o -> tempMap.put(o.getKey().toString(), o.getValue().toString()))
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.UNKNOWN_TOKEN, HttpStatus.FORBIDDEN)))
-                .last()
+                .collect(Collectors.toMap(e -> e.getKey().toString(), e -> e.getValue().toString()))
                 .map(e ->
                         Device.builder()
-                                .username(tempMap.get("username"))
-                                .deviceId(tempMap.get("device_id"))
-                                .userId(tempMap.get("user_id"))
+                                .username(e.get(TOKEN_USER_HASH_KEY_USERNAME))
+                                .deviceId(e.get(TOKEN_USER_HASH_KEY_DEVICE_ID))
+                                .userId(e.get(TOKEN_USER_HASH_HASH_KEY_USER_ID))
                                 .accessToken(token)
                                 .build()
                 );
@@ -95,9 +96,13 @@ public class DeviceManager {
         return Mono.zip(deleteOps1, deleteOps2).then();
     }
 
+    public Mono<Void> deleteAllDevices(String username) {
+        return redisTemplate.delete(String.format(USER_DEVICES_TOKENS_HASH, username)).then();
+    }
+
     public Flux<IDevice> findDevices(String username) {
         Flux<Map.Entry<Object, Object>> entries = redisTemplate.opsForHash().entries(String.format(USER_DEVICES_TOKENS_HASH, username));
-        return entries.map(e -> Device.builder().accessToken(e.getValue().toString()).deviceId(e.getKey().toString()).build());
+        return entries.map(e -> Device.builder().accessToken(e.getValue().toString()).username(username).deviceId(e.getKey().toString()).build());
     }
 
 

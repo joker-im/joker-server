@@ -2,6 +2,7 @@ package im.joker.api.vo.room;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import im.joker.event.content.AbstractStateContent;
+import im.joker.event.room.AbstractRoomStateEvent;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -45,9 +46,10 @@ public class CreateRoomRequest {
     private Boolean direct;
 
     /**
-     * 创房的时候可以放一堆事件到这里,成为附加事件
+     * 创房的时候可以放一堆事件到这里,成为附加事件,根据事件里面的type字段选择指定的子类
      */
-    private List<StateEvent> initialState;
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", visible = true)
+    private List<AbstractRoomStateEvent> initialState;
 
     /**
      * 房间是否公有可见, 默认是私有
@@ -55,18 +57,4 @@ public class CreateRoomRequest {
      */
     private String visibility;
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    public static class StateEvent {
-
-        private String type;
-
-        private String stateKey;
-
-        @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXTERNAL_PROPERTY, property = "type", visible = true)
-        private AbstractStateContent content;
-
-
-    }
 }

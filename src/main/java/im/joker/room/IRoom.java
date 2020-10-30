@@ -1,6 +1,7 @@
 package im.joker.room;
 
 import im.joker.event.ImEvent;
+import reactor.core.publisher.Mono;
 
 /**
  * @author linyurong
@@ -14,7 +15,7 @@ public interface IRoom {
      * @param ev
      * @return eventId
      */
-    String inject(ImEvent ev);
+    Mono<ImEvent> inject(ImEvent ev);
 
 
     /**
@@ -32,6 +33,14 @@ public interface IRoom {
      * @return
      */
     IRoomState getStateFor(String eventId);
+
+
+    /**
+     * 获取roomId
+     *
+     * @return
+     */
+    String getRoomId();
 
 
 }

@@ -38,4 +38,8 @@ public class PresenceHandler {
                         presenceRequest.getPresence(),
                         Duration.ofDays(1L)).then();
     }
+
+    public Mono<Void> deletePresence(IDevice loginDevice) {
+        return redisTemplate.opsForValue().delete(String.format(USER_PRESENCE, loginDevice.getUsername())).then();
+    }
 }

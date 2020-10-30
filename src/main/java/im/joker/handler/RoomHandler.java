@@ -1,7 +1,10 @@
 package im.joker.handler;
 
 import im.joker.api.vo.room.*;
+import im.joker.config.filter.AuthFilter;
 import im.joker.device.IDevice;
+import im.joker.room.IRoom;
+import im.joker.room.RoomManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
@@ -18,13 +21,13 @@ public class RoomHandler {
 
 
     @Autowired
-    private ReactiveStringRedisTemplate redisTemplate;
-    @Autowired
-    private ReactiveMongoTemplate mongoTemplate;
+    private RoomManager roomManager;
 
 
     public Mono<CreateRoomResponse> createRoom(IDevice loginDevice, CreateRoomRequest createRoomRequest) {
-        return null;
+
+        return roomManager.createRoom(loginDevice, createRoomRequest)
+                .map(e -> CreateRoomResponse.builder().roomId(e.getRoomId()).build());
     }
 
     public Mono<JoinedRoomResponse> searchJoinedRooms(IDevice loginDevice) {
@@ -45,7 +48,7 @@ public class RoomHandler {
         return null;
     }
 
-    public Mono<Void> levelRoom(IDevice loginDevice,String targetRoomId) {
+    public Mono<Void> levelRoom(IDevice loginDevice, String targetRoomId) {
         return null;
     }
 

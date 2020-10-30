@@ -2,6 +2,7 @@ package im.joker.store;
 
 import com.mongodb.client.model.IndexModel;
 import com.mongodb.client.model.IndexOptions;
+import im.joker.event.ImEvent;
 import im.joker.event.room.AbstractRoomEvent;
 import im.joker.room.IRoom;
 import im.joker.user.IUser;
@@ -123,8 +124,8 @@ public class ReactiveMongodbStore implements IStore {
     }
 
     @Override
-    public Mono<AbstractRoomEvent> addEvent(AbstractRoomEvent event) {
-        return mongoTemplate.insert(event, COLLECTION_NAME_ROOMS);
+    public Mono<ImEvent> addEvent(ImEvent event) {
+        return mongoTemplate.insert(event, COLLECTION_NAME_EVENTS);
     }
 
     @Override

@@ -1,12 +1,15 @@
 package im.joker.session;
 
 import im.joker.api.vo.account.LoginRequest;
+import im.joker.api.vo.presence.PresenceRequest;
 import im.joker.device.DeviceManager;
 import im.joker.device.IDevice;
 import im.joker.exception.ErrorCode;
 import im.joker.exception.ImException;
+import im.joker.handler.PresenceHandler;
 import im.joker.helper.GlobalStateHolder;
 import im.joker.helper.PasswordEncoder;
+import im.joker.presence.PresenceType;
 import im.joker.store.ReactiveMongodbStore;
 import im.joker.user.IUser;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +34,8 @@ public class AuthManager {
     private GlobalStateHolder globalStateHolder;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private PresenceHandler presenceHandler;
 
 
     public Mono<IUserSession> login(LoginRequest loginRequest) {
@@ -52,11 +57,14 @@ public class AuthManager {
     }
 
     public Mono<Void> logout(IDevice device) {
-        return deviceManager.removeDevice(device);
+        presenceHandler.setPresence(PresenceRequest.builder().presence(PresenceType.offline.name()).statusMsg("登出操作").build(), device);
+        Mono<Void> logoutPresence = presenceHandler.deletePresence(device);
+        return deviceManager.removeDevice(device).then(logoutPresence);
     }
 
     public Mono<Void> logoutAll(IDevice device) {
         Flux<IDevice> devices = deviceManager.findDevices(device.getUsername());
-        return devices.flatMap(this::logout).last();
+        return devices.flatMap(this::logout)
+                .then(deviceManager.deleteAllDevices(device.getUsername()));
     }
 }

@@ -1,9 +1,10 @@
 package im.joker.event.room;
 
-import im.joker.event.content.state.MembershipContent;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.util.List;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -16,21 +17,7 @@ public class UnsignedData {
 
     private String transactionId;
 
-    private StrippedState inviteRoomState;
+    private List<AbstractRoomStateEvent> inviteRoomState;
 
-
-    @AllArgsConstructor
-    @NoArgsConstructor
-    @Data
-    public static class StrippedState {
-
-        private MembershipContent content;
-
-        private String stateKey;
-
-        private String type;
-
-        private String sender;
-    }
 
 }

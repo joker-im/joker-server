@@ -7,6 +7,7 @@ import im.joker.sync.RealTimeSynchronizer;
 import im.joker.sync.entity.SyncResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
@@ -27,11 +28,8 @@ public class SyncHandler {
     }
 
 
-    public Mono<ServerResponse> filter(String userId) {
-        return Mono.just(FilterResponse.builder().filterId(UUID.randomUUID().toString()).build())
-                .flatMap(e ->
-                        ServerResponse.ok().bodyValue(e)
-                );
+    public Mono<FilterResponse> filter(String userId) {
+        return Mono.just(FilterResponse.builder().filterId(UUID.randomUUID().toString()).build());
     }
 
 }

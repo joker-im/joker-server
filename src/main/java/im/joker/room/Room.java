@@ -1,13 +1,16 @@
 package im.joker.room;
 
 import im.joker.event.ImEvent;
+import im.joker.event.room.AbstractRoomEvent;
 import im.joker.helper.GlobalStateHolder;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
+import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 
@@ -18,7 +21,7 @@ import java.time.LocalDateTime;
 @Data
 public class Room implements IRoom {
     @Id
-    private Integer id;
+    private String id;
 
     private String roomId;
 
@@ -26,14 +29,16 @@ public class Room implements IRoom {
 
     private LocalDateTime createTime;
 
-    private String type;
+    private transient GlobalStateHolder globalStateHolder;
 
-    private GlobalStateHolder globalStateHolder;
+    private Boolean direct;
+
+    private String visibility;
 
 
     @Override
-    public String inject(ImEvent ev) {
-        return null;
+    public Mono<ImEvent> inject(ImEvent ev) {
+        return globalStateHolder.getMongodbStore().addEvent(ev);
     }
 
     @Override

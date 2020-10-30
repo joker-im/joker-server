@@ -3,10 +3,8 @@ package im.joker.event.content.state;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import im.joker.event.content.AbstractStateContent;
 import im.joker.event.content.IContent;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import javax.validation.constraints.NotNull;
 
@@ -17,6 +15,7 @@ import javax.validation.constraints.NotNull;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
+@Builder
 public class MembershipContent extends AbstractStateContent {
 
     private String avatarUrl;

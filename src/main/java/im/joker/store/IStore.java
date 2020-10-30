@@ -1,5 +1,6 @@
 package im.joker.store;
 
+import im.joker.event.ImEvent;
 import im.joker.event.room.AbstractRoomEvent;
 import im.joker.room.IRoom;
 import im.joker.user.IUser;
@@ -25,7 +26,7 @@ public interface IStore {
      * @param event
      * @return
      */
-    Mono<AbstractRoomEvent> addEvent(AbstractRoomEvent event);
+    Mono<ImEvent> addEvent(ImEvent event);
 
 
     /**

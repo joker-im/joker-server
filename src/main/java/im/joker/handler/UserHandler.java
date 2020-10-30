@@ -3,8 +3,8 @@ package im.joker.handler;
 import im.joker.api.vo.account.*;
 import im.joker.device.DeviceManager;
 import im.joker.device.IDevice;
-import im.joker.exception.ErrorCode;
 import im.joker.exception.ImException;
+import im.joker.helper.IdGenerator;
 import im.joker.helper.PasswordEncoder;
 import im.joker.helper.RequestProcessor;
 import im.joker.session.AuthManager;
@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -38,8 +37,8 @@ public class UserHandler {
     private AuthManager authManager;
     @Autowired
     private PasswordEncoder passwordEncoder;
-    @Value("${im.web-domain}")
-    private String webDomain;
+    @Autowired
+    private IdGenerator idGenerator;
 
     public Mono<RegisterResponse> register(RegisterRequest registerRequest) {
         String s = requestProcessor.validateMessage(registerRequest);
@@ -49,7 +48,7 @@ public class UserHandler {
         User user = new User();
         user.setRegisterDeviceId(StringUtils.defaultIfBlank(registerRequest.getDeviceId(), UUID.randomUUID().toString()));
         BeanUtils.copyProperties(registerRequest, user);
-        user.setUserId("@" + webDomain + user.getUsername());
+        user.setUserId(idGenerator.userId(user.getUsername()));
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return mongodbStore.addUser(user)
                 .flatMap(e -> deviceManager.findOrCreateDevice(user.getRegisterDeviceId(),

@@ -1,15 +1,15 @@
 package im.joker.event.content.state;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import im.joker.event.content.AbstractStateContent;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 @EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
+@Builder
 public class CreateContent extends AbstractStateContent {
 
     private String creator;
@@ -24,6 +24,7 @@ public class CreateContent extends AbstractStateContent {
     /**
      * 其他服务器上的用户是否能加入本房间
      */
+    @JsonProperty("m.federate")
     private Boolean mFederate;
 
 

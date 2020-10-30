@@ -9,11 +9,19 @@ public class ImRedisKeys {
      */
     public final static String USER_DEVICES_TOKENS_HASH = "im.joker:devices_tokens_hash:%s";
 
+
+
     /**
      * token键,用来看token是哪个用户的
      * %s是token, value是userSession (deviceId,username)
      */
     public final static String TOKEN_USER_HASH = "im.joker:token_user:%s";
+
+    public final static String TOKEN_USER_HASH_KEY_USERNAME = "username";
+
+    public final static String TOKEN_USER_HASH_KEY_DEVICE_ID = "device_id";
+
+    public final static String TOKEN_USER_HASH_HASH_KEY_USER_ID = "user_id";
 
 
     /**

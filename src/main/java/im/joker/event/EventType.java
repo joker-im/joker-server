@@ -32,8 +32,10 @@ public enum EventType {
 
     RoomAvatar("m.room.avatar", true, RoomAvatarEvent.class),
 
-    GuestAccess("m.room.guest_access",true, GuestAccessEvent.class);
+    GuestAccess("m.room.guest_access", true, GuestAccessEvent.class),
 
+    Encryption("m.room.encryption", true, EncryptionEvent.class),
+    ;
 
 
     private final String id;
