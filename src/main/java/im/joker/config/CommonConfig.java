@@ -6,8 +6,10 @@ import com.fasterxml.jackson.databind.jsontype.NamedType;
 import im.joker.event.EventType;
 import im.joker.helper.BCryptPasswordEncoder;
 import im.joker.helper.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -75,6 +77,12 @@ public class CommonConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+
+    @Autowired
+    public void setMapKeyDotReplacement(MappingMongoConverter mongoConverter) {
+        mongoConverter.setMapKeyDotReplacement("#");
     }
 
 }

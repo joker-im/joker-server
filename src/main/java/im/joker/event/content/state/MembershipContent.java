@@ -2,9 +2,7 @@ package im.joker.event.content.state;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import im.joker.event.content.AbstractStateContent;
-import im.joker.event.content.IContent;
 import lombok.*;
-import lombok.experimental.SuperBuilder;
 
 import javax.validation.constraints.NotNull;
 

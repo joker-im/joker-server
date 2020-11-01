@@ -7,6 +7,8 @@ import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
+
 /**
  * 房间事件。
  *
@@ -24,7 +26,7 @@ public abstract class AbstractRoomEvent implements IRoomEvent {
 
     protected String type;
 
-    protected Long originServerTs;
+    protected LocalDateTime originServerTs;
 
     protected String transactionId;
 

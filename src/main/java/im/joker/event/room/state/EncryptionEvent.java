@@ -17,7 +17,6 @@ import lombok.experimental.SuperBuilder;
 public class EncryptionEvent extends AbstractRoomStateEvent {
 
 
-
     private EncryptionContent content;
 
     @Override

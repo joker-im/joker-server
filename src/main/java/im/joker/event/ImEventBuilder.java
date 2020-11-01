@@ -1,18 +1,14 @@
 package im.joker.event;
 
-import im.joker.event.content.state.CreateContent;
-import im.joker.event.content.state.MembershipContent;
-import im.joker.event.content.state.RoomNameContent;
-import im.joker.event.content.state.RoomTopicContent;
+import im.joker.event.content.state.*;
 import im.joker.event.room.AbstractRoomEvent;
-import im.joker.event.room.state.MembershipEvent;
-import im.joker.event.room.state.RoomCreateEvent;
-import im.joker.event.room.state.RoomNameEvent;
-import im.joker.event.room.state.RoomTopicEvent;
+import im.joker.event.room.state.*;
 import im.joker.helper.IdGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.UUID;
 
 @Component
@@ -22,16 +18,16 @@ public class ImEventBuilder {
     private IdGenerator idGenerator;
 
 
-    public void setCommonEventFiled(AbstractRoomEvent roomEvent, String roomId, String sender, Long originTs) {
+    public void setCommonEventFiled(AbstractRoomEvent roomEvent, String roomId, String sender, LocalDateTime time) {
         roomEvent.setEventId(UUID.randomUUID().toString());
         roomEvent.setRoomId(roomId);
         roomEvent.setTransactionId(UUID.randomUUID().toString());
         roomEvent.setSender(sender);
-        roomEvent.setOriginServerTs(originTs);
+        roomEvent.setOriginServerTs(time);
     }
 
 
-    public RoomCreateEvent roomCreateEvent(String creator, String roomId, String sender, Long originTs) {
+    public RoomCreateEvent roomCreateEvent(String creator, String roomId, String sender, LocalDateTime time) {
         CreateContent createContent = CreateContent.builder()
                 .creator(creator)
                 .mFederate(false)
@@ -42,16 +38,16 @@ public class ImEventBuilder {
                 .type(EventType.Creation.getId())
                 .stateKey("")
                 .build();
-        setCommonEventFiled(roomCreateEvent, roomId, sender, originTs);
+        setCommonEventFiled(roomCreateEvent, roomId, sender, time);
         return roomCreateEvent;
     }
 
-    public MembershipEvent membershipEvent(String roomId, Long originTs, String sender,
+    public MembershipEvent membershipEvent(String roomId, LocalDateTime time, String sender,
                                            String stateKey, String displayName, String avatarUrl, MembershipType membership) {
         MembershipContent mContent = MembershipContent
                 .builder()
                 .avatarUrl(avatarUrl)
-                .membership(membership.name())
+                .membership(membership.name().toLowerCase())
                 .displayName(displayName)
                 .build();
 
@@ -59,11 +55,11 @@ public class ImEventBuilder {
                 .type(EventType.Membership.getId())
                 .stateKey(stateKey)
                 .content(mContent).build();
-        setCommonEventFiled(membershipEvent, roomId, sender, originTs);
+        setCommonEventFiled(membershipEvent, roomId, sender, time);
         return membershipEvent;
     }
 
-    public RoomNameEvent roomNameEvent(String roomName, String roomId, String sender, Long originTs) {
+    public RoomNameEvent roomNameEvent(String roomName, String roomId, String sender, LocalDateTime time) {
         RoomNameContent roomNameContent = RoomNameContent.builder()
                 .name(roomName).build();
         RoomNameEvent roomNameEvent = RoomNameEvent.builder()
@@ -71,16 +67,64 @@ public class ImEventBuilder {
                 .type(EventType.RoomName.getId())
                 .stateKey("")
                 .build();
-        setCommonEventFiled(roomNameEvent, roomId, sender, originTs);
+        setCommonEventFiled(roomNameEvent, roomId, sender, time);
         return roomNameEvent;
     }
 
-    public RoomTopicEvent roomTopicEvent(String topic, String roomId, String sender, Long nowTimestamp) {
+    public RoomTopicEvent roomTopicEvent(String topic, String roomId, String sender, LocalDateTime time) {
         RoomTopicContent topicContent = RoomTopicContent.builder().topic(topic).build();
         RoomTopicEvent topicEvent = RoomTopicEvent.builder().content(topicContent)
                 .type(EventType.RoomTopic.getId())
                 .stateKey("").build();
-        setCommonEventFiled(topicEvent, roomId, sender, nowTimestamp);
+        setCommonEventFiled(topicEvent, roomId, sender, time);
         return topicEvent;
+    }
+
+    public PowerLevelEvent powerLevelEvent(int ban, int invite, int kick, int redact, int state, Map<String, Integer> events,
+                                           int message, int room, Map<String, Integer> users, String roomId, String sender,
+                                           LocalDateTime time) {
+        PowerLevelContent pc = PowerLevelContent.builder()
+                .ban(ban)
+                .invite(invite)
+                .kick(kick)
+                .events(events)
+                .redact(redact)
+                .stateDefault(state)
+                .eventDefault(message)
+                .users(users)
+                .notifications(PowerLevelContent.RoomNotificationPower.builder().room(room).build())
+                .build();
+        PowerLevelEvent pe = PowerLevelEvent.builder()
+                .type(EventType.PowerLevel.getId())
+                .content(pc).build();
+        setCommonEventFiled(pe, roomId, sender, time);
+        return pe;
+    }
+
+    /**
+     * 创房时默认发的powerLevelEvent
+     *
+     * @param roomId
+     * @param creator
+     * @param time
+     * @return
+     */
+    public PowerLevelEvent defaultPowerLevelEvent(String roomId, String creator, LocalDateTime time) {
+        Map<String, Integer> users = Map.of(creator, 100);
+        return powerLevelEvent(60, 50, 60, 50, 50, null, 0, 50, users, roomId, creator, time);
+    }
+
+    public RoomJoinRuleEvent roomJoinRuleEvent(RoomJoinRuleType roomJoinRuleType, String rooId, String sender, LocalDateTime time) {
+        RoomJoinRuleContent content = RoomJoinRuleContent
+                .builder()
+                .joinRule(roomJoinRuleType.name().toLowerCase())
+                .build();
+
+        RoomJoinRuleEvent event = RoomJoinRuleEvent.builder()
+                .type(EventType.RoomJoinRule.getId())
+                .content(content)
+                .build();
+        setCommonEventFiled(event, rooId, sender, time);
+        return event;
     }
 }

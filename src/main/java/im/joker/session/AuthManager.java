@@ -43,11 +43,12 @@ public class AuthManager {
         if (StringUtils.isBlank(loginRequest.getDeviceId())) {
             loginRequest.setDeviceId(UUID.randomUUID().toString());
         }
-        return mongodbStore.retrieveByUsername(username)
+        return mongodbStore.findUserByUsername(username)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.INVALID_USERNAME, HttpStatus.FORBIDDEN)))
                 .filter(user -> passwordEncoder.matches(loginRequest.getPassword(), user.getPassword()))
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.CAPTCHA_INVALID, HttpStatus.FORBIDDEN)))
-                .zipWhen(user -> deviceManager.findOrCreateDevice(loginRequest.getDeviceId(), username, user.getUserId(), loginRequest.getInitialDeviceDisplayName()))
+                .zipWhen(user -> deviceManager.findOrCreateDevice(loginRequest.getDeviceId(), username,
+                        user.getUserId(), loginRequest.getInitialDeviceDisplayName()))
                 .flatMap(tuple2 -> {
                     IUser user = tuple2.getT1();
                     IDevice device = tuple2.getT2();

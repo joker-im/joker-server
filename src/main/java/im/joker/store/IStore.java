@@ -1,9 +1,11 @@
 package im.joker.store;
 
+import im.joker.event.EventType;
 import im.joker.event.ImEvent;
-import im.joker.event.room.AbstractRoomEvent;
+import im.joker.event.room.AbstractRoomStateEvent;
 import im.joker.room.IRoom;
 import im.joker.user.IUser;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -43,7 +45,7 @@ public interface IStore {
      * @param id
      * @return
      */
-    Mono<IUser> retrieveById(String id);
+    Mono<IUser> findUserByUserId(String id);
 
     /**
      * 检索用户
@@ -51,5 +53,39 @@ public interface IStore {
      * @param username
      * @return
      */
-    Mono<IUser> retrieveByUsername(String username);
+    Mono<IUser> findUserByUsername(String username);
+
+
+    /**
+     * 通过userId查询指定房间
+     *
+     * @param userId
+     * @return
+     */
+    Flux<IRoom> findRoomByUserId(String userId);
+
+    /**
+     * 查询某个用户指定的事件类型
+     *
+     * @param eventType
+     * @param userId
+     * @return
+     */
+    Flux<ImEvent> findEvents(EventType eventType, String userId);
+
+    /**
+     * 查询指定房间的状态事件
+     *
+     * @param roomId
+     * @return
+     */
+    Flux<ImEvent> findRoomStateEvents(String roomId);
+
+    /**
+     * 查询房间
+     *
+     * @param targetRoomId
+     * @return
+     */
+    Mono<IRoom> findRoomByRoomId(String targetRoomId);
 }

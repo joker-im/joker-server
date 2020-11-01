@@ -2,6 +2,8 @@ package im.joker.event.room;
 
 import im.joker.event.ImEvent;
 
+import java.time.LocalDateTime;
+
 public interface IRoomEvent extends ImEvent {
 
     /**
@@ -24,7 +26,7 @@ public interface IRoomEvent extends ImEvent {
      *
      * @return
      */
-    Long getOriginServerTs();
+    LocalDateTime getOriginServerTs();
 
     /**
      * 事务id

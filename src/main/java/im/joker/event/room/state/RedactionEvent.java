@@ -8,8 +8,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
 @EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
@@ -17,6 +15,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Data
 @SuperBuilder
 public class RedactionEvent extends AbstractRoomStateEvent {
+
 
 
     private RedactionContent content;

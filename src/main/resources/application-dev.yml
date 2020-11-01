@@ -1,13 +1,13 @@
 spring:
   redis:
-    host: redis-mall.tst.jianke-inc.com
-    password: redis_jk20190911
+    host: 192.168.234.234
+    password: redis
     port: 6379
     database: 14
     timeout:
   data:
     mongodb:
-      host: mongodb-mall.tst.jianke-inc.com
+      host: 192.168.234.234
       port: 27017
       database: joker-im
       field-naming-strategy: org.springframework.data.mapping.model.SnakeCaseFieldNamingStrategy
@@ -22,3 +22,8 @@ spring:
 
 im:
   web-domain: www.jokerim.org
+
+
+logging:
+  level:
+    org.springframework.data.mongodb.core.ReactiveMongoTemplate: DEBUG

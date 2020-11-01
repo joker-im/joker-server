@@ -23,7 +23,7 @@ public interface IRoom {
      *
      * @return
      */
-    IRoomState getCurrentState();
+    RoomState getCurrentState();
 
 
     /**
@@ -32,7 +32,7 @@ public interface IRoom {
      * @param eventId
      * @return
      */
-    IRoomState getStateFor(String eventId);
+    RoomState getStateFor(String eventId);
 
 
     /**

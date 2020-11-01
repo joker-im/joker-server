@@ -1,8 +1,6 @@
 package im.joker.event.content.message;
 
 import im.joker.event.content.AbstractMessageContent;
-import im.joker.event.content.AbstractStateContent;
-import im.joker.event.content.IContent;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

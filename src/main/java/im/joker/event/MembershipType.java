@@ -2,5 +2,9 @@ package im.joker.event;
 
 public enum MembershipType {
 
-    join, invite, leave, ban, knock
+    Join, Invite, Leave, Ban, Knock;
+
+    public boolean is(String type) {
+        return this.name().equalsIgnoreCase(type);
+    }
 }

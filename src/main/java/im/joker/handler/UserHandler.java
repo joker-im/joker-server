@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -50,6 +51,7 @@ public class UserHandler {
         BeanUtils.copyProperties(registerRequest, user);
         user.setUserId(idGenerator.userId(user.getUsername()));
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setCreateTime(LocalDateTime.now());
         return mongodbStore.addUser(user)
                 .flatMap(e -> deviceManager.findOrCreateDevice(user.getRegisterDeviceId(),
                         user.getUsername(), user.getUserId(),
@@ -83,10 +85,10 @@ public class UserHandler {
     public Mono<LoginResponse> login(LoginRequest loginRequest) {
         requestProcessor.validate(loginRequest);
         return authManager.login(loginRequest)
-                .map(tuple2 -> LoginResponse.builder()
-                        .accessToken(tuple2.getDevice().getAccessToken())
-                        .userId(tuple2.getUser().getUsername())
-                        .deviceId(tuple2.getDevice().getDeviceId())
+                .map(userSession -> LoginResponse.builder()
+                        .accessToken(userSession.getDevice().getAccessToken())
+                        .userId(userSession.getUser().getUsername())
+                        .deviceId(userSession.getDevice().getDeviceId())
                         .build());
 
     }

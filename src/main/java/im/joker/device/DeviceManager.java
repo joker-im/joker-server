@@ -13,7 +13,6 @@ import reactor.core.publisher.Mono;
 import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static im.joker.constants.ImRedisKeys.*;
@@ -31,17 +30,17 @@ public class DeviceManager {
      *
      * @param deviceId
      * @param username
-     * @param name
+     * @param deviceName
      * @return
      */
-    public Mono<IDevice> findOrCreateDevice(String deviceId, String username, String userId, @Nullable String name) {
+    public Mono<IDevice> findOrCreateDevice(String deviceId, String username, String userId, @Nullable String deviceName) {
         String redisTokenMapKey = String.format(USER_DEVICES_TOKENS_HASH, username);
         return redisTemplate.opsForHash()
                 // redis中找不到token的时候就往redis里面存一个
                 .hasKey(redisTokenMapKey, deviceId)
                 .flatMap(e -> {
                     if (!e) {
-                        return createNewToken(deviceId, username, userId);
+                        return createNewToken(deviceId, username, deviceName, userId);
                     } else {
                         // 如果找到了,还要比对2个键上的token是否一样(因为USER_DEVICE_TOKEN_HASH不会过期)
                         return redisTemplate.opsForHash().get(redisTokenMapKey, deviceId)
@@ -49,7 +48,7 @@ public class DeviceManager {
                                 .flatMap(tuple2 -> {
                                     // 如果在TOKEN_USER 不存在,只能新创建key
                                     if (!tuple2.getT2()) {
-                                        return createNewToken(deviceId, username, userId);
+                                        return createNewToken(deviceId, username, deviceName, userId);
                                     } else {
                                         return Mono.just(tuple2.getT1().toString());
                                     }
@@ -57,17 +56,18 @@ public class DeviceManager {
                     }
                 })
                 .map(e -> Device.builder().accessToken(e).deviceId(deviceId).username(username)
-                        .name(name).userId(userId).build());
+                        .name(deviceName).userId(userId).build());
 
     }
 
-    private Mono<String> createNewToken(String deviceId, String username, String userId) {
+    private Mono<String> createNewToken(String deviceId, String username, String deviceName, String userId) {
         String token = UUID.randomUUID().toString();
         Duration duration = Duration.ofDays(1L);
         Mono<Boolean> saveOps1 = redisTemplate.opsForHash().put(String.format(USER_DEVICES_TOKENS_HASH, username), deviceId, token);
         Map<String, String> userInfoMap = Map.of(TOKEN_USER_HASH_KEY_USERNAME, username,
                 TOKEN_USER_HASH_KEY_DEVICE_ID, deviceId,
-                TOKEN_USER_HASH_HASH_KEY_USER_ID, userId);
+                TOKEN_USER_HASH_HASH_KEY_USER_ID, userId,
+                TOKEN_USER_HASH_HASH_KEY_DEVICE_NAME, deviceName);
         Mono<Boolean> expireOps = redisTemplate.expire(String.format(TOKEN_USER_HASH, token), duration);
         Mono<Boolean> expireOps2 = redisTemplate.expire(String.format(USER_DEVICES_TOKENS_HASH, username), duration);
         Mono<Void> saveOps2 = redisTemplate.opsForHash().putAll(String.format(TOKEN_USER_HASH, token), userInfoMap).then();
@@ -84,6 +84,7 @@ public class DeviceManager {
                                 .username(e.get(TOKEN_USER_HASH_KEY_USERNAME))
                                 .deviceId(e.get(TOKEN_USER_HASH_KEY_DEVICE_ID))
                                 .userId(e.get(TOKEN_USER_HASH_HASH_KEY_USER_ID))
+                                .name(e.get(TOKEN_USER_HASH_HASH_KEY_DEVICE_NAME))
                                 .accessToken(token)
                                 .build()
                 );

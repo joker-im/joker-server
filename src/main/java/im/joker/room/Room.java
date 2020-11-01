@@ -42,12 +42,12 @@ public class Room implements IRoom {
     }
 
     @Override
-    public IRoomState getCurrentState() {
+    public RoomState getCurrentState() {
         return null;
     }
 
     @Override
-    public IRoomState getStateFor(String eventId) {
+    public RoomState getStateFor(String eventId) {
         return null;
     }
 }

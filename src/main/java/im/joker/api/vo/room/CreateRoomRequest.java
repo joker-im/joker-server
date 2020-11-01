@@ -2,6 +2,7 @@ package im.joker.api.vo.room;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import im.joker.event.content.AbstractStateContent;
+import im.joker.event.content.state.PowerLevelContent;
 import im.joker.event.room.AbstractRoomStateEvent;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -56,5 +57,7 @@ public class CreateRoomRequest {
      * public, private
      */
     private String visibility;
+
+    private PowerLevelContent powerLevelContentOverride;
 
 }
