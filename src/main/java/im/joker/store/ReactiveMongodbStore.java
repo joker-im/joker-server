@@ -156,9 +156,9 @@ public class ReactiveMongodbStore implements IStore {
     }
 
     @Override
-    public Flux<ImEvent> findEvents(EventType eventType, String userId) {
+    public Flux<ImEvent> findEvents(EventType eventType, String sender) {
         Query query = new Query();
-        query.addCriteria(Criteria.where("type").is(eventType.getId()).and("sender").is(userId));
+        query.addCriteria(Criteria.where("type").is(eventType.getId()).and("sender").is(sender));
         return mongoTemplate.find(query, ImEvent.class, COLLECTION_NAME_EVENTS);
     }
 

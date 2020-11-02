@@ -80,7 +80,6 @@ public class RoomController {
     @PostMapping("/rooms/{roomId}/leave")
     public Mono<Void> leaveRoom(@PathVariable String roomId) {
         Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> Mono.just(context.get(AuthFilter.getLoginDevice())));
-
         return loginDevice.flatMap(e -> roomHandler.levelRoom(e, roomId));
     }
 

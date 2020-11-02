@@ -38,6 +38,9 @@ public enum EventType {
     Encryption("m.room.encryption", true, EncryptionEvent.class),
     // 房间加入规则事件
     RoomJoinRule("m.room.join_rules", true, RoomJoinRuleEvent.class),
+    // 房间历史消息
+    HistoryVisibility("m.room.history_visibility", true, HistoryVisibilityEvent.class),
+
 
 
     /**

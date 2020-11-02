@@ -9,6 +9,7 @@ import im.joker.event.content.state.MembershipContent;
 import im.joker.event.room.state.MembershipEvent;
 import im.joker.room.IRoom;
 import im.joker.room.RoomManager;
+import im.joker.room.RoomState;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,7 @@ public class RoomHandler {
     }
 
     public Mono<JoinedRoomResponse> searchJoinedRooms(IDevice loginDevice) {
+        // todo 这里有待修改
         Flux<ImEvent> eventFlux = roomManager.findEvents(EventType.Membership, loginDevice.getUserId());
         return eventFlux
                 .filter(e -> {
@@ -60,13 +62,13 @@ public class RoomHandler {
     }
 
     public Mono<JoinRoomResponse> joinRoom(IDevice loginDevice, String targetRoomId) {
-        Mono<IRoom> roomMono = roomManager.findRoom(targetRoomId);
-
-        return null;
+        Mono<ImEvent> join = roomManager.joinRoom(loginDevice.getUserId(), targetRoomId);
+        return join.map(e -> JoinRoomResponse.builder().roomId(targetRoomId).build());
     }
 
     public Mono<Void> levelRoom(IDevice loginDevice, String targetRoomId) {
-        return null;
+        Mono<ImEvent> level = roomManager.levelRoom(loginDevice.getUserId(), targetRoomId);
+        return level.then();
     }
 
     public Mono<ServerResponse> kickRoom(ServerRequest serverRequest) {

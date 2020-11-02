@@ -4,15 +4,14 @@ import com.google.common.collect.Lists;
 import im.joker.api.vo.room.CreateRoomRequest;
 import im.joker.device.IDevice;
 import im.joker.event.*;
-import im.joker.event.content.state.MembershipContent;
 import im.joker.event.room.AbstractRoomStateEvent;
 import im.joker.event.room.state.*;
 import im.joker.exception.ErrorCode;
 import im.joker.exception.ImException;
+import im.joker.helper.EventAuthorizationValidator;
 import im.joker.helper.GlobalStateHolder;
 import im.joker.helper.IdGenerator;
 import im.joker.store.IStore;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,11 +21,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 
@@ -44,6 +43,8 @@ public class RoomManager {
     private IStore mongodbStore;
     @Autowired
     private GlobalStateHolder globalStateHolder;
+    @Autowired
+    private EventAuthorizationValidator eventAuthorizationValidator;
 
 
     /**
@@ -66,7 +67,6 @@ public class RoomManager {
                 .build();
         // 先创房
         RoomCreateEvent roomCreateEvent = eventBuilder.roomCreateEvent(device.getUserId(), room.getRoomId(), device.getUserId(), now);
-
         // 自己加入
         MembershipEvent membershipEvent = eventBuilder.membershipEvent(room.getRoomId(), now,
                 device.getUserId(), device.getUserId(), device.getName(), "", MembershipType.Join);
@@ -143,14 +143,14 @@ public class RoomManager {
     }
 
     public Mono<ImEvent> inviteToRoom(String targetRoomId, String targetUserId, String sender) {
-        return RoomState.existRoomState(targetRoomId, globalStateHolder)
-                .zipWhen(roomState -> checkInvitePower(roomState.getUserStateEvents().get(sender)))
+        return findRoomState(targetRoomId)
+                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canInvite(roomState, sender)))
+                .filter(Tuple2::getT2)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.UNAUTHORIZED, HttpStatus.FORBIDDEN)))
                 .flatMap(tuple2 ->
                         idGenerator.nextEventStreamId()
                                 .flatMap(streamId -> {
                                     Room room = (Room) tuple2.getT1().getRoom();
-                                    room.setGlobalStateHolder(globalStateHolder);
                                     MembershipEvent mEvent = eventBuilder
                                             .membershipEvent(targetRoomId, LocalDateTime.now(), sender, targetUserId,
                                                     "", "", MembershipType.Invite);
@@ -160,48 +160,37 @@ public class RoomManager {
                 );
     }
 
+
+    public Mono<RoomState> findRoomState(String roomId) {
+        return RoomState.existRoomState(roomId, globalStateHolder);
+    }
+
+
+    public Mono<ImEvent> joinRoom(String sender, String targetRoomId) {
+        return findRoomState(targetRoomId)
+                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canJoin(roomState, sender)))
+                .filter(Tuple2::getT2)
+                .switchIfEmpty(Mono.error(new ImException(ErrorCode.UNAUTHORIZED, HttpStatus.FORBIDDEN)))
+                .flatMap(tuple2 -> idGenerator.nextEventStreamId().flatMap(streamId -> {
+                    Room room = (Room) tuple2.getT1().getRoom();
+                    MembershipEvent join = eventBuilder
+                            .membershipEvent(targetRoomId, LocalDateTime.now(), sender, sender, "", "", MembershipType.Join);
+                    return room.inject(join);
+                }));
+
+    }
+
     /**
-     * 是否有邀请的权限
+     * 有2层意思.
+     * 1. 当前用户不接受邀请, 也会调用level,表示拒绝加入该房间
+     * 2. 当前用户已经在此房间,但是自己想走
      *
-     * @param membershipEvents
+     * @param sender
+     * @param targetRoomId
      * @return
      */
-    private Mono<Boolean> checkInvitePower(List<AbstractRoomStateEvent> membershipEvents) {
-        if (CollectionUtils.isEmpty(membershipEvents)) {
-            return Mono.empty();
-        }
-        boolean in = false;
-        for (ImEvent membershipEvent : membershipEvents) {
-            if (!(membershipEvent instanceof MembershipEvent)) {
-                continue;
-            }
-            MembershipContent content = (MembershipContent) membershipEvent.getContent();
-            if (MembershipType.Join.is(content.getMembership())) {
-                in = true;
-            } else if (MembershipType.Leave.is(content.getMembership())) {
-                in = false;
-            }
-        }
-        if (in) {
-            return Mono.just(true);
-        } else {
-            return Mono.empty();
-        }
+    public Mono<ImEvent> levelRoom(String sender, String targetRoomId) {
 
-    }
-
-
-    public Mono<IRoom> findRoom(String roomId) {
-        return mongodbStore.findRoomByRoomId(roomId);
-    }
-
-
-    @SneakyThrows
-    public static void main(String[] args) {
-        Flux<String> flux = Flux.just("1", "2", "3");
-        Mono<String> mono = Mono.empty();
-        Flux.zip(flux, mono)
-                .switchIfEmpty(Mono.error(new ImException(ErrorCode.INVALID_PARAM, HttpStatus.BAD_REQUEST))).subscribe();
-        TimeUnit.SECONDS.sleep(10);
+        return null;
     }
 }
