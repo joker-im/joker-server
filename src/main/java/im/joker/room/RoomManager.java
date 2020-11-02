@@ -77,6 +77,8 @@ public class RoomManager {
         if (createRoomRequest.getPowerLevelContentOverride() != null) {
             powerLevelEvent.setContent(createRoomRequest.getPowerLevelContentOverride());
         }
+        // todo 还差个visibility 事件
+
         // 房间加入规则
         RoomJoinRuleEvent joinRuleEvent =
                 eventBuilder.roomJoinRuleEvent(RoomJoinRuleType.Invite, room.getRoomId(), device.getUserId(), now);
