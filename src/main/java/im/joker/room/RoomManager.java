@@ -146,7 +146,7 @@ public class RoomManager {
 
     public Mono<ImEvent> inviteToRoom(String targetRoomId, String targetUserId, String sender) {
         return findRoomState(targetRoomId)
-                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canInvite(roomState, sender)))
+                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canPostInviteEvent(roomState, sender)))
                 .filter(Tuple2::getT2)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.UNAUTHORIZED, HttpStatus.FORBIDDEN)))
                 .flatMap(tuple2 ->
@@ -170,7 +170,7 @@ public class RoomManager {
 
     public Mono<ImEvent> joinRoom(String sender, String targetRoomId) {
         return findRoomState(targetRoomId)
-                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canJoin(roomState, sender)))
+                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canPostJoinEvent(roomState, sender)))
                 .filter(Tuple2::getT2)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.UNAUTHORIZED, HttpStatus.FORBIDDEN)))
                 .flatMap(tuple2 -> idGenerator.nextEventStreamId().flatMap(streamId -> {
@@ -188,11 +188,20 @@ public class RoomManager {
      * 2. 当前用户已经在此房间,但是自己想走
      *
      * @param sender
-     * @param targetRoomId
+     * @param roomId
      * @return
      */
-    public Mono<ImEvent> levelRoom(String sender, String targetRoomId) {
+    public Mono<ImEvent> levelRoom(String sender, String roomId) {
 
-        return null;
+        return findRoomState(roomId)
+                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canPostLeaveEvent(roomState, sender)))
+                .filter(Tuple2::getT2)
+                .switchIfEmpty(Mono.error(new ImException(ErrorCode.UNAUTHORIZED, HttpStatus.FORBIDDEN)))
+                .flatMap(tuple2 -> idGenerator.nextEventStreamId().flatMap(streamId -> {
+                    Room room = (Room) tuple2.getT1().getRoom();
+                    MembershipEvent leave = eventBuilder.
+                            membershipEvent(roomId, LocalDateTime.now(), sender, sender, "", "", MembershipType.Leave);
+                    return room.inject(leave);
+                }));
     }
 }

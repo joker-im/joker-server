@@ -4,6 +4,7 @@ import im.joker.api.vo.room.*;
 import im.joker.config.filter.AuthFilter;
 import im.joker.device.IDevice;
 import im.joker.handler.RoomHandler;
+import im.joker.helper.RequestProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -17,6 +18,8 @@ public class RoomController {
 
     @Autowired
     private RoomHandler roomHandler;
+    @Autowired
+    private RequestProcessor requestProcessor;
 
 
     /**
@@ -81,6 +84,13 @@ public class RoomController {
     public Mono<Void> leaveRoom(@PathVariable String roomId) {
         Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> Mono.just(context.get(AuthFilter.getLoginDevice())));
         return loginDevice.flatMap(e -> roomHandler.levelRoom(e, roomId));
+    }
+
+    @PostMapping("/rooms/{roomId}/kick")
+    public Mono<Void> kick(@PathVariable String roomId, @RequestBody KickRequest kickRequest) {
+        requestProcessor.validate(kickRequest);
+        Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> Mono.just(context.get(AuthFilter.getLoginDevice())));
+        return loginDevice.flatMap(e -> roomHandler.kick(e, kickRequest, roomId));
     }
 
 

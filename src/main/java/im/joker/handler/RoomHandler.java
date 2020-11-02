@@ -7,14 +7,10 @@ import im.joker.event.ImEvent;
 import im.joker.event.MembershipType;
 import im.joker.event.content.state.MembershipContent;
 import im.joker.event.room.state.MembershipEvent;
-import im.joker.room.IRoom;
 import im.joker.room.RoomManager;
-import im.joker.room.RoomState;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.server.ServerRequest;
-import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -66,12 +62,15 @@ public class RoomHandler {
         return join.map(e -> JoinRoomResponse.builder().roomId(targetRoomId).build());
     }
 
+
     public Mono<Void> levelRoom(IDevice loginDevice, String targetRoomId) {
-        Mono<ImEvent> level = roomManager.levelRoom(loginDevice.getUserId(), targetRoomId);
-        return level.then();
+        return roomManager.levelRoom(loginDevice.getUserId(), targetRoomId).then();
     }
 
-    public Mono<ServerResponse> kickRoom(ServerRequest serverRequest) {
+    public Mono<Void> kick(IDevice loginDevice, KickRequest kickRequest, String roomId) {
+        String sender = loginDevice.getUserId();
+        String targetUserId = kickRequest.getUserId();
+        // todo
         return null;
     }
 }

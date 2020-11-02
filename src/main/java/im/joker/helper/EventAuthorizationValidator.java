@@ -37,8 +37,8 @@ public class EventAuthorizationValidator {
      * @param sender
      * @return
      */
-    public boolean canJoin(RoomState roomState, String sender) {
-        List<ImEvent> stateEvents = roomState.getStateEvents();
+    public boolean canPostJoinEvent(RoomState roomState, String sender) {
+        List<AbstractRoomStateEvent> stateEvents = roomState.getStateEvents();
         LocalDateTime latestInviteTime = null;
         LocalDateTime latestLeaveTime = null;
         if (CollectionUtils.isEmpty(stateEvents)) {
@@ -73,7 +73,7 @@ public class EventAuthorizationValidator {
      * @param sender
      * @return
      */
-    public boolean canInvite(RoomState roomState, String sender) {
+    public boolean canPostInviteEvent(RoomState roomState, String sender) {
         List<AbstractRoomStateEvent> senderStateEvents = roomState.getUserStateEvents().get(sender);
         if (CollectionUtils.isEmpty(senderStateEvents)) {
             return false;
@@ -135,4 +135,27 @@ public class EventAuthorizationValidator {
     }
 
 
+    /**
+     * 查询sender是否可以向房间发送离开消息
+     * 1. 当前用户不接受邀请, 也会调用level,表示拒绝加入该房间
+     *
+     * @param roomState
+     * @param sender
+     * @return
+     */
+    public boolean canPostLeaveEvent(RoomState roomState, String sender) {
+        List<AbstractRoomStateEvent> senderStateEvents = roomState.getStateEvents();
+        for (AbstractRoomStateEvent e : senderStateEvents) {
+            if (!(e instanceof MembershipEvent)) {
+                continue;
+            }
+            // 至少有一条属于自己的membership消息
+            if (StringUtils.equals(e.getStateKey(), sender)) {
+                return true;
+            }
+        }
+
+
+        return false;
+    }
 }

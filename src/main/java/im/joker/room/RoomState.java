@@ -28,7 +28,7 @@ public class RoomState {
 
     private final GlobalStateHolder globalStateHolder;
 
-    private final List<ImEvent> stateEvents;
+    private final List<AbstractRoomStateEvent> stateEvents;
 
     private final Map<String, List<AbstractRoomStateEvent>> userStateEvents;
 
@@ -39,19 +39,19 @@ public class RoomState {
         Flux<ImEvent> eventFlux = globalStateHolder.getMongodbStore().findRoomStateEvents(roomId);
         Mono<IRoom> roomMono = globalStateHolder.getMongodbStore().findRoomByRoomId(roomId);
         return eventFlux
+                .map(e -> (AbstractRoomStateEvent) e)
                 // 逆序
-                .collectSortedList((a, b) -> ((AbstractRoomStateEvent) b).getStreamId().compareTo(((AbstractRoomStateEvent) a).getStreamId()))
+                .collectSortedList((a, b) -> b.getStreamId().compareTo(a.getStreamId()))
                 .zipWith(roomMono)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.INVALID_PARAM, HttpStatus.BAD_REQUEST, "房间不存在")))
                 .map(tuple2 -> {
                     Map<String, List<AbstractRoomStateEvent>> userStateEventMap = tuple2.getT1().stream()
-                            .map(e -> (AbstractRoomStateEvent) e)
                             .collect(Collectors.groupingBy(AbstractRoomEvent::getSender, Collectors.toList()));
                     return new RoomState(globalStateHolder, tuple2.getT2(), tuple2.getT1(), userStateEventMap);
                 });
     }
 
-    private RoomState(GlobalStateHolder globalStateHolder, IRoom room, List<ImEvent> stateEvents,
+    private RoomState(GlobalStateHolder globalStateHolder, IRoom room, List<AbstractRoomStateEvent> stateEvents,
                       Map<String, List<AbstractRoomStateEvent>> userStateEvents) {
         this.globalStateHolder = globalStateHolder;
         this.room = room;
