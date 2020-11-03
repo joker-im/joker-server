@@ -1,8 +1,10 @@
 package im.joker.sync;
 
-import im.joker.event.room.IRoomEvent;
+import im.joker.sync.entity.SyncEvents;
 import im.joker.sync.entity.SyncResponse;
 import lombok.Data;
+
+import java.util.List;
 
 /**
  * @Author LinYuRong
@@ -13,7 +15,7 @@ import lombok.Data;
 public class SyncRoomEventAdder {
     private boolean existsData;
 
-    public void addEvent(IRoomEvent event) {
+    public void addEventList(List<SyncEvents> eventsList) {
 
     }
 

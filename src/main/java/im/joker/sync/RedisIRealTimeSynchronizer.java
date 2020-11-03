@@ -7,6 +7,7 @@ import im.joker.event.room.IRoomEvent;
 import im.joker.exception.MalformedEventException;
 import im.joker.helper.GlobalStateHolder;
 import im.joker.helper.RedisEventSerializer;
+import im.joker.sync.entity.SyncEvents;
 import im.joker.sync.entity.SyncResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -26,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Version 1.0
  */
 @Component
-public class RedisRealTimeSynchronizer implements RealTimeSynchronizer {
+public class RedisIRealTimeSynchronizer implements IRealTimeSynchronizer {
 
     @Autowired
     private GlobalStateHolder globalStateHolder;
@@ -46,29 +47,31 @@ public class RedisRealTimeSynchronizer implements RealTimeSynchronizer {
     @Override
     public Mono<SyncResponse> syncProcess(SyncRequest request, IDevice device) {
         SyncRoomEventAdder adder = new SyncRoomEventAdder();
-        return Mono.create(monoSink -> {
-            getActiveRoomsOfDevice(device.getDeviceId())
-                    .flatMap(roomId -> globalStateHolder.getRedisTemplate().opsForList()
-                            // TODO limit
-                            .range(String.format(ImRedisKeys.ACTIVE_ROOM_LATEST_EVENTS, roomId), -30, -1)
-                            .map(o -> {
-                                try {
-                                    return (IRoomEvent) redisEventSerializer.deserialize(o);
-                                } catch (Exception e) {
-                                    throw new MalformedEventException("sync事件反序列出错");
-                                }
-                            })
-                            .sort(Comparator.comparingLong(IRoomEvent::getStreamId).reversed())
-                            .doOnNext(event -> adder.addEvent(event)))
-                    .doOnComplete(() -> {
-                        if (adder.isExistsData()) {
-                            monoSink.success(adder.get());
-                        } else {
-                            // 注册等待
+        return getActiveRoomsOfDevice(device.getDeviceId())
+                .flatMap(roomId -> globalStateHolder.getRedisTemplate().opsForList()
+                        // TODO limit
+                        .range(String.format(ImRedisKeys.ACTIVE_ROOM_LATEST_EVENTS, roomId), -30, -1)
+                        .map(o -> {
+                            try {
+                                return (IRoomEvent) redisEventSerializer.deserialize(o);
+                            } catch (Exception e) {
+                                throw new MalformedEventException("sync事件反序列出错");
+                            }
+                        })
+                        .sort(Comparator.comparingLong(IRoomEvent::getStreamId).reversed())
+                        .collectList()
+                        .map(events -> new SyncEvents(roomId, events)))
+                .collectList()
+                .flatMap(o -> {
+                    adder.addEventList(o);
+                    if (adder.isExistsData()) {
+                        return Mono.just(adder.get());
+                    } else {
+                        return Mono.create(monoSink -> {
                             waitingSyncMap.put(device.getDeviceId(), monoSink);
-                        }
-                    });
-        });
+                        });
+                    }
+                });
     }
 
     @Override

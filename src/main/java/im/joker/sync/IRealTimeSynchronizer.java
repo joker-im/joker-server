@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono;
  * @Date 2020/10/13 16:28
  * @Version 1.0
  */
-public interface RealTimeSynchronizer {
+public interface IRealTimeSynchronizer {
 
     /**
      * 处理实时房间消息，需方便获取以下信息：
