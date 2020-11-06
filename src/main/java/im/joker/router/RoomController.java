@@ -86,6 +86,14 @@ public class RoomController {
         return loginDevice.flatMap(e -> roomHandler.levelRoom(e, roomId));
     }
 
+
+    /**
+     * 将某个用户T出房间
+     *
+     * @param roomId
+     * @param kickRequest
+     * @return
+     */
     @PostMapping("/rooms/{roomId}/kick")
     public Mono<Void> kick(@PathVariable String roomId, @RequestBody KickRequest kickRequest) {
         requestProcessor.validate(kickRequest);

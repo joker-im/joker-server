@@ -114,7 +114,7 @@ public class ImEventBuilder {
         return powerLevelEvent(60, 50, 60, 50, 50, null, 0, 50, users, roomId, creator, time);
     }
 
-    public RoomJoinRuleEvent roomJoinRuleEvent(RoomJoinRuleType roomJoinRuleType, String rooId, String sender, LocalDateTime time) {
+    public RoomJoinRuleEvent roomJoinRuleEvent(RoomJoinRuleType roomJoinRuleType, String roomId, String sender, LocalDateTime time) {
         RoomJoinRuleContent content = RoomJoinRuleContent
                 .builder()
                 .joinRule(roomJoinRuleType.name().toLowerCase())
@@ -124,7 +124,21 @@ public class ImEventBuilder {
                 .type(EventType.RoomJoinRule.getId())
                 .content(content)
                 .build();
-        setCommonEventFiled(event, rooId, sender, time);
+        setCommonEventFiled(event, roomId, sender, time);
         return event;
+    }
+
+    /**
+     * 创房时默认的房间历史是否可以查看事件
+     *
+     * @param roomId
+     * @param sender
+     * @return
+     */
+    public HistoryVisibilityEvent defaultHistoryVisibilityEvent(String roomId, String sender, LocalDateTime time) {
+        HistoryVisibilityContent hvc = HistoryVisibilityContent.builder().historyVisibility("joined").build();
+        HistoryVisibilityEvent hvEvent = HistoryVisibilityEvent.builder().content(hvc).build();
+        setCommonEventFiled(hvEvent, roomId, sender, time);
+        return hvEvent;
     }
 }

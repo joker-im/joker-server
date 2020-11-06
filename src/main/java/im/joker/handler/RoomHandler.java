@@ -70,8 +70,7 @@ public class RoomHandler {
     public Mono<Void> kick(IDevice loginDevice, KickRequest kickRequest, String roomId) {
         String sender = loginDevice.getUserId();
         String targetUserId = kickRequest.getUserId();
-        // todo
-        return null;
+        return roomManager.kickMember(sender, targetUserId, roomId);
     }
 }
 

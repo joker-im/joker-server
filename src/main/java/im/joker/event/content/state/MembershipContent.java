@@ -32,4 +32,7 @@ public class MembershipContent extends AbstractStateContent {
     private Boolean isDirect;
 
 
+    private String reason;
+
+
 }

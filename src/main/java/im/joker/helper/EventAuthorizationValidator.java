@@ -1,5 +1,6 @@
 package im.joker.helper;
 
+import im.joker.event.EventType;
 import im.joker.event.ImEvent;
 import im.joker.event.MembershipType;
 import im.joker.event.content.state.MembershipContent;
@@ -15,6 +16,8 @@ import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 
 /**
@@ -79,13 +82,16 @@ public class EventAuthorizationValidator {
             return false;
         }
         // 检测该sender是否有邀请的权限
-        PowerLevelContent powerLevelContent = (PowerLevelContent) findRoomPowerLevelEvent(roomState).getContent();
-        int senderInvite = powerLevelContent.getUserDefault();
-        if (!CollectionUtils.isEmpty(powerLevelContent.getUsers()) && powerLevelContent.getUsers().get(sender) != null) {
-            senderInvite = powerLevelContent.getUsers().get(sender);
-        }
-        if (senderInvite < powerLevelContent.getInvite()) {
-            return false;
+        PowerLevelEvent roomPowerLevelEvent = findRoomPowerLevelEvent(roomState);
+        if (roomPowerLevelEvent != null) {
+            PowerLevelContent powerLevelContent = (PowerLevelContent) roomPowerLevelEvent.getContent();
+            int senderInvite = powerLevelContent.getUserDefault();
+            if (!CollectionUtils.isEmpty(powerLevelContent.getUsers()) && powerLevelContent.getUsers().get(sender) != null) {
+                senderInvite = powerLevelContent.getUsers().get(sender);
+            }
+            if (senderInvite < powerLevelContent.getInvite()) {
+                return false;
+            }
         }
         LocalDateTime latestLeaveTime = null;
         LocalDateTime latestJoinTime = null;
@@ -131,7 +137,11 @@ public class EventAuthorizationValidator {
     }
 
     private PowerLevelEvent findRoomPowerLevelEvent(RoomState roomState) {
-        return (PowerLevelEvent) roomState.getStateEvents().stream().filter(e -> e instanceof PowerLevelEvent).findFirst().orElse(null);
+        AbstractRoomStateEvent event = roomState.getStateEvents().stream().filter(e -> e instanceof PowerLevelEvent).findFirst().orElse(null);
+        if (event != null) {
+            return (PowerLevelEvent) event;
+        }
+        return null;
     }
 
 
@@ -158,4 +168,40 @@ public class EventAuthorizationValidator {
 
         return false;
     }
+
+    /**
+     * 查询sender是否可以将某个人T走
+     *
+     * @param roomState
+     * @param sender
+     * @param targetUserId
+     * @return
+     */
+    public boolean canKickMember(RoomState roomState, String sender, String targetUserId) {
+        PowerLevelEvent powerLevelEvent = findRoomPowerLevelEvent(roomState);
+        if (powerLevelEvent == null) {
+            return false;
+        }
+        PowerLevelContent plc = (PowerLevelContent) powerLevelEvent.getContent();
+        Integer sendPowerLevel = plc.getUsers().get(sender);
+        if (sendPowerLevel != null) {
+
+        }
+        if (plc.getKick() < plc.getUserDefault()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public boolean inRoom(RoomState roomState, String target) {
+        List<AbstractRoomStateEvent> stateEvents = roomState.getStateEvents();
+        LocalDateTime joinTime = null;
+        LocalDateTime leaveTime = null;
+        for (AbstractRoomStateEvent stateEvent : stateEvents) {
+            // todo
+        }
+        return false;
+    }
+
 }

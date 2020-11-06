@@ -77,8 +77,8 @@ public class RoomManager {
         if (createRoomRequest.getPowerLevelContentOverride() != null) {
             powerLevelEvent.setContent(createRoomRequest.getPowerLevelContentOverride());
         }
-        // todo 还差个visibility 事件
-
+        // 房间聊天记录规则
+        HistoryVisibilityEvent historyVisibilityEvent = eventBuilder.defaultHistoryVisibilityEvent(room.getRoomId(), device.getUserId(), now);
         // 房间加入规则
         RoomJoinRuleEvent joinRuleEvent =
                 eventBuilder.roomJoinRuleEvent(RoomJoinRuleType.Invite, room.getRoomId(), device.getUserId(), now);
@@ -106,7 +106,9 @@ public class RoomManager {
 
         // 初始事件
         List<AbstractRoomStateEvent> initRoomStateEvent = createRoomRequest.getInitialState()
-                .stream().peek(e -> eventBuilder.setCommonEventFiled(e, room.getRoomId(), device.getUserId(), now)).collect(Collectors.toList());
+                .stream()
+                .peek(e -> eventBuilder.setCommonEventFiled(e, room.getRoomId(), device.getUserId(), now))
+                .collect(Collectors.toList());
 
 
         // 其他事件
@@ -122,7 +124,7 @@ public class RoomManager {
 
         // 汇聚
         List<AbstractRoomStateEvent> totalEvents = Lists.newArrayList(roomCreateEvent,
-                membershipEvent, powerLevelEvent, joinRuleEvent, roomNameEvent, roomTopicEvent)
+                membershipEvent, powerLevelEvent, historyVisibilityEvent, joinRuleEvent, roomNameEvent, roomTopicEvent)
                 .stream().filter(Objects::nonNull).collect(Collectors.toList());
 
         totalEvents.addAll(beInvitedUserEvents);
@@ -203,5 +205,13 @@ public class RoomManager {
                             membershipEvent(roomId, LocalDateTime.now(), sender, sender, "", "", MembershipType.Leave);
                     return room.inject(leave);
                 }));
+    }
+
+    public Mono<Void> kickMember(String sender, String targetUserId, String roomId) {
+
+        return findRoomState(roomId)
+                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canKickMember(roomState, sender, targetUserId)))
+                .then()
+                ;
     }
 }
