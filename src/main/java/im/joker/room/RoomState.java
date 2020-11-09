@@ -1,8 +1,8 @@
 package im.joker.room;
 
 import im.joker.event.ImEvent;
-import im.joker.event.room.AbstractRoomEvent;
 import im.joker.event.room.AbstractRoomStateEvent;
+import im.joker.event.room.state.MembershipEvent;
 import im.joker.exception.ErrorCode;
 import im.joker.exception.ImException;
 import im.joker.helper.GlobalStateHolder;
@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+
 /**
  * @Author: mkCen
  * @Date: 2020/11/1
@@ -27,10 +28,15 @@ import java.util.stream.Collectors;
 public class RoomState {
 
     private final GlobalStateHolder globalStateHolder;
-
+    /**
+     * 此变量表示该房间的所有状态事件
+     */
     private final List<AbstractRoomStateEvent> stateEvents;
 
-    private final Map<String, List<AbstractRoomStateEvent>> userStateEvents;
+    /**
+     * 此变量表示该房间所有人的memberEvent. 其key是stateKey,事件都是按时间逆序的,即最新的事件在前
+     */
+    private final Map<String, List<MembershipEvent>> userMemberEventMap;
 
     private final IRoom room;
 
@@ -45,18 +51,20 @@ public class RoomState {
                 .zipWith(roomMono)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.INVALID_PARAM, HttpStatus.BAD_REQUEST, "房间不存在")))
                 .map(tuple2 -> {
-                    Map<String, List<AbstractRoomStateEvent>> userStateEventMap = tuple2.getT1().stream()
-                            .collect(Collectors.groupingBy(AbstractRoomEvent::getSender, Collectors.toList()));
+                    Map<String, List<MembershipEvent>> userStateEventMap = tuple2.getT1().stream()
+                            .filter(e -> e instanceof MembershipEvent)
+                            .map(e -> (MembershipEvent) e)
+                            .collect(Collectors.groupingBy(AbstractRoomStateEvent::getStateKey, Collectors.toList()));
                     return new RoomState(globalStateHolder, tuple2.getT2(), tuple2.getT1(), userStateEventMap);
                 });
     }
 
     private RoomState(GlobalStateHolder globalStateHolder, IRoom room, List<AbstractRoomStateEvent> stateEvents,
-                      Map<String, List<AbstractRoomStateEvent>> userStateEvents) {
+                      Map<String, List<MembershipEvent>> userMemberEventMap) {
         this.globalStateHolder = globalStateHolder;
         this.room = room;
         this.stateEvents = stateEvents;
-        this.userStateEvents = userStateEvents;
+        this.userMemberEventMap = userMemberEventMap;
         ((Room) room).setGlobalStateHolder(globalStateHolder);
     }
 

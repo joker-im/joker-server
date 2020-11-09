@@ -69,7 +69,7 @@ public class RoomManager {
         RoomCreateEvent roomCreateEvent = eventBuilder.roomCreateEvent(device.getUserId(), room.getRoomId(), device.getUserId(), now);
         // 自己加入
         MembershipEvent membershipEvent = eventBuilder.membershipEvent(room.getRoomId(), now,
-                device.getUserId(), device.getUserId(), device.getName(), "", MembershipType.Join);
+                device.getUserId(), null, device.getUserId(), device.getName(), "", MembershipType.Join);
 
         // 默认的权限设置事件
         PowerLevelEvent powerLevelEvent = eventBuilder.defaultPowerLevelEvent(room.getRoomId(), device.getUserId(), now);
@@ -100,7 +100,7 @@ public class RoomManager {
             beInvitedUserEvents = createRoomRequest.getInvite()
                     .stream()
                     .map(e -> eventBuilder.membershipEvent(room.getRoomId(), now,
-                            device.getUserId(), e, "", "", MembershipType.Invite)
+                            device.getUserId(), null, e, "", "", MembershipType.Invite)
                     ).collect(Collectors.toList());
         }
 
@@ -154,9 +154,9 @@ public class RoomManager {
                 .flatMap(tuple2 ->
                         idGenerator.nextEventStreamId()
                                 .flatMap(streamId -> {
-                                    Room room = (Room) tuple2.getT1().getRoom();
+                                    IRoom room = tuple2.getT1().getRoom();
                                     MembershipEvent mEvent = eventBuilder
-                                            .membershipEvent(targetRoomId, LocalDateTime.now(), sender, targetUserId,
+                                            .membershipEvent(targetRoomId, LocalDateTime.now(), sender, null, targetUserId,
                                                     "", "", MembershipType.Invite);
                                     mEvent.setStreamId(streamId);
                                     return room.inject(mEvent);
@@ -176,9 +176,9 @@ public class RoomManager {
                 .filter(Tuple2::getT2)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.UNAUTHORIZED, HttpStatus.FORBIDDEN)))
                 .flatMap(tuple2 -> idGenerator.nextEventStreamId().flatMap(streamId -> {
-                    Room room = (Room) tuple2.getT1().getRoom();
+                    IRoom room = tuple2.getT1().getRoom();
                     MembershipEvent join = eventBuilder
-                            .membershipEvent(targetRoomId, LocalDateTime.now(), sender, sender, "", "", MembershipType.Join);
+                            .membershipEvent(targetRoomId, LocalDateTime.now(), sender, null, sender, "", "", MembershipType.Join);
                     return room.inject(join);
                 }));
 
@@ -200,18 +200,25 @@ public class RoomManager {
                 .filter(Tuple2::getT2)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.UNAUTHORIZED, HttpStatus.FORBIDDEN)))
                 .flatMap(tuple2 -> idGenerator.nextEventStreamId().flatMap(streamId -> {
-                    Room room = (Room) tuple2.getT1().getRoom();
+                    IRoom room = tuple2.getT1().getRoom();
                     MembershipEvent leave = eventBuilder.
-                            membershipEvent(roomId, LocalDateTime.now(), sender, sender, "", "", MembershipType.Leave);
+                            membershipEvent(roomId, LocalDateTime.now(), sender, null, sender, "", "", MembershipType.Leave);
                     return room.inject(leave);
                 }));
     }
 
-    public Mono<Void> kickMember(String sender, String targetUserId, String roomId) {
+    public Mono<Void> kickMember(String sender, String targetUserId, String reason, String roomId) {
 
         return findRoomState(roomId)
                 .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canKickMember(roomState, sender, targetUserId)))
-                .then()
-                ;
+                .filter(Tuple2::getT2)
+                .switchIfEmpty(Mono.error(new ImException(ErrorCode.UNAUTHORIZED, HttpStatus.FORBIDDEN)))
+                .flatMap(tuple2 -> idGenerator.nextEventStreamId().flatMap(streamId -> {
+                    IRoom room = tuple2.getT1().getRoom();
+                    MembershipEvent leave = eventBuilder.membershipEvent(roomId, LocalDateTime.now(),
+                            sender, reason, targetUserId, "", "", MembershipType.Leave);
+                    return room.inject(leave);
+                }))
+                .then();
     }
 }

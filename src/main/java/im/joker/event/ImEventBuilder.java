@@ -27,6 +27,15 @@ public class ImEventBuilder {
     }
 
 
+    /**
+     * 创房事件生成
+     *
+     * @param creator
+     * @param roomId
+     * @param sender
+     * @param time
+     * @return
+     */
     public RoomCreateEvent roomCreateEvent(String creator, String roomId, String sender, LocalDateTime time) {
         CreateContent createContent = CreateContent.builder()
                 .creator(creator)
@@ -42,11 +51,25 @@ public class ImEventBuilder {
         return roomCreateEvent;
     }
 
-    public MembershipEvent membershipEvent(String roomId, LocalDateTime time, String sender,
+    /**
+     * 成员变动事件生成
+     *
+     * @param roomId
+     * @param time
+     * @param sender
+     * @param reason
+     * @param stateKey
+     * @param displayName
+     * @param avatarUrl
+     * @param membership
+     * @return
+     */
+    public MembershipEvent membershipEvent(String roomId, LocalDateTime time, String sender, String reason,
                                            String stateKey, String displayName, String avatarUrl, MembershipType membership) {
         MembershipContent mContent = MembershipContent
                 .builder()
                 .avatarUrl(avatarUrl)
+                .reason(reason)
                 .membership(membership.name().toLowerCase())
                 .displayName(displayName)
                 .build();
@@ -59,6 +82,15 @@ public class ImEventBuilder {
         return membershipEvent;
     }
 
+    /**
+     * 房间命名事件生成
+     *
+     * @param roomName
+     * @param roomId
+     * @param sender
+     * @param time
+     * @return
+     */
     public RoomNameEvent roomNameEvent(String roomName, String roomId, String sender, LocalDateTime time) {
         RoomNameContent roomNameContent = RoomNameContent.builder()
                 .name(roomName).build();
@@ -80,7 +112,24 @@ public class ImEventBuilder {
         return topicEvent;
     }
 
-    public PowerLevelEvent powerLevelEvent(int ban, int invite, int kick, int redact, int state, Map<String, Integer> events,
+    /**
+     * 房间权限定义事件生成
+     *
+     * @param ban
+     * @param invite
+     * @param kick
+     * @param redact
+     * @param state
+     * @param events
+     * @param message
+     * @param room
+     * @param users
+     * @param roomId
+     * @param sender
+     * @param time
+     * @return
+     */
+    public PowerLevelEvent powerLevelEvent(int ban, int invite, int kick, int redact, int state, Map<String, Integer> events, int userDefault,
                                            int message, int room, Map<String, Integer> users, String roomId, String sender,
                                            LocalDateTime time) {
         PowerLevelContent pc = PowerLevelContent.builder()
@@ -92,6 +141,7 @@ public class ImEventBuilder {
                 .stateDefault(state)
                 .eventDefault(message)
                 .users(users)
+                .userDefault(userDefault)
                 .notifications(PowerLevelContent.RoomNotificationPower.builder().room(room).build())
                 .build();
         PowerLevelEvent pe = PowerLevelEvent.builder()
@@ -111,7 +161,7 @@ public class ImEventBuilder {
      */
     public PowerLevelEvent defaultPowerLevelEvent(String roomId, String creator, LocalDateTime time) {
         Map<String, Integer> users = Map.of(creator, 100);
-        return powerLevelEvent(60, 50, 60, 50, 50, null, 0, 50, users, roomId, creator, time);
+        return powerLevelEvent(60, 50, 60, 50, 50, null, 50, 0, 50, users, roomId, creator, time);
     }
 
     public RoomJoinRuleEvent roomJoinRuleEvent(RoomJoinRuleType roomJoinRuleType, String roomId, String sender, LocalDateTime time) {
