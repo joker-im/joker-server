@@ -8,6 +8,8 @@ import im.joker.user.IUser;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 /**
  * @author linyurong
  * @date 2020/9/30 16:33
@@ -30,6 +32,8 @@ public interface IStore {
      */
     Mono<ImEvent> addEvent(ImEvent event);
 
+
+    Flux<ImEvent> addEvents(List<ImEvent> events);
 
     /**
      * 添加用户

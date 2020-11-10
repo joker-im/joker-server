@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import im.joker.api.vo.room.CreateRoomRequest;
 import im.joker.device.IDevice;
 import im.joker.event.*;
+import im.joker.event.room.AbstractRoomEvent;
 import im.joker.event.room.AbstractRoomStateEvent;
 import im.joker.event.room.state.*;
 import im.joker.exception.ErrorCode;
@@ -132,11 +133,16 @@ public class RoomManager {
         return mongodbStore.addRoom(room)
                 .flatMapMany(e -> Flux.fromIterable(totalEvents))
                 .flatMap(event -> idGenerator.nextEventStreamId()
-                        .flatMap(streamId -> {
+                        .map(streamId -> {
                             event.setStreamId(streamId);
-                            return room.inject(event);
+                            return event;
                         }))
                 .collectList()
+                .flatMapMany(events -> {
+                    List<ImEvent> collect = events.stream().map(e -> (ImEvent) e).collect(Collectors.toList());
+                    return room.injectEvents(collect);
+                })
+                .last()
                 .flatMap(e -> Mono.just(room));
 
     }
@@ -159,7 +165,7 @@ public class RoomManager {
                                             .membershipEvent(targetRoomId, LocalDateTime.now(), sender, null, targetUserId,
                                                     "", "", MembershipType.Invite);
                                     mEvent.setStreamId(streamId);
-                                    return room.inject(mEvent);
+                                    return room.injectEvent(mEvent);
                                 })
                 );
     }
@@ -179,7 +185,8 @@ public class RoomManager {
                     IRoom room = tuple2.getT1().getRoom();
                     MembershipEvent join = eventBuilder
                             .membershipEvent(targetRoomId, LocalDateTime.now(), sender, null, sender, "", "", MembershipType.Join);
-                    return room.inject(join);
+                    join.setStreamId(streamId);
+                    return room.injectEvent(join);
                 }));
 
     }
@@ -203,7 +210,8 @@ public class RoomManager {
                     IRoom room = tuple2.getT1().getRoom();
                     MembershipEvent leave = eventBuilder.
                             membershipEvent(roomId, LocalDateTime.now(), sender, null, sender, "", "", MembershipType.Leave);
-                    return room.inject(leave);
+                    leave.setStreamId(streamId);
+                    return room.injectEvent(leave);
                 }));
     }
 
@@ -217,8 +225,19 @@ public class RoomManager {
                     IRoom room = tuple2.getT1().getRoom();
                     MembershipEvent leave = eventBuilder.membershipEvent(roomId, LocalDateTime.now(),
                             sender, reason, targetUserId, "", "", MembershipType.Leave);
-                    return room.inject(leave);
+                    leave.setStreamId(streamId);
+                    return room.injectEvent(leave);
                 }))
                 .then();
+    }
+
+    public Mono<String> sendMessageEvent(AbstractRoomEvent messageEvent) {
+
+        return findRoomState(messageEvent.getRoomId())
+                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canPostMessageEvent(roomState, messageEvent)))
+                .filter(Tuple2::getT2)
+                .switchIfEmpty(Mono.error(new ImException(ErrorCode.INVALID_PARAM, HttpStatus.BAD_REQUEST, "没有权限发送信息")))
+                .flatMap(tuple2 -> tuple2.getT1().getRoom().injectEvent(messageEvent))
+                .map(e -> messageEvent.getEventId());
     }
 }

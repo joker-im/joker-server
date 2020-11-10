@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.jsontype.NamedType;
 import im.joker.event.EventType;
+import im.joker.event.MessageType;
+import im.joker.event.content.AbstractMessageContent;
+import im.joker.event.room.AbstractRoomEvent;
 import im.joker.helper.BCryptPasswordEncoder;
 import im.joker.helper.PasswordEncoder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +38,9 @@ public class CommonConfig {
                 objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.SNAKE_CASE);
                 for (EventType e : EventType.values()) {
                     objectMapper.registerSubtypes(new NamedType(e.getEventClass(), e.getId()));
+                }
+                for (MessageType e : MessageType.values()) {
+                    objectMapper.registerSubtypes(new NamedType(e.getContentClass(), e.getId()));
                 }
                 super.configure(objectMapper);
             }

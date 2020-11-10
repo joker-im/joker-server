@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @Version 1.0
  */
 @Component
-public class RedisIRealTimeSynchronizer implements IRealTimeSynchronizer {
+public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
 
     @Autowired
     private GlobalStateHolder globalStateHolder;
@@ -37,7 +37,7 @@ public class RedisIRealTimeSynchronizer implements IRealTimeSynchronizer {
     /**
      * sync请求等待响应列表
      */
-    private Map<String, MonoSink<SyncResponse>> waitingSyncMap = new ConcurrentHashMap<>();
+    private final Map<String, MonoSink<SyncResponse>> waitingSyncMap = new ConcurrentHashMap<>();
 
     @Override
     public Mono<Void> roomEventProcess(IRoomEvent event) {

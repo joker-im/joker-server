@@ -1,6 +1,7 @@
 package im.joker.event;
 
 import im.joker.event.room.message.MessageEvent;
+import im.joker.event.room.message.RedactionEvent;
 import im.joker.event.room.other.FullReadEvent;
 import im.joker.event.room.other.ReceiptEvent;
 import im.joker.event.room.other.TypingEvent;
@@ -42,21 +43,34 @@ public enum EventType {
     HistoryVisibility("m.room.history_visibility", true, HistoryVisibilityEvent.class),
 
 
-
     /**
      * 房间其他事件
      */
     // 打字
-    Typing("m.typing",false,TypingEvent .class),
+    Typing("m.typing", false, TypingEvent.class),
 
     // 已读某条事件
-    Receipt(" m.receipt",false,ReceiptEvent .class),
+    Receipt(" m.receipt", false, ReceiptEvent.class),
 
     // 已读某个房间标志事件
-    MFullRead("m.fully_read",false,FullReadEvent .class),
+    MFullRead("m.fully_read", false, FullReadEvent.class),
 
 
     ;
+
+
+    public boolean is(String type) {
+        return this.getId().equals(type);
+    }
+
+    public static EventType findByType(String type) {
+        for (EventType value : EventType.values()) {
+            if (value.getId().equals(type)) {
+                return value;
+            }
+        }
+        return null;
+    }
 
 
     private final String id;
@@ -81,4 +95,4 @@ public enum EventType {
         return eventClass;
     }
 
-    }
+}

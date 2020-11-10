@@ -5,11 +5,16 @@ import im.joker.api.vo.room.*;
 import im.joker.device.IDevice;
 import im.joker.event.EventType;
 import im.joker.event.ImEvent;
+import im.joker.event.ImEventBuilder;
 import im.joker.event.MembershipType;
 import im.joker.event.content.state.MembershipContent;
+import im.joker.event.room.AbstractRoomEvent;
 import im.joker.event.room.AbstractRoomStateEvent;
+import im.joker.event.room.message.MessageEvent;
 import im.joker.event.room.state.MembershipEvent;
+import im.joker.helper.IdGenerator;
 import im.joker.room.RoomManager;
+import im.joker.util.GsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +27,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -32,6 +38,8 @@ public class RoomHandler {
 
     @Autowired
     private RoomManager roomManager;
+    @Autowired
+    private IdGenerator idGenerator;
 
 
     public Mono<CreateRoomResponse> createRoom(IDevice loginDevice, CreateRoomRequest createRoomRequest) {
@@ -100,6 +108,18 @@ public class RoomHandler {
         String sender = loginDevice.getUserId();
         String targetUserId = kickRequest.getUserId();
         return roomManager.kickMember(sender, targetUserId, kickRequest.getReason(), roomId);
+    }
+
+    public Mono<String> sendMessageEvent(IDevice loginDevice, AbstractRoomEvent messageEvent) {
+        return idGenerator.nextEventStreamId()
+                .flatMap(id -> {
+                    messageEvent.setSender(loginDevice.getUserId());
+                    messageEvent.setStreamId(id);
+                    messageEvent.setEventId(UUID.randomUUID().toString());
+                    messageEvent.setOriginServerTs(LocalDateTime.now());
+                    log.debug("收到聊天消息{}", GsonUtils.get().toJson(messageEvent));
+                    return roomManager.sendMessageEvent(messageEvent);
+                });
     }
 }
 

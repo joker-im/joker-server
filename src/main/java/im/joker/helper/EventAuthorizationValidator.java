@@ -5,6 +5,7 @@ import im.joker.event.ImEvent;
 import im.joker.event.MembershipType;
 import im.joker.event.content.state.MembershipContent;
 import im.joker.event.content.state.PowerLevelContent;
+import im.joker.event.room.AbstractRoomEvent;
 import im.joker.event.room.AbstractRoomStateEvent;
 import im.joker.event.room.state.MembershipEvent;
 import im.joker.event.room.state.PowerLevelEvent;
@@ -43,6 +44,7 @@ public class EventAuthorizationValidator {
         LocalDateTime latestInviteTime = null;
         LocalDateTime latestLeaveTime = null;
         if (CollectionUtils.isEmpty(membershipEvents)) {
+            log.info("当前房间id:{},该sender:{} 从未在房间出现过membership事件", roomState.getRoom().getRoomId(), sender);
             return false;
         }
         boolean inRoom = noBanInRoom(roomState, sender);
@@ -83,19 +85,19 @@ public class EventAuthorizationValidator {
      * @return
      */
     public boolean canPostInviteEvent(RoomState roomState, String sender) {
-        List<MembershipEvent> senderMemberEvents = roomState.getUserMemberEventMap().get(sender);
-        if (CollectionUtils.isEmpty(senderMemberEvents)) {
-            return false;
-        }
         // 检测该sender是否有邀请的权限
         PowerLevelEvent roomPowerLevelEvent = findRoomPowerLevelEvent(roomState);
         if (roomPowerLevelEvent != null) {
             PowerLevelContent powerLevelContent = (PowerLevelContent) roomPowerLevelEvent.getContent();
             int senderInvitePower = powerLevelContent.getUserDefault();
+            int inviteNeedPower = powerLevelContent.getStateDefault();
             if (!CollectionUtils.isEmpty(powerLevelContent.getUsers()) && powerLevelContent.getUsers().get(sender) != null) {
                 senderInvitePower = powerLevelContent.getUsers().get(sender);
             }
-            if (senderInvitePower < powerLevelContent.getInvite()) {
+            if (powerLevelContent.getInvite() != null) {
+                inviteNeedPower = powerLevelContent.getInvite();
+            }
+            if (senderInvitePower < inviteNeedPower) {
                 return false;
             }
         }
@@ -148,14 +150,11 @@ public class EventAuthorizationValidator {
         PowerLevelContent plc = (PowerLevelContent) powerLevelEvent.getContent();
         int senderKickPower = plc.getUserDefault() == null ? Integer.MIN_VALUE : plc.getUserDefault();
         int kickNeedPower = plc.getStateDefault() == null ? Integer.MAX_VALUE : plc.getStateDefault();
-        if (plc.getUsers().get(sender) != null) {
+        if (!CollectionUtils.isEmpty(plc.getUsers()) && plc.getUsers().get(sender) != null) {
             senderKickPower = plc.getUsers().get(sender);
         }
         if (plc.getKick() != null) {
             kickNeedPower = plc.getKick();
-        }
-        if (plc.getEvents().get(EventType.Membership.getId()) != null) {
-            kickNeedPower = plc.getEvents().get(EventType.Membership.getId());
         }
         if (kickNeedPower > senderKickPower) {
             log.info("当前房间id:{},该sender:{} 定义的kick值为{},而当前sender的kick值为:{}", roomState.getRoom().getRoomId(), sender, plc.getKick(), senderKickPower);
@@ -177,6 +176,11 @@ public class EventAuthorizationValidator {
         LocalDateTime latestBanTime = null;
 
         List<MembershipEvent> membershipEvents = roomState.getUserMemberEventMap().get(target);
+
+        if (CollectionUtils.isEmpty(membershipEvents)) {
+            log.error("没有任何membershipEvents,因此不在房间");
+            return false;
+        }
 
         for (MembershipEvent e : membershipEvents) {
             MembershipContent content = (MembershipContent) e.getContent();
@@ -217,4 +221,7 @@ public class EventAuthorizationValidator {
         return true;
     }
 
+    public boolean canPostMessageEvent(RoomState roomState, AbstractRoomEvent messageEvent) {
+        return noBanInRoom(roomState, messageEvent.getSender());
+    }
 }

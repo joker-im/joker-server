@@ -11,6 +11,9 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * 此类的任何方法都是没有streamId生成
+ */
 @Component
 public class ImEventBuilder {
 

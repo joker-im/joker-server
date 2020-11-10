@@ -20,17 +20,17 @@ public enum MessageType {
     VIDEO("m.video", VideoContent.class),
     FILE("m.file", FileContent.class);
 
-    private final String type;
+    private final String id;
 
     private final Class<? extends IContent> contentClass;
 
-    MessageType(String type, Class<? extends IContent> clazz) {
-        this.type = type;
+    MessageType(String id, Class<? extends IContent> clazz) {
+        this.id = id;
         this.contentClass = clazz;
     }
 
-    public String getType() {
-        return type;
+    public String getId() {
+        return id;
     }
 
     public Class<? extends IContent> getContentClass() {

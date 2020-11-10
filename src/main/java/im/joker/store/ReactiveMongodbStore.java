@@ -130,6 +130,11 @@ public class ReactiveMongodbStore implements IStore {
     }
 
     @Override
+    public Flux<ImEvent> addEvents(List<ImEvent> events) {
+        return mongoTemplate.insertAll(Mono.just(events), COLLECTION_NAME_EVENTS);
+    }
+
+    @Override
     public Mono<IUser> addUser(IUser user) {
         return mongoTemplate.insert(user, COLLECTION_USER);
     }

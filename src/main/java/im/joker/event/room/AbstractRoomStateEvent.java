@@ -1,5 +1,6 @@
 package im.joker.event.room;
 
+import im.joker.event.content.IContent;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -15,4 +16,6 @@ import lombok.experimental.SuperBuilder;
 public abstract class AbstractRoomStateEvent extends AbstractRoomEvent implements IRoomStateEvent {
 
     protected String stateKey;
+
+    protected IContent prevContent;
 }

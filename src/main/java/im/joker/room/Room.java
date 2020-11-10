@@ -10,9 +10,11 @@ import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Document
 @AllArgsConstructor
@@ -37,8 +39,13 @@ public class Room implements IRoom {
 
 
     @Override
-    public Mono<ImEvent> inject(ImEvent ev) {
+    public Mono<ImEvent> injectEvent(ImEvent ev) {
         return globalStateHolder.getMongodbStore().addEvent(ev);
+    }
+
+    @Override
+    public Flux<ImEvent> injectEvents(List<ImEvent> evs) {
+        return globalStateHolder.getMongodbStore().addEvents(evs);
     }
 
     @Override

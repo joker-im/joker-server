@@ -1,7 +1,10 @@
 package im.joker.room;
 
 import im.joker.event.ImEvent;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 /**
  * @author linyurong
@@ -15,8 +18,10 @@ public interface IRoom {
      * @param ev
      * @return eventId
      */
-    Mono<ImEvent> inject(ImEvent ev);
+    Mono<ImEvent> injectEvent(ImEvent ev);
 
+
+    Flux<ImEvent> injectEvents(List<ImEvent> evs);
 
     /**
      * 获取房间最新状态。
