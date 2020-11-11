@@ -31,6 +31,7 @@ public class SyncController {
      * 响应中会包含每个房间的prev_batch字段,能够通过/rooms/<room_id>/messages 作为其start参数拉取该房间的消息
      * 当没有since参数的时候, 每个相关的房间返回最近的聊天事件,并且返回在timeline第一条聊天事件之前的房间最初的状态,返回的next_batch作为下次调用sync的since
      * 当有since参数的时候,
+     * 如果filter启用了lazy_load_members参数,timeline只会有对应发送人的membership事件,不包含不发送事件的sender的membership事件
      *
      * @param param
      * @return

@@ -142,7 +142,7 @@ public class RoomManager {
                     List<ImEvent> collect = events.stream().map(e -> (ImEvent) e).collect(Collectors.toList());
                     return room.injectEvents(collect);
                 })
-                .last()
+                .then()
                 .flatMap(e -> Mono.just(room));
 
     }

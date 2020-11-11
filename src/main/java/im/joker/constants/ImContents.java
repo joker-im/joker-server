@@ -2,5 +2,5 @@ package im.joker.constants;
 
 public class ImContents {
 
-    private static final String BASE_URL = "";
+    public static final String CHAT_ROOM_TOPIC = "im.joker.chat_room";
 }

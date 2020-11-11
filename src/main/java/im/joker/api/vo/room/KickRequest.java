@@ -17,7 +17,7 @@ import javax.validation.constraints.NotNull;
 @Data
 public class KickRequest {
 
-    @NotNull
+    @NotNull(message = "userId不可为空")
     private String userId;
 
     private String reason;
