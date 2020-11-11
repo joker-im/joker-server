@@ -1,7 +1,5 @@
 package im.joker.helper;
 
-import im.joker.event.EventType;
-import im.joker.event.ImEvent;
 import im.joker.event.MembershipType;
 import im.joker.event.content.state.MembershipContent;
 import im.joker.event.content.state.PowerLevelContent;
@@ -11,12 +9,8 @@ import im.joker.event.room.state.MembershipEvent;
 import im.joker.event.room.state.PowerLevelEvent;
 import im.joker.room.RoomState;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 
 /**
@@ -40,40 +34,13 @@ public class EventAuthorizationValidator {
      * @return
      */
     public boolean canPostJoinEvent(RoomState roomState, String sender) {
-        List<MembershipEvent> membershipEvents = roomState.getUserMemberEventMap().get(sender);
-        LocalDateTime latestInviteTime = null;
-        LocalDateTime latestLeaveTime = null;
-        if (CollectionUtils.isEmpty(membershipEvents)) {
+        MembershipEvent latestSenderMembershipEvent = roomState.getLatestMembershipEventMap().get(sender);
+        if (latestSenderMembershipEvent == null) {
             log.info("当前房间id:{},该sender:{} 从未在房间出现过membership事件", roomState.getRoom().getRoomId(), sender);
             return false;
         }
-        boolean inRoom = noBanInRoom(roomState, sender);
-        if (inRoom) {
-            log.info("当前房间id:{},该sender:{} 已经在房中,不需要重复post", roomState.getRoom().getRoomId(), sender);
-            return false;
-        }
-        for (MembershipEvent e : membershipEvents) {
-            MembershipContent content = (MembershipContent) e.getContent();
-            if (MembershipType.Invite.is(content.getMembership()) && latestInviteTime == null) {
-                latestInviteTime = e.getOriginServerTs();
-            }
-            if (MembershipType.Leave.is(content.getMembership()) && latestLeaveTime == null) {
-                latestLeaveTime = e.getOriginServerTs();
-            }
-            if (latestInviteTime != null && latestLeaveTime != null) {
-                break;
-            }
-        }
-        if (latestInviteTime == null) {
-            log.info("当前房间id:{},该sender:{} 没有对应是Invite事件,因此不能够发送Join事件", roomState.getRoom().getRoomId(), sender);
-            return false;
-        }
-        if (latestLeaveTime != null && latestInviteTime.isBefore(latestLeaveTime)) {
-            log.info("当前房间id:{},该sender:{} 的Invite事件在Leave事件之前, 证明此人不在room中,因此不能发送Join事件", roomState.getRoom().getRoomId(), sender);
-            return false;
-        }
-
-        return true;
+        MembershipContent membershipContent = (MembershipContent) latestSenderMembershipEvent.getContent();
+        return MembershipType.Invite.is(membershipContent.getMembership());
     }
 
 
@@ -124,8 +91,8 @@ public class EventAuthorizationValidator {
      * @return
      */
     public boolean canPostLeaveEvent(RoomState roomState, String sender) {
-        List<MembershipEvent> membershipEvents = roomState.getUserMemberEventMap().get(sender);
-        return !CollectionUtils.isEmpty(membershipEvents);
+        MembershipEvent membershipEvents = roomState.getLatestMembershipEventMap().get(sender);
+        return membershipEvents != null;
     }
 
     /**
@@ -171,57 +138,16 @@ public class EventAuthorizationValidator {
      * @return
      */
     private boolean noBanInRoom(RoomState roomState, String target) {
-        LocalDateTime latestLeaveTime = null;
-        LocalDateTime latestJoinTime = null;
-        LocalDateTime latestBanTime = null;
-
-        List<MembershipEvent> membershipEvents = roomState.getUserMemberEventMap().get(target);
-
-        if (CollectionUtils.isEmpty(membershipEvents)) {
-            log.error("没有任何membershipEvents,因此不在房间");
+        MembershipEvent membershipEvent = roomState.getLatestMembershipEventMap().get(target);
+        if (membershipEvent == null) {
             return false;
         }
-
-        for (MembershipEvent e : membershipEvents) {
-            MembershipContent content = (MembershipContent) e.getContent();
-            if (MembershipType.Join.is(content.getMembership()) && latestJoinTime == null) {
-                latestJoinTime = e.getOriginServerTs();
-            }
-            if (MembershipType.Leave.is(content.getMembership()) && latestLeaveTime == null) {
-                latestLeaveTime = e.getOriginServerTs();
-            }
-            if (MembershipType.Ban.is(content.getMembership()) && latestBanTime == null) {
-                latestBanTime = e.getOriginServerTs();
-            }
-            if (latestJoinTime != null && latestLeaveTime != null && latestBanTime != null) {
-                break;
-            }
-        }
-        // 没有加入事件, 肯定不在房间
-        if (latestJoinTime == null) {
-            log.info("当前房间id:{},没有该sender:{}的加入事件", roomState.getRoom().getRoomId(), target);
-            return false;
-        }
-        // 如果有Ban事件但无Leave事件,证明被BAN
-        if (latestBanTime != null && latestLeaveTime == null) {
-            log.info("当前房间id:{},该sender:{} 在中被Ban", roomState.getRoom().getRoomId(), target);
-            return false;
-        }
-        // 如果解封了
-        if (latestBanTime != null && latestLeaveTime.isAfter(latestBanTime) && latestLeaveTime.isAfter(latestJoinTime)) {
-            log.info("当前房间id:{},该sender:{}被解封了,但是还未Join当前房间", roomState.getRoom().getRoomId(), target);
-            return false;
-        }
-
-        if (latestLeaveTime != null && latestJoinTime.isBefore(latestLeaveTime)) {
-            log.info("当前房间id:{},该sender {},的Join事件在Leave事件之前,因此该sender不在房中", roomState.getRoom().getRoomId(), target);
-            return false;
-        }
-
-        return true;
+        MembershipContent membershipContent = (MembershipContent) membershipEvent.getContent();
+        return MembershipType.Join.is(membershipContent.getMembership());
     }
 
     public boolean canPostMessageEvent(RoomState roomState, AbstractRoomEvent messageEvent) {
+        // todo 检测该用户发消息的权限是否足够
         return noBanInRoom(roomState, messageEvent.getSender());
     }
 }

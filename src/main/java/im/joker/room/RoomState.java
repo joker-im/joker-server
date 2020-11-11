@@ -34,9 +34,9 @@ public class RoomState {
     private final List<AbstractRoomStateEvent> stateEvents;
 
     /**
-     * 此变量表示该房间所有人的memberEvent. 其key是stateKey,事件都是按时间逆序的,即最新的事件在前
+     * 此变量表示该房间所有人的memberEvent. 其key是stateKey, 存储最新的一条membership
      */
-    private final Map<String, List<MembershipEvent>> userMemberEventMap;
+    private final Map<String, MembershipEvent> latestMembershipEventMap;
 
     private final IRoom room;
 
@@ -51,20 +51,26 @@ public class RoomState {
                 .zipWith(roomMono)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.INVALID_PARAM, HttpStatus.BAD_REQUEST, "房间不存在")))
                 .map(tuple2 -> {
-                    Map<String, List<MembershipEvent>> userStateEventMap = tuple2.getT1().stream()
+                    Map<String, MembershipEvent> userStateEventMap = tuple2.getT1().stream()
                             .filter(e -> e instanceof MembershipEvent)
                             .map(e -> (MembershipEvent) e)
-                            .collect(Collectors.groupingBy(AbstractRoomStateEvent::getStateKey, Collectors.toList()));
+                            .collect(Collectors.toMap(AbstractRoomStateEvent::getStateKey, e -> e, (o, n) -> {
+                                if (o.getStreamId().compareTo(n.getStreamId()) > 0) {
+                                    return o;
+                                } else {
+                                    return n;
+                                }
+                            }));
                     return new RoomState(globalStateHolder, tuple2.getT2(), tuple2.getT1(), userStateEventMap);
                 });
     }
 
     private RoomState(GlobalStateHolder globalStateHolder, IRoom room, List<AbstractRoomStateEvent> stateEvents,
-                      Map<String, List<MembershipEvent>> userMemberEventMap) {
+                      Map<String, MembershipEvent> latestMembershipEventMap) {
         this.globalStateHolder = globalStateHolder;
         this.room = room;
         this.stateEvents = stateEvents;
-        this.userMemberEventMap = userMemberEventMap;
+        this.latestMembershipEventMap = latestMembershipEventMap;
         ((Room) room).setGlobalStateHolder(globalStateHolder);
     }
 

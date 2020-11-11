@@ -11,14 +11,7 @@ import im.joker.sync.entity.SyncResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.reactive.function.server.ServerResponse;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 import java.util.Map;
@@ -35,6 +28,9 @@ public class SyncController {
 
     /**
      * https://matrix.org/docs/spec/client_server/r0.6.1#get-matrix-client-r0-sync
+     * 响应中会包含每个房间的prev_batch字段,能够通过/rooms/<room_id>/messages 作为其start参数拉取该房间的消息
+     * 当没有since参数的时候, 每个相关的房间返回最近的聊天事件,并且返回在timeline第一条聊天事件之前的房间最初的状态,返回的next_batch作为下次调用sync的since
+     * 当有since参数的时候,
      *
      * @param param
      * @return

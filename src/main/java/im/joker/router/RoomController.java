@@ -24,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 
+import java.util.Map;
+
 @RestController
 @Slf4j
 @RequestMapping(path = "/_matrix/client/r0", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -153,6 +155,16 @@ public class RoomController {
         }).zipWith(loginDevice)
                 .flatMap(tuple2 -> roomHandler.sendMessageEvent(tuple2.getT2(), tuple2.getT1()))
                 .map(e -> EventIdResponse.builder().eventId(e).build());
+    }
+
+
+    @GetMapping("/rooms/{roomId}/message")
+    public Mono<MessageResponse> messages(@PathVariable String roomId, @RequestParam Map<String, Object> param) {
+        MessageRequest messageRequest = requestProcessor.convert(param, MessageRequest.class);
+        requestProcessor.validate(messageRequest);
+        messageRequest.setRoomId(roomId);
+        Mono<IDevice> loginDevice = Mono.subscriberContext().flatMap(context -> Mono.just(context.get(AuthFilter.getLoginDevice())));
+        return Mono.just(MessageResponse.builder().build());
     }
 
 
