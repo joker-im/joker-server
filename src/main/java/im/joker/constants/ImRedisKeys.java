@@ -39,15 +39,16 @@ public class ImRedisKeys {
 
 
     /**
-     * 设备关心的房间号,是一个set集合, 在inject和sync的时候,会维护这个集合,每个设备都有这个key
-     * %s是device_id
-     */
-    public final static String DEVICE_CARE_ROOM_SET = "im.joker:care_room_set:%s";
-
-    /**
      * 活动房间最新的事件集合
      * %s是room_id
      */
     public final static String ACTIVE_ROOM_LATEST_EVENTS = "im.joker:active_room_latest_events:%s";
+
+
+    /**
+     * 房间的订阅者, 是一个map集合,map的key是roomId,value是deviceId
+     *
+     */
+    public final static String ROOM_SUBSCRIBERS_OF_DEVICE = "im.joker:room_subscribers_of_device";
 
 }

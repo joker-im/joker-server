@@ -3,11 +3,11 @@ package im.joker.router;
 
 import im.joker.api.vo.sync.FilterResponse;
 import im.joker.api.vo.sync.SyncRequest;
+import im.joker.api.vo.sync.SyncResponse;
 import im.joker.config.filter.AuthFilter;
 import im.joker.device.IDevice;
 import im.joker.handler.SyncHandler;
 import im.joker.helper.RequestProcessor;
-import im.joker.sync.entity.SyncResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;

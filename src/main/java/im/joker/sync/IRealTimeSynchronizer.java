@@ -1,9 +1,9 @@
 package im.joker.sync;
 
 import im.joker.api.vo.sync.SyncRequest;
+import im.joker.api.vo.sync.SyncResponse;
 import im.joker.device.IDevice;
 import im.joker.event.room.IRoomEvent;
-import im.joker.sync.entity.SyncResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -30,6 +30,7 @@ public interface IRealTimeSynchronizer {
      * 响应/sync请求
      *
      * @param request
+     * @param device
      * @return
      */
     Mono<SyncResponse> syncProcess(SyncRequest request, IDevice device);

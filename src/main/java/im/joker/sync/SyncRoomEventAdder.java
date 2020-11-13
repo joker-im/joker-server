@@ -1,7 +1,6 @@
 package im.joker.sync;
 
 import im.joker.sync.entity.SyncEvents;
-import im.joker.sync.entity.SyncResponse;
 import lombok.Data;
 
 import java.util.List;
@@ -19,9 +18,4 @@ public class SyncRoomEventAdder {
 
     }
 
-    public SyncResponse get() {
-        SyncResponse syncResponse = new SyncResponse();
-        syncResponse.setNextBatch("test");
-        return syncResponse;
-    }
 }
