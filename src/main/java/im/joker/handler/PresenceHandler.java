@@ -4,6 +4,7 @@ import im.joker.api.vo.presence.PresenceRequest;
 import im.joker.device.IDevice;
 import im.joker.exception.ErrorCode;
 import im.joker.exception.ImException;
+import im.joker.helper.RoomSubscribeManager;
 import im.joker.presence.PresenceType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,8 @@ public class PresenceHandler {
 
     @Autowired
     private ReactiveStringRedisTemplate redisTemplate;
+    @Autowired
+    private RoomSubscribeManager roomSubscribeManager;
 
 
     public Mono<Void> setPresence(PresenceRequest presenceRequest, IDevice loginDevice) {
@@ -36,10 +39,13 @@ public class PresenceHandler {
         return redisTemplate.opsForValue()
                 .set(String.format(USER_PRESENCE, loginDevice.getUsername()),
                         presenceRequest.getPresence(),
-                        Duration.ofDays(1L)).then();
+                        Duration.ofDays(1L))
+                .then(roomSubscribeManager.updateRelation(loginDevice, exists.get()));
     }
 
     public Mono<Void> deletePresence(IDevice loginDevice) {
-        return redisTemplate.opsForValue().delete(String.format(USER_PRESENCE, loginDevice.getUsername())).then();
+        return redisTemplate.opsForValue()
+                .delete(String.format(USER_PRESENCE, loginDevice.getUsername()))
+                .then(roomSubscribeManager.updateRelation(loginDevice, PresenceType.offline));
     }
 }

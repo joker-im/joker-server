@@ -6,7 +6,6 @@ import im.joker.exception.ImException;
 import im.joker.helper.GlobalStateHolder;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -17,12 +16,10 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 import reactor.util.function.Tuples;
 
-import java.time.Duration;
 import java.util.List;
 
 import static im.joker.exception.ErrorCode.FORBIDDEN;
@@ -40,7 +37,9 @@ public class AuthFilter implements WebFilter {
             Tuples.of(HttpMethod.POST, "/_matrix/client/r0/register"),
             Tuples.of(HttpMethod.GET, "/_matrix/client/r0/login"),
             Tuples.of(HttpMethod.GET, "/_matrix/client/versions"),
-            Tuples.of(HttpMethod.POST, "/_matrix/client/r0/login")
+            Tuples.of(HttpMethod.POST, "/_matrix/client/r0/login"),
+            Tuples.of(HttpMethod.GET, "/_matrix/client/versions/test"),
+            Tuples.of(HttpMethod.GET, "/favicon.ico")
     );
 
     @Override
@@ -74,7 +73,6 @@ public class AuthFilter implements WebFilter {
     public static String getLoginDevice() {
         return LOGIN_DEVICE;
     }
-
 
 
 }

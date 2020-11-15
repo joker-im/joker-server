@@ -57,16 +57,16 @@ public class CommonConfig {
     }
 
 
-    @Bean
-    RedisMessageListenerContainer container(RedisConnectionFactory connectionFactory,
-                                            MessageListenerAdapter listenerAdapter) {
-
-        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
-        container.setConnectionFactory(connectionFactory);
-        container.addMessageListener(listenerAdapter, PatternTopic.of(CHAT_ROOM_TOPIC));
-
-        return container;
-    }
+//    @Bean
+//    RedisMessageListenerContainer container(RedisConnectionFactory connectionFactory,
+//                                            MessageListenerAdapter listenerAdapter) {
+//
+//        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
+//        container.setConnectionFactory(connectionFactory);
+//        container.addMessageListener(listenerAdapter, PatternTopic.of(CHAT_ROOM_TOPIC));
+//
+//        return container;
+//    }
 
     @Bean
     public LocalValidatorFactoryBean validator() {

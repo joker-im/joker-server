@@ -20,6 +20,11 @@ public class GlobalStateHolder {
     private ReactiveStringRedisTemplate redisTemplate;
     @Autowired
     private ReactiveMongodbStore mongodbStore;
-
+    @Autowired
+    private RoomSubscribeManager roomSubscribeManager;
+    @Autowired
+    private LongPollingHelper longPollingHelper;
+    @Autowired
+    private EventSyncQueueManager eventSyncQueueManager;
 
 }

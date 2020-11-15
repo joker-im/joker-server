@@ -5,6 +5,7 @@ import com.mongodb.client.model.IndexModel;
 import com.mongodb.client.model.IndexOptions;
 import im.joker.event.EventType;
 import im.joker.event.ImEvent;
+import im.joker.event.room.AbstractRoomEvent;
 import im.joker.room.IRoom;
 import im.joker.user.IUser;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,8 @@ import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
 import java.util.List;
+
+import static im.joker.event.EventType.Typing;
 
 /**
  * @author linyurong
@@ -53,8 +56,9 @@ public class ReactiveMongodbStore implements IStore {
                 .flatMap(o -> {
                     IndexModel index1 = new IndexModel(Document.parse("{room_id: 1, _id: -1}"));
                     IndexModel index2 = new IndexModel(Document.parse("{event_id: 1}"));
-                    IndexModel index3 = new IndexModel(Document.parse("{\"room_id\": 1, \"type\": 1, \"sender\": 1}"));
-                    List<IndexModel> indexes = List.of(index1, index2, index3);
+                    IndexModel index3 = new IndexModel(Document.parse("{room_id: 1, type: 1, sender: 1}"));
+                    IndexModel index4 = new IndexModel(Document.parse("{stream_id:1}"), new IndexOptions().unique(true));
+                    List<IndexModel> indexes = List.of(index1, index2, index3, index4);
                     return Mono.from(o.createIndexes(indexes));
                 });
     }
@@ -125,12 +129,16 @@ public class ReactiveMongodbStore implements IStore {
     }
 
     @Override
-    public Mono<ImEvent> addEvent(ImEvent event) {
+    public Mono<AbstractRoomEvent> addEvent(AbstractRoomEvent event) {
+        // 正在输入类型不需要入库
+        if (Typing.is(event.getType())) {
+            return Mono.just(event);
+        }
         return mongoTemplate.insert(event, COLLECTION_NAME_EVENTS);
     }
 
     @Override
-    public Flux<ImEvent> addEvents(List<ImEvent> events) {
+    public Flux<AbstractRoomEvent> addEvents(List<AbstractRoomEvent> events) {
         return mongoTemplate.insertAll(Mono.just(events), COLLECTION_NAME_EVENTS);
     }
 

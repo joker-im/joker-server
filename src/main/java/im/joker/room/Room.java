@@ -1,6 +1,6 @@
 package im.joker.room;
 
-import im.joker.event.ImEvent;
+import im.joker.device.IDevice;
 import im.joker.event.room.AbstractRoomEvent;
 import im.joker.helper.GlobalStateHolder;
 import lombok.AllArgsConstructor;
@@ -8,7 +8,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Transient;
 import org.springframework.data.mongodb.core.mapping.Document;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -37,15 +36,43 @@ public class Room implements IRoom {
 
     private String visibility;
 
-
+    /**
+     * 需要做几件事情
+     * 1. 将消息落盘
+     * 2. 维护房间与设备的订阅关系
+     * 3. 将消息发往redis的房间队列
+     * 4. 唤醒正在sync的设备
+     *
+     * @param ev
+     * @param device
+     * @return
+     */
     @Override
-    public Mono<ImEvent> injectEvent(ImEvent ev) {
-        return globalStateHolder.getMongodbStore().addEvent(ev);
+    public Mono<AbstractRoomEvent> injectEvent(AbstractRoomEvent ev, IDevice device) {
+        return globalStateHolder.getMongodbStore().addEvent(ev)
+                .flatMap(e -> {
+                    Mono<Void> updateSubscribeOps = globalStateHolder.getRoomSubscribeManager().updateRelation(device.getDeviceId(), e);
+                    Mono<Void> sendMessageQueueOps = globalStateHolder.getEventSyncQueueManager().addEventToQueue(ev);
+                    return Mono.just(e)
+                            .takeUntilOther(
+                                    Mono.zip(updateSubscribeOps, sendMessageQueueOps)
+                                            .doFinally(signal -> globalStateHolder.getLongPollingHelper().notifySyncDevice(device.getDeviceId()))
+                            );
+                });
+
     }
 
     @Override
-    public Flux<ImEvent> injectEvents(List<ImEvent> evs) {
-        return globalStateHolder.getMongodbStore().addEvents(evs);
+    public Flux<AbstractRoomEvent> injectEvents(List<AbstractRoomEvent> evs, IDevice device) {
+        return Flux.fromIterable(evs)
+                .flatMap(ev -> {
+                    Mono<Void> updateSubscribeOps = globalStateHolder.getRoomSubscribeManager().updateRelation(device.getDeviceId(), ev);
+                    Mono<Void> sendMessageQueueOps = globalStateHolder.getEventSyncQueueManager().addEventToQueue(ev);
+                    return Mono.just(ev)
+                            .takeUntilOther(Mono.zip(updateSubscribeOps, sendMessageQueueOps));
+                }).doFinally(signalType -> globalStateHolder.getLongPollingHelper().notifySyncDevice(device.getDeviceId()));
+
+
     }
 
     @Override

@@ -2,6 +2,7 @@ package im.joker.store;
 
 import im.joker.event.EventType;
 import im.joker.event.ImEvent;
+import im.joker.event.room.AbstractRoomEvent;
 import im.joker.event.room.AbstractRoomStateEvent;
 import im.joker.room.IRoom;
 import im.joker.user.IUser;
@@ -30,10 +31,10 @@ public interface IStore {
      * @param event
      * @return
      */
-    Mono<ImEvent> addEvent(ImEvent event);
+    Mono<AbstractRoomEvent> addEvent(AbstractRoomEvent event);
 
 
-    Flux<ImEvent> addEvents(List<ImEvent> events);
+    Flux<AbstractRoomEvent> addEvents(List<AbstractRoomEvent> events);
 
     /**
      * 添加用户

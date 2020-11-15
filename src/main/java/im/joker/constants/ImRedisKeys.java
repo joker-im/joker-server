@@ -46,9 +46,9 @@ public class ImRedisKeys {
 
 
     /**
-     * 房间的订阅者, 是一个map集合,map的key是roomId,value是deviceId
+     * 房间的订阅者, 是一个set集合,%s是roomId,value是deviceIds
      *
      */
-    public final static String ROOM_SUBSCRIBERS_OF_DEVICE = "im.joker:room_subscribers_of_device";
+    public final static String ROOM_SUBSCRIBERS_OF_DEVICE = "im.joker:room_subscribers_of_device:%s";
 
 }

@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import im.joker.api.vo.room.CreateRoomRequest;
 import im.joker.device.IDevice;
 import im.joker.event.*;
+import im.joker.event.content.state.MembershipContent;
 import im.joker.event.room.AbstractRoomEvent;
 import im.joker.event.room.AbstractRoomStateEvent;
 import im.joker.event.room.state.*;
@@ -26,7 +27,9 @@ import reactor.util.function.Tuple2;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 
@@ -139,8 +142,8 @@ public class RoomManager {
                         }))
                 .collectList()
                 .flatMapMany(events -> {
-                    List<ImEvent> collect = events.stream().map(e -> (ImEvent) e).collect(Collectors.toList());
-                    return room.injectEvents(collect);
+                    List<AbstractRoomEvent> collect = events.stream().map(e -> (AbstractRoomEvent) e).collect(Collectors.toList());
+                    return room.injectEvents(collect, device);
                 })
                 .then()
                 .flatMap(e -> Mono.just(room));
@@ -152,9 +155,9 @@ public class RoomManager {
         return mongodbStore.findEvents(eventType, userId);
     }
 
-    public Mono<ImEvent> inviteToRoom(String targetRoomId, String targetUserId, String sender) {
+    public Mono<ImEvent> inviteToRoom(String targetRoomId, String targetUserId, IDevice senderDevice) {
         return findRoomState(targetRoomId)
-                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canPostInviteEvent(roomState, sender)))
+                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canPostInviteEvent(roomState, senderDevice.getUserId())))
                 .filter(Tuple2::getT2)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.UNAUTHORIZED, HttpStatus.FORBIDDEN)))
                 .flatMap(tuple2 ->
@@ -162,10 +165,10 @@ public class RoomManager {
                                 .flatMap(streamId -> {
                                     IRoom room = tuple2.getT1().getRoom();
                                     MembershipEvent mEvent = eventBuilder
-                                            .membershipEvent(targetRoomId, LocalDateTime.now(), sender, null, targetUserId,
+                                            .membershipEvent(targetRoomId, LocalDateTime.now(), senderDevice.getUserId(), null, targetUserId,
                                                     "", "", MembershipType.Invite);
                                     mEvent.setStreamId(streamId);
-                                    return room.injectEvent(mEvent);
+                                    return room.injectEvent(mEvent, senderDevice);
                                 })
                 );
     }
@@ -176,17 +179,17 @@ public class RoomManager {
     }
 
 
-    public Mono<ImEvent> joinRoom(String sender, String targetRoomId) {
+    public Mono<ImEvent> joinRoom(IDevice senderDevice, String targetRoomId) {
         return findRoomState(targetRoomId)
-                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canPostJoinEvent(roomState, sender)))
+                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canPostJoinEvent(roomState, senderDevice.getUserId())))
                 .filter(Tuple2::getT2)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.UNAUTHORIZED, HttpStatus.FORBIDDEN)))
                 .flatMap(tuple2 -> idGenerator.nextEventStreamId().flatMap(streamId -> {
                     IRoom room = tuple2.getT1().getRoom();
                     MembershipEvent join = eventBuilder
-                            .membershipEvent(targetRoomId, LocalDateTime.now(), sender, null, sender, "", "", MembershipType.Join);
+                            .membershipEvent(targetRoomId, LocalDateTime.now(), senderDevice.getUserId(), null, senderDevice.getUserId(), "", "", MembershipType.Join);
                     join.setStreamId(streamId);
-                    return room.injectEvent(join);
+                    return room.injectEvent(join, senderDevice);
                 }));
 
     }
@@ -196,48 +199,80 @@ public class RoomManager {
      * 1. 当前用户不接受邀请, 也会调用level,表示拒绝加入该房间
      * 2. 当前用户已经在此房间,但是自己想走
      *
-     * @param sender
+     * @param senderDevice
      * @param roomId
      * @return
      */
-    public Mono<ImEvent> levelRoom(String sender, String roomId) {
+    public Mono<ImEvent> levelRoom(IDevice senderDevice, String roomId) {
 
         return findRoomState(roomId)
-                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canPostLeaveEvent(roomState, sender)))
+                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canPostLeaveEvent(roomState, senderDevice.getUserId())))
                 .filter(Tuple2::getT2)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.UNAUTHORIZED, HttpStatus.FORBIDDEN)))
                 .flatMap(tuple2 -> idGenerator.nextEventStreamId().flatMap(streamId -> {
                     IRoom room = tuple2.getT1().getRoom();
                     MembershipEvent leave = eventBuilder.
-                            membershipEvent(roomId, LocalDateTime.now(), sender, null, sender, "", "", MembershipType.Leave);
+                            membershipEvent(roomId, LocalDateTime.now(), senderDevice.getUserId(), null, senderDevice.getUserId(), "", "", MembershipType.Leave);
                     leave.setStreamId(streamId);
-                    return room.injectEvent(leave);
+                    return room.injectEvent(leave, senderDevice);
                 }));
     }
 
-    public Mono<Void> kickMember(String sender, String targetUserId, String reason, String roomId) {
+    public Mono<Void> kickMember(IDevice senderDevice, String targetUserId, String reason, String roomId) {
 
         return findRoomState(roomId)
-                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canKickMember(roomState, sender, targetUserId)))
+                .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canKickMember(roomState, senderDevice.getUserId(), targetUserId)))
                 .filter(Tuple2::getT2)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.UNAUTHORIZED, HttpStatus.FORBIDDEN)))
                 .flatMap(tuple2 -> idGenerator.nextEventStreamId().flatMap(streamId -> {
                     IRoom room = tuple2.getT1().getRoom();
                     MembershipEvent leave = eventBuilder.membershipEvent(roomId, LocalDateTime.now(),
-                            sender, reason, targetUserId, "", "", MembershipType.Leave);
+                            senderDevice.getUserId(), reason, targetUserId, "", "", MembershipType.Leave);
                     leave.setStreamId(streamId);
-                    return room.injectEvent(leave);
+                    return room.injectEvent(leave, senderDevice);
                 }))
                 .then();
     }
 
-    public Mono<String> sendMessageEvent(AbstractRoomEvent messageEvent) {
+    public Mono<String> sendMessageEvent(IDevice senderDevice, AbstractRoomEvent messageEvent) {
 
         return findRoomState(messageEvent.getRoomId())
                 .zipWhen(roomState -> Mono.just(eventAuthorizationValidator.canPostMessageEvent(roomState, messageEvent)))
                 .filter(Tuple2::getT2)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.INVALID_PARAM, HttpStatus.BAD_REQUEST, "没有权限发送信息")))
-                .flatMap(tuple2 -> tuple2.getT1().getRoom().injectEvent(messageEvent))
+                .flatMap(tuple2 -> tuple2.getT1().getRoom().injectEvent(messageEvent, senderDevice))
                 .map(e -> messageEvent.getEventId());
+    }
+
+
+    /**
+     * 此方法提供该userId所在的所有房间中,会回调传入每个房间最新的membershipContent以供选择关心的房间
+     *
+     * @param userId
+     * @param predicate
+     * @return
+     */
+    public Mono<List<String>> membershipAboutRooms(String userId, Predicate<MembershipContent> predicate) {
+        Flux<ImEvent> eventFlux = findEvents(EventType.Membership, userId);
+        return eventFlux
+                .collectList()
+                .map(events -> {
+                    // 取出每个房间里面最新的那条membership
+                    Map<String, MembershipEvent> roomMemberEventMap = events
+                            .stream()
+                            .filter(e -> e instanceof MembershipEvent && StringUtils.equals(((MembershipEvent) e).getStateKey(), userId))
+                            .map(e -> (MembershipEvent) e)
+                            .sorted((o1, o2) -> o2.getStreamId().compareTo(o1.getStreamId()))
+                            .collect(Collectors.toMap(MembershipEvent::getRoomId, e -> e, (o, n) -> o));
+
+                    List<String> destRoomIds = Lists.newArrayList();
+                    roomMemberEventMap.forEach((roomId, roomMemberEvent) -> {
+                        MembershipContent roomLatestMembershipContent = (MembershipContent) roomMemberEvent.getContent();
+                        if (predicate.test(roomLatestMembershipContent)) {
+                            destRoomIds.add(roomId);
+                        }
+                    });
+                    return destRoomIds;
+                });
     }
 }

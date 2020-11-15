@@ -1,6 +1,8 @@
 package im.joker.room;
 
+import im.joker.device.IDevice;
 import im.joker.event.ImEvent;
+import im.joker.event.room.AbstractRoomEvent;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -13,15 +15,14 @@ import java.util.List;
 public interface IRoom {
 
     /**
-     * 房间注入一个事件,返回eventId
+     * 房间注入一个事件
      *
      * @param ev
      * @return eventId
      */
-    Mono<ImEvent> injectEvent(ImEvent ev);
+    Mono<AbstractRoomEvent> injectEvent(AbstractRoomEvent ev, IDevice device);
 
-
-    Flux<ImEvent> injectEvents(List<ImEvent> evs);
+    Flux<AbstractRoomEvent> injectEvents(List<AbstractRoomEvent> evs, IDevice device);
 
     /**
      * 获取房间最新状态。
