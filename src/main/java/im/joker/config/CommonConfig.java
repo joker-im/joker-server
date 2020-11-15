@@ -7,14 +7,16 @@ import im.joker.event.EventType;
 import im.joker.event.MessageType;
 import im.joker.helper.BCryptPasswordEncoder;
 import im.joker.helper.PasswordEncoder;
+import org.apache.commons.lang3.StringUtils;
+import org.redisson.Redisson;
+import org.redisson.api.RedissonReactiveClient;
+import org.redisson.config.Config;
+import org.redisson.config.SingleServerConfig;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.core.convert.MappingMongoConverter;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.listener.PatternTopic;
-import org.springframework.data.redis.listener.RedisMessageListenerContainer;
-import org.springframework.data.redis.listener.adapter.MessageListenerAdapter;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -28,11 +30,20 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
-import static im.joker.constants.ImContents.CHAT_ROOM_TOPIC;
-
 @Configuration
 public class CommonConfig {
 
+
+    @Value("${spring.redis.database:0}")
+    private Integer redisDatabase;
+    @Value("${spring.redis.host:localhost}")
+    private String redisHost;
+    @Value("${spring.redis.port:6379}")
+    private Integer redisPort;
+    @Value("${spring.redis.password:}")
+    private String redisPassword;
+    @Value("${spring.redis.timeout:3000}")
+    private Integer redisTimeout;
 
     /**
      * 多态子类事件注入
@@ -56,17 +67,6 @@ public class CommonConfig {
         };
     }
 
-
-//    @Bean
-//    RedisMessageListenerContainer container(RedisConnectionFactory connectionFactory,
-//                                            MessageListenerAdapter listenerAdapter) {
-//
-//        RedisMessageListenerContainer container = new RedisMessageListenerContainer();
-//        container.setConnectionFactory(connectionFactory);
-//        container.addMessageListener(listenerAdapter, PatternTopic.of(CHAT_ROOM_TOPIC));
-//
-//        return container;
-//    }
 
     @Bean
     public LocalValidatorFactoryBean validator() {
@@ -106,9 +106,29 @@ public class CommonConfig {
     }
 
 
+    /**
+     * 往mongo里面存map的时候,用#代替.
+     *
+     * @param mongoConverter
+     */
     @Autowired
     public void setMapKeyDotReplacement(MappingMongoConverter mongoConverter) {
         mongoConverter.setMapKeyDotReplacement("#");
     }
+
+
+    @Bean
+    public RedissonReactiveClient redissonReactiveClient() {
+        Config config = new Config();
+        SingleServerConfig subConfig = config.useSingleServer();
+        subConfig.setAddress("redis://" + redisHost + ":" + redisPort);
+        subConfig.setDatabase(redisDatabase);
+        subConfig.setTimeout(redisTimeout);
+        if (StringUtils.isNotBlank(redisPassword)) {
+            subConfig.setPassword(redisPassword);
+        }
+        return Redisson.createReactive(config);
+    }
+
 
 }

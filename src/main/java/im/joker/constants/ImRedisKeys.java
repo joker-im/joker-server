@@ -47,8 +47,14 @@ public class ImRedisKeys {
 
     /**
      * 房间的订阅者, 是一个set集合,%s是roomId,value是deviceIds
-     *
      */
     public final static String ROOM_SUBSCRIBERS_OF_DEVICE = "im.joker:room_subscribers_of_device:%s";
+
+
+    /**
+     * 发消息的分布式锁
+     * %s是roomId
+     */
+    public final static String MESSAGE_LOCK = "im.joker:room_message_lock:%s";
 
 }
