@@ -56,7 +56,7 @@ public class Room implements IRoom {
                     return Mono.just(e)
                             .takeUntilOther(
                                     Mono.zip(updateSubscribeOps, sendMessageQueueOps)
-                                            .doFinally(signal -> globalStateHolder.getLongPollingHelper().notifySyncDevice(device.getDeviceId()))
+                                            .doOnSuccess(signal -> globalStateHolder.getLongPollingHelper().notifySyncDevice(device.getDeviceId()))
                             );
                 });
 
@@ -70,7 +70,7 @@ public class Room implements IRoom {
                     Mono<Void> sendMessageQueueOps = globalStateHolder.getEventSyncQueueManager().addEventToQueue(ev);
                     return Mono.just(ev)
                             .takeUntilOther(Mono.zip(updateSubscribeOps, sendMessageQueueOps));
-                }).doFinally(signalType -> globalStateHolder.getLongPollingHelper().notifySyncDevice(device.getDeviceId()));
+                }).doOnComplete(() -> globalStateHolder.getLongPollingHelper().notifySyncDevice(device.getDeviceId()));
 
 
     }
