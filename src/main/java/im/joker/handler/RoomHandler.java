@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static im.joker.constants.ImRedisKeys.MESSAGE_LOCK;
+import static im.joker.constants.ImRedisKeys.EVENT_LOCK;
 
 
 @Service
@@ -67,7 +67,7 @@ public class RoomHandler {
     }
 
     public Mono<String> sendMessageEvent(IDevice loginDevice, AbstractRoomEvent messageEvent) {
-        return redissonClient.getLock(String.format(MESSAGE_LOCK, messageEvent.getRoomId())).lock(2, TimeUnit.SECONDS)
+        return redissonClient.getLock(String.format(EVENT_LOCK, messageEvent.getRoomId())).lock(2, TimeUnit.SECONDS)
                 .flatMap(e -> idGenerator.nextEventStreamId()
                         .flatMap(id -> {
                             messageEvent.setSender(loginDevice.getUserId());
@@ -77,7 +77,7 @@ public class RoomHandler {
                             log.debug("收到聊天消息{}", GsonUtils.get().toJson(messageEvent));
                             return roomManager.sendMessageEvent(loginDevice, messageEvent);
                         }))
-                .doFinally((s) -> redissonClient.getLock(String.format(MESSAGE_LOCK, messageEvent.getRoomId())).unlock().subscribe());
+                .doFinally((s) -> redissonClient.getLock(String.format(EVENT_LOCK, messageEvent.getRoomId())).unlock().subscribe());
     }
 }
 

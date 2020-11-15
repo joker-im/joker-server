@@ -7,6 +7,8 @@ import im.joker.event.room.IRoomEvent;
 import im.joker.helper.EventSyncQueueManager;
 import im.joker.helper.GlobalStateHolder;
 import im.joker.helper.LongPollingHelper;
+import im.joker.helper.RoomSubscribeManager;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -28,6 +30,8 @@ public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
     private LongPollingHelper longPollingHelper;
     @Autowired
     private EventSyncQueueManager eventSyncQueueManager;
+    @Autowired
+    private RoomSubscribeManager roomSubscribeManager;
 
     @Override
     public Mono<Void> roomEventProcess(IRoomEvent event) {
@@ -36,7 +40,15 @@ public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
 
     @Override
     public Mono<SyncResponse> syncProcess(SyncRequest request, IDevice loginDevice) {
-//        SyncRoomEventAdder adder = new SyncRoomEventAdder();
+        Flux<String> deviceCareRoomIds = roomSubscribeManager.retrieveRooms(loginDevice.getDeviceId());
+        boolean fullState = request.getFullState() != null && request.getFullState();
+        if (fullState || StringUtils.isBlank(request.getSince())) {
+            // todo 返回全部的状态信息
+        }
+
+
+
+        //        SyncRoomEventAdder adder = new SyncRoomEventAdder();
 //        eventQueueManager.takeRelatedEvents(loginDevice.getDeviceId(), 30);
 //        return getActiveRoomsOfDevice(loginDevice.getDeviceId())
 //                .flatMap(roomId -> globalStateHolder.getRedisTemplate().opsForList()

@@ -10,6 +10,7 @@ import im.joker.room.RoomManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -84,26 +85,26 @@ public class RoomSubscribeManager {
                 });
     }
 
-//    /**
-//     * 取出设备关心的房间ids
-//     *
-//     * @param deviceId
-//     * @return
-//     */
-//    public Flux<String> retrieveRooms(String deviceId) {
-//        ScanOptions scanOptions = ScanOptions.scanOptions().count(100).match(ROOM_SUBSCRIBERS_OF_DEVICE.replace("%s", "*")).build();
-//        // 扫描所有房间的key
-//        return redisTemplate.scan(scanOptions)
-//                // 判断该deviceId是当前房间的成员否,如果是,那么放到一个地方收集
-//                .flatMap(key -> redisTemplate.opsForSet().isMember(key, deviceId).flatMapMany(is -> {
-//                    if (is) {
-//                        // 取出对应key
-//                        return Flux.just(key.replace(ROOM_SUBSCRIBERS_OF_DEVICE.replace("%s", ""), ""));
-//                    } else {
-//                        return Flux.empty();
-//                    }
-//                }));
-//
-//    }
+    /**
+     * 取出设备关心的房间ids
+     *
+     * @param deviceId
+     * @return
+     */
+    public Flux<String> retrieveRooms(String deviceId) {
+        ScanOptions scanOptions = ScanOptions.scanOptions().count(100).match(ROOM_SUBSCRIBERS_OF_DEVICE.replace("%s", "*")).build();
+        // 扫描所有房间的key
+        return redisTemplate.scan(scanOptions)
+                // 判断该deviceId是当前房间的成员否,如果是,那么放到一个地方收集
+                .flatMap(key -> redisTemplate.opsForSet().isMember(key, deviceId).flatMapMany(is -> {
+                    if (is) {
+                        // 取出对应key
+                        return Flux.just(key.replace(ROOM_SUBSCRIBERS_OF_DEVICE.replace("%s", ""), ""));
+                    } else {
+                        return Flux.empty();
+                    }
+                }));
+
+    }
 
 }

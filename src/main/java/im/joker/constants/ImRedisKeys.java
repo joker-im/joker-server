@@ -55,6 +55,6 @@ public class ImRedisKeys {
      * 发消息的分布式锁
      * %s是roomId
      */
-    public final static String MESSAGE_LOCK = "im.joker:room_message_lock:%s";
+    public final static String EVENT_LOCK = "im.joker:room_event_lock:%s";
 
 }
