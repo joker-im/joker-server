@@ -4,7 +4,6 @@ import im.joker.event.MembershipType;
 import im.joker.event.content.state.MembershipContent;
 import im.joker.event.content.state.PowerLevelContent;
 import im.joker.event.room.AbstractRoomEvent;
-import im.joker.event.room.AbstractRoomStateEvent;
 import im.joker.event.room.state.MembershipEvent;
 import im.joker.event.room.state.PowerLevelEvent;
 import im.joker.room.RoomState;
@@ -34,7 +33,7 @@ public class EventAuthorizationValidator {
      * @return
      */
     public boolean canPostJoinEvent(RoomState roomState, String sender) {
-        MembershipEvent latestSenderMembershipEvent = roomState.getLatestMembershipEventMap().get(sender);
+        MembershipEvent latestSenderMembershipEvent = roomState.searchMembershipEvent(sender);
         if (latestSenderMembershipEvent == null) {
             log.info("当前房间id:{},该sender:{} 从未在房间出现过membership事件", roomState.getRoom().getRoomId(), sender);
             return false;
@@ -53,7 +52,7 @@ public class EventAuthorizationValidator {
      */
     public boolean canPostInviteEvent(RoomState roomState, String sender) {
         // 检测该sender是否有邀请的权限
-        PowerLevelEvent roomPowerLevelEvent = findRoomPowerLevelEvent(roomState);
+        PowerLevelEvent roomPowerLevelEvent = roomState.findRoomPowerLevelEvent();
         if (roomPowerLevelEvent != null) {
             PowerLevelContent powerLevelContent = (PowerLevelContent) roomPowerLevelEvent.getContent();
             int senderInvitePower = powerLevelContent.getUserDefault();
@@ -71,14 +70,6 @@ public class EventAuthorizationValidator {
         return noBanInRoom(roomState, sender);
     }
 
-    private PowerLevelEvent findRoomPowerLevelEvent(RoomState roomState) {
-        AbstractRoomStateEvent event = roomState.getStateEvents().stream().filter(e -> e instanceof PowerLevelEvent).findFirst().orElse(null);
-        if (event != null) {
-            return (PowerLevelEvent) event;
-        }
-        return null;
-    }
-
 
     /**
      * 查询sender是否可以向房间发送离开消息
@@ -91,8 +82,7 @@ public class EventAuthorizationValidator {
      * @return
      */
     public boolean canPostLeaveEvent(RoomState roomState, String sender) {
-        MembershipEvent membershipEvents = roomState.getLatestMembershipEventMap().get(sender);
-        return membershipEvents != null;
+        return roomState.searchMembershipEvent(sender) != null;
     }
 
     /**
@@ -104,7 +94,7 @@ public class EventAuthorizationValidator {
      * @return
      */
     public boolean canKickMember(RoomState roomState, String sender, String targetUserId) {
-        PowerLevelEvent powerLevelEvent = findRoomPowerLevelEvent(roomState);
+        PowerLevelEvent powerLevelEvent = roomState.findRoomPowerLevelEvent();
         if (powerLevelEvent == null) {
             log.info("当前房间id:{} 没有PowerLevelEvent", roomState.getRoom().getRoomId());
             return false;
@@ -138,7 +128,7 @@ public class EventAuthorizationValidator {
      * @return
      */
     private boolean noBanInRoom(RoomState roomState, String target) {
-        MembershipEvent membershipEvent = roomState.getLatestMembershipEventMap().get(target);
+        MembershipEvent membershipEvent = roomState.searchMembershipEvent(target);
         if (membershipEvent == null) {
             return false;
         }

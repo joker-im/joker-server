@@ -1,11 +1,12 @@
 package im.joker.room;
 
+import im.joker.event.EventType;
 import im.joker.event.room.AbstractRoomStateEvent;
 import im.joker.event.room.state.MembershipEvent;
+import im.joker.event.room.state.PowerLevelEvent;
 import im.joker.exception.ErrorCode;
 import im.joker.exception.ImException;
 import im.joker.helper.GlobalStateHolder;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import reactor.core.publisher.Flux;
@@ -23,50 +24,73 @@ import java.util.stream.Collectors;
  * @Desc:
  */
 @Slf4j
-@Getter
 public class RoomState {
 
-    private final GlobalStateHolder globalStateHolder;
     /**
      * 此变量表示该房间的所有状态事件
      */
     private final List<AbstractRoomStateEvent> stateEvents;
 
-    /**
-     * 此变量表示该房间所有人的memberEvent. 其key是stateKey, 存储最新的一条membership
-     */
-    private final Map<String, MembershipEvent> latestMembershipEventMap;
 
     private final IRoom room;
 
+    /**
+     * 此变量代表该房间最新的状态事件, 其key是 eventType + stateKey
+     */
+    private final Map<String, AbstractRoomStateEvent> stateEventsMap;
+
+
+    public IRoom getRoom() {
+        return room;
+    }
+
+    public List<AbstractRoomStateEvent> getStateEvents() {
+        return stateEvents;
+    }
+
+
+    public List<AbstractRoomStateEvent> distinctStateEvents() {
+        return stateEventsMap.values().stream().sorted((l, r) -> r.getStreamId().compareTo(l.getStreamId())).collect(Collectors.toList());
+    }
 
     /**
-     * 残缺的roomState
+     * 残缺的roomState,从状态事件List中获取roomState,是一个
      *
-     * @param roomId
      * @param list
      * @return
      */
-    public static RoomState from(String roomId, List<AbstractRoomStateEvent> list) {
-        return new RoomState(null, null, list, buildLatestMembershipMap(list));
+    public static RoomState from(List<AbstractRoomStateEvent> list) {
+        List<AbstractRoomStateEvent> stateEvents = list.stream().sorted((a, b) -> b.getStreamId().compareTo(a.getStreamId())).collect(Collectors.toList());
+        return new RoomState(null, null, stateEvents, handleStateEvents(stateEvents));
     }
 
 
-    private static Map<String, MembershipEvent> buildLatestMembershipMap(List<AbstractRoomStateEvent> list) {
-        return list.stream()
-                .filter(e -> e instanceof MembershipEvent)
-                .map(e -> (MembershipEvent) e)
-                .collect(Collectors.toMap(AbstractRoomStateEvent::getStateKey, e -> e, (o, n) -> {
-                    if (o.getStreamId().compareTo(n.getStreamId()) > 0) {
-                        return o;
-                    } else {
-                        return n;
-                    }
-                }));
+    private static Map<String, AbstractRoomStateEvent> handleStateEvents(List<AbstractRoomStateEvent> list) {
+        return list.stream().collect(Collectors.toMap(e -> e.getType() + e.getStateKey(), e -> e, (o, n) -> {
+            if (o.getStreamId() > n.getStreamId()) {
+                return n;
+            }
+            return o;
+        }));
     }
 
 
-    public static Mono<RoomState> existRoomState(String roomId, GlobalStateHolder globalStateHolder) {
+    public MembershipEvent searchMembershipEvent(String userId) {
+        AbstractRoomStateEvent event = stateEventsMap.get(EventType.Membership.getId() + userId);
+        if (event != null) {
+            return (MembershipEvent) event;
+        }
+        return null;
+    }
+
+    /**
+     * 从roomId获取最新的房间状态
+     *
+     * @param roomId
+     * @param globalStateHolder
+     * @return
+     */
+    public static Mono<RoomState> getRoomState(String roomId, GlobalStateHolder globalStateHolder) {
         Flux<AbstractRoomStateEvent> eventFlux = globalStateHolder.getMongodbStore().findRoomStateEvents(roomId);
         Mono<IRoom> roomMono = globalStateHolder.getMongodbStore().findRoomByRoomId(roomId);
         return eventFlux
@@ -75,20 +99,26 @@ public class RoomState {
                 .zipWith(roomMono)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.INVALID_PARAM, HttpStatus.BAD_REQUEST, "房间不存在")))
                 .map(tuple2 -> {
-                    Map<String, MembershipEvent> userStateEventMap = buildLatestMembershipMap(tuple2.getT1());
+                    Map<String, AbstractRoomStateEvent> userStateEventMap = handleStateEvents(tuple2.getT1());
                     return new RoomState(globalStateHolder, tuple2.getT2(), tuple2.getT1(), userStateEventMap);
                 });
     }
 
     private RoomState(GlobalStateHolder globalStateHolder, IRoom room, List<AbstractRoomStateEvent> stateEvents,
-                      Map<String, MembershipEvent> latestMembershipEventMap) {
-        this.globalStateHolder = globalStateHolder;
+                      Map<String, AbstractRoomStateEvent> stateEventsMap) {
         this.room = room;
         this.stateEvents = stateEvents;
-        this.latestMembershipEventMap = latestMembershipEventMap;
+        this.stateEventsMap = stateEventsMap;
         if (room != null) {
             ((Room) room).setGlobalStateHolder(globalStateHolder);
         }
     }
 
+    public PowerLevelEvent findRoomPowerLevelEvent() {
+        AbstractRoomStateEvent event = stateEventsMap.get(EventType.PowerLevel.getId() + "");
+        if (event != null) {
+            return (PowerLevelEvent) event;
+        }
+        return null;
+    }
 }

@@ -151,7 +151,7 @@ public class RoomManager {
     }
 
 
-    public Flux<ImEvent> findEvents(EventType eventType, String userId) {
+    public Flux<AbstractRoomEvent> findEvents(EventType eventType, String userId) {
         return mongodbStore.findEvents(eventType, userId);
     }
 
@@ -175,7 +175,7 @@ public class RoomManager {
 
 
     public Mono<RoomState> findRoomState(String roomId) {
-        return RoomState.existRoomState(roomId, globalStateHolder);
+        return RoomState.getRoomState(roomId, globalStateHolder);
     }
 
 
@@ -253,7 +253,7 @@ public class RoomManager {
      * @return
      */
     public Mono<List<String>> membershipAboutRooms(String userId, Predicate<MembershipContent> predicate) {
-        Flux<ImEvent> eventFlux = findEvents(EventType.Membership, userId);
+        Flux<AbstractRoomEvent> eventFlux = findEvents(EventType.Membership, userId);
         return eventFlux
                 .collectList()
                 .map(events -> {

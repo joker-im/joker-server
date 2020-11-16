@@ -6,9 +6,7 @@ import im.joker.device.IDevice;
 import im.joker.event.room.AbstractRoomEvent;
 import im.joker.event.room.IRoomEvent;
 import im.joker.event.room.state.MembershipEvent;
-import im.joker.handler.RoomHandler;
 import im.joker.helper.EventSyncQueueManager;
-import im.joker.helper.GlobalStateHolder;
 import im.joker.helper.LongPollingHelper;
 import im.joker.helper.RoomSubscribeManager;
 import im.joker.room.RoomState;
@@ -57,8 +55,10 @@ public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
                     .flatMap(roomEventsMap -> {
                         SyncResponse.Rooms rooms = SyncResponse.Rooms.builder().build();
                         roomEventsMap.forEach((roomId, events) -> {
-                            RoomState roomState = RoomState.from(roomId, events);
-                            MembershipEvent membershipEvent = roomState.getLatestMembershipEventMap().get(loginDevice.getDeviceId());
+                            // 从状态事件list获取出当前的roomState
+
+                            RoomState roomState = RoomState.from(events);
+                            MembershipEvent membershipEvent = roomState.searchMembershipEvent(loginDevice.getDeviceId());
                             if (membershipEvent == null) {
                                 return;
                             }
