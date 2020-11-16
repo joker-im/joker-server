@@ -4,6 +4,7 @@ import im.joker.device.DeviceManager;
 import im.joker.session.AuthManager;
 import im.joker.store.ReactiveMongodbStore;
 import lombok.Data;
+import org.redisson.api.RedissonReactiveClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -26,5 +27,7 @@ public class GlobalStateHolder {
     private LongPollingHelper longPollingHelper;
     @Autowired
     private EventSyncQueueManager eventSyncQueueManager;
+    @Autowired
+    private RedissonReactiveClient redissonClient;
 
 }

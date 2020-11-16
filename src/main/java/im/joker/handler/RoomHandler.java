@@ -30,8 +30,6 @@ public class RoomHandler {
     private RoomManager roomManager;
     @Autowired
     private IdGenerator idGenerator;
-    @Autowired
-    private RedissonReactiveClient redissonClient;
 
 
     public Mono<CreateRoomResponse> createRoom(IDevice loginDevice, CreateRoomRequest createRoomRequest) {
@@ -67,8 +65,8 @@ public class RoomHandler {
     }
 
     public Mono<String> sendMessageEvent(IDevice loginDevice, AbstractRoomEvent messageEvent) {
-        return redissonClient.getLock(String.format(EVENT_LOCK, messageEvent.getRoomId())).lock(2, TimeUnit.SECONDS)
-                .flatMap(e -> idGenerator.nextEventStreamId()
+        return
+                idGenerator.nextEventStreamId()
                         .flatMap(id -> {
                             messageEvent.setSender(loginDevice.getUserId());
                             messageEvent.setStreamId(id);
@@ -76,8 +74,7 @@ public class RoomHandler {
                             messageEvent.setOriginServerTs(LocalDateTime.now());
                             log.debug("收到聊天消息{}", GsonUtils.get().toJson(messageEvent));
                             return roomManager.sendMessageEvent(loginDevice, messageEvent);
-                        }))
-                .doFinally((s) -> redissonClient.getLock(String.format(EVENT_LOCK, messageEvent.getRoomId())).unlock().subscribe());
+                        });
     }
 }
 

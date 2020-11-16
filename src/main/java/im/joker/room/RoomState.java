@@ -1,6 +1,5 @@
 package im.joker.room;
 
-import im.joker.event.ImEvent;
 import im.joker.event.room.AbstractRoomStateEvent;
 import im.joker.event.room.state.MembershipEvent;
 import im.joker.exception.ErrorCode;
@@ -41,26 +40,42 @@ public class RoomState {
     private final IRoom room;
 
 
+    /**
+     * 残缺的roomState
+     *
+     * @param roomId
+     * @param list
+     * @return
+     */
+    public static RoomState from(String roomId, List<AbstractRoomStateEvent> list) {
+        return new RoomState(null, null, list, buildLatestMembershipMap(list));
+    }
+
+
+    private static Map<String, MembershipEvent> buildLatestMembershipMap(List<AbstractRoomStateEvent> list) {
+        return list.stream()
+                .filter(e -> e instanceof MembershipEvent)
+                .map(e -> (MembershipEvent) e)
+                .collect(Collectors.toMap(AbstractRoomStateEvent::getStateKey, e -> e, (o, n) -> {
+                    if (o.getStreamId().compareTo(n.getStreamId()) > 0) {
+                        return o;
+                    } else {
+                        return n;
+                    }
+                }));
+    }
+
+
     public static Mono<RoomState> existRoomState(String roomId, GlobalStateHolder globalStateHolder) {
-        Flux<ImEvent> eventFlux = globalStateHolder.getMongodbStore().findRoomStateEvents(roomId);
+        Flux<AbstractRoomStateEvent> eventFlux = globalStateHolder.getMongodbStore().findRoomStateEvents(roomId);
         Mono<IRoom> roomMono = globalStateHolder.getMongodbStore().findRoomByRoomId(roomId);
         return eventFlux
-                .map(e -> (AbstractRoomStateEvent) e)
                 // 逆序
                 .collectSortedList((a, b) -> b.getStreamId().compareTo(a.getStreamId()))
                 .zipWith(roomMono)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.INVALID_PARAM, HttpStatus.BAD_REQUEST, "房间不存在")))
                 .map(tuple2 -> {
-                    Map<String, MembershipEvent> userStateEventMap = tuple2.getT1().stream()
-                            .filter(e -> e instanceof MembershipEvent)
-                            .map(e -> (MembershipEvent) e)
-                            .collect(Collectors.toMap(AbstractRoomStateEvent::getStateKey, e -> e, (o, n) -> {
-                                if (o.getStreamId().compareTo(n.getStreamId()) > 0) {
-                                    return o;
-                                } else {
-                                    return n;
-                                }
-                            }));
+                    Map<String, MembershipEvent> userStateEventMap = buildLatestMembershipMap(tuple2.getT1());
                     return new RoomState(globalStateHolder, tuple2.getT2(), tuple2.getT1(), userStateEventMap);
                 });
     }
@@ -71,7 +86,9 @@ public class RoomState {
         this.room = room;
         this.stateEvents = stateEvents;
         this.latestMembershipEventMap = latestMembershipEventMap;
-        ((Room) room).setGlobalStateHolder(globalStateHolder);
+        if (room != null) {
+            ((Room) room).setGlobalStateHolder(globalStateHolder);
+        }
     }
 
 }

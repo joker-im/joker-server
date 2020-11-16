@@ -3,16 +3,23 @@ package im.joker.sync;
 import im.joker.api.vo.sync.SyncRequest;
 import im.joker.api.vo.sync.SyncResponse;
 import im.joker.device.IDevice;
+import im.joker.event.room.AbstractRoomEvent;
 import im.joker.event.room.IRoomEvent;
+import im.joker.event.room.state.MembershipEvent;
+import im.joker.handler.RoomHandler;
 import im.joker.helper.EventSyncQueueManager;
 import im.joker.helper.GlobalStateHolder;
 import im.joker.helper.LongPollingHelper;
 import im.joker.helper.RoomSubscribeManager;
+import im.joker.room.RoomState;
+import im.joker.store.ReactiveMongodbStore;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.stream.Collectors;
 
 /**
  * 以房间为单位，缓存等待同步的最新消息到redis集合中（实时维护）
@@ -25,11 +32,11 @@ import reactor.core.publisher.Mono;
 public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
 
     @Autowired
-    private GlobalStateHolder globalStateHolder;
-    @Autowired
     private LongPollingHelper longPollingHelper;
     @Autowired
     private EventSyncQueueManager eventSyncQueueManager;
+    @Autowired
+    private ReactiveMongodbStore mongodbStore;
     @Autowired
     private RoomSubscribeManager roomSubscribeManager;
 
@@ -40,12 +47,26 @@ public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
 
     @Override
     public Mono<SyncResponse> syncProcess(SyncRequest request, IDevice loginDevice) {
-        Flux<String> deviceCareRoomIds = roomSubscribeManager.retrieveRooms(loginDevice.getDeviceId());
         boolean fullState = request.getFullState() != null && request.getFullState();
         if (fullState || StringUtils.isBlank(request.getSince())) {
             // todo 返回全部的状态信息
-        }
+            roomSubscribeManager.retrieveRooms(loginDevice.getDeviceId())
+                    .collectList()
+                    .flatMap(roomIds -> mongodbStore.findRoomStateEvents(roomIds)
+                            .collect(Collectors.groupingBy(AbstractRoomEvent::getRoomId)))
+                    .flatMap(roomEventsMap -> {
+                        SyncResponse.Rooms rooms = SyncResponse.Rooms.builder().build();
+                        roomEventsMap.forEach((roomId, events) -> {
+                            RoomState roomState = RoomState.from(roomId, events);
+                            MembershipEvent membershipEvent = roomState.getLatestMembershipEventMap().get(loginDevice.getDeviceId());
+                            if (membershipEvent == null) {
+                                return;
+                            }
+                        });
+                    });
 
+
+        }
 
 
         //        SyncRoomEventAdder adder = new SyncRoomEventAdder();

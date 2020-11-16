@@ -14,6 +14,9 @@ import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static im.joker.constants.ImRedisKeys.EVENT_LOCK;
 
 @Document
 @AllArgsConstructor
@@ -41,7 +44,7 @@ public class Room implements IRoom {
      * 1. 将消息落盘
      * 2. 维护房间与设备的订阅关系
      * 3. 将消息发往redis的房间队列
-     * 4. 唤醒正在sync的设备
+     * 4. notify正在sync的设备
      *
      * @param ev
      * @param device
@@ -49,30 +52,42 @@ public class Room implements IRoom {
      */
     @Override
     public Mono<AbstractRoomEvent> injectEvent(AbstractRoomEvent ev, IDevice device) {
-        return globalStateHolder.getMongodbStore().addEvent(ev)
-                .flatMap(e -> {
-                    Mono<Void> updateSubscribeOps = globalStateHolder.getRoomSubscribeManager().updateRelation(device.getDeviceId(), e);
-                    Mono<Void> sendMessageQueueOps = globalStateHolder.getEventSyncQueueManager().addEventToQueue(ev);
-                    return Mono.just(e)
-                            .takeUntilOther(
-                                    Mono.zip(updateSubscribeOps, sendMessageQueueOps)
-                                            .then(globalStateHolder.getLongPollingHelper().notifySyncDevice(device.getDeviceId()))
-                            );
-                });
+        return globalStateHolder.getRedissonClient().getLock(String.format(EVENT_LOCK, roomId)).lock()
+                .flatMap(v ->
+                        globalStateHolder.getMongodbStore().addEvent(ev)
+                                .flatMap(e -> {
+                                    Mono<Void> updateSubscribeOps = globalStateHolder.getRoomSubscribeManager().updateRelation(device.getDeviceId(), e);
+                                    Mono<Void> sendMessageQueueOps = globalStateHolder.getEventSyncQueueManager().addEventToQueue(ev);
+                                    return Mono.just(e)
+                                            .takeUntilOther(
+                                                    Mono.zip(updateSubscribeOps, sendMessageQueueOps)
+                                                            .then(globalStateHolder.getLongPollingHelper().notifySyncDevice(device.getDeviceId()))
+                                            );
+                                }))
+                .doFinally(s -> globalStateHolder.getRedissonClient().getLock(String.format(EVENT_LOCK, roomId)).unlock().subscribe());
+
 
     }
 
+    /**
+     * 与injectEvent的区别是等所有的时间都做了1-3步, 再进行notify
+     *
+     * @param evs
+     * @param device
+     * @return
+     */
     @Override
     public Flux<AbstractRoomEvent> injectEvents(List<AbstractRoomEvent> evs, IDevice device) {
-        return Flux.fromIterable(evs)
+        return globalStateHolder.getRedissonClient().getLock(String.format(EVENT_LOCK, roomId)).lock()
+                .flatMapMany(e -> Flux.fromIterable(evs))
                 .flatMap(ev -> {
                     Mono<Void> updateSubscribeOps = globalStateHolder.getRoomSubscribeManager().updateRelation(device.getDeviceId(), ev);
                     Mono<Void> sendMessageQueueOps = globalStateHolder.getEventSyncQueueManager().addEventToQueue(ev);
-                    return Mono.just(ev)
+                    return globalStateHolder.getMongodbStore().addEvent(ev)
                             .takeUntilOther(Mono.zip(updateSubscribeOps, sendMessageQueueOps));
                 })
-                .doOnComplete(() -> globalStateHolder.getLongPollingHelper().notifySyncDevice(device.getDeviceId()).subscribe());
-
+                .doOnComplete(() -> globalStateHolder.getLongPollingHelper().notifySyncDevice(device.getDeviceId()).subscribe())
+                .doFinally(s -> globalStateHolder.getRedissonClient().getLock(String.format(EVENT_LOCK, roomId)).unlock().subscribe());
 
     }
 

@@ -6,6 +6,7 @@ import com.mongodb.client.model.IndexOptions;
 import im.joker.event.EventType;
 import im.joker.event.ImEvent;
 import im.joker.event.room.AbstractRoomEvent;
+import im.joker.event.room.AbstractRoomStateEvent;
 import im.joker.room.IRoom;
 import im.joker.user.IUser;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +19,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static im.joker.event.EventType.Typing;
 
@@ -169,25 +172,20 @@ public class ReactiveMongodbStore implements IStore {
     }
 
     @Override
-    public Flux<ImEvent> findEvents(EventType eventType, String sender) {
+    public Flux<AbstractRoomEvent> findEvents(EventType eventType, String sender) {
         Query query = new Query();
         query.addCriteria(Criteria.where("type").is(eventType.getId()).and("sender").is(sender));
-        return mongoTemplate.find(query, ImEvent.class, COLLECTION_NAME_EVENTS);
+        return mongoTemplate.find(query, AbstractRoomEvent.class, COLLECTION_NAME_EVENTS);
     }
 
     @Override
-    public Flux<ImEvent> findRoomStateEvents(String roomId) {
+    public Flux<AbstractRoomStateEvent> findRoomStateEvents(String roomId) {
         Query query = new Query();
-        Criteria criteria = Criteria.where("room_id").is(roomId);
-        List<Criteria> or = Lists.newArrayList();
-        for (EventType value : EventType.values()) {
-            if (value.isState()) {
-                or.add(Criteria.where("type").is(value.getId()));
-            }
-        }
-        criteria.andOperator(new Criteria().orOperator(or.toArray(new Criteria[0])));
+        Criteria criteria = Criteria.where("room_id").is(roomId)
+                .and("type")
+                .in(Arrays.stream(EventType.values()).filter(EventType::isState).map(EventType::getId).collect(Collectors.toList()));
         query.addCriteria(criteria);
-        return mongoTemplate.find(query, ImEvent.class, COLLECTION_NAME_EVENTS);
+        return mongoTemplate.find(query, AbstractRoomStateEvent.class, COLLECTION_NAME_EVENTS);
     }
 
     @Override
@@ -196,4 +194,14 @@ public class ReactiveMongodbStore implements IStore {
         query.addCriteria(Criteria.where("room_id").is(targetRoomId));
         return mongoTemplate.findOne(query, IRoom.class, COLLECTION_NAME_ROOMS);
     }
+
+    @Override
+    public Flux<AbstractRoomStateEvent> findRoomStateEvents(List<String> roomIds) {
+        Query query = new Query();
+        Criteria.where("room_id").in(roomIds)
+                .and("type")
+                .in(Arrays.stream(EventType.values()).filter(EventType::isState).map(EventType::getId).collect(Collectors.toList()));
+        return mongoTemplate.find(query, AbstractRoomStateEvent.class, COLLECTION_NAME_EVENTS);
+    }
+
 }

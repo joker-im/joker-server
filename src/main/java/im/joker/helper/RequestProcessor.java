@@ -2,6 +2,7 @@ package im.joker.helper;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import im.joker.exception.ImException;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -41,6 +42,12 @@ public class RequestProcessor {
             throw new ImException(INVALID_PARAM, HttpStatus.BAD_REQUEST, message);
         }
         return Mono.just(result);
+    }
+
+
+    @SneakyThrows
+    public <T> T toBean(String json, Class<T> clazz) {
+        return objectMapper.readValue(json, clazz);
     }
 
     public <T> T parameterToBean(ServerRequest serverRequest, Class<T> clazz) {

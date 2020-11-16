@@ -76,7 +76,7 @@ public interface IStore {
      * @param userId
      * @return
      */
-    Flux<ImEvent> findEvents(EventType eventType, String userId);
+    Flux<AbstractRoomEvent> findEvents(EventType eventType, String userId);
 
     /**
      * 查询指定房间的状态事件
@@ -84,7 +84,7 @@ public interface IStore {
      * @param roomId
      * @return
      */
-    Flux<ImEvent> findRoomStateEvents(String roomId);
+    Flux<AbstractRoomStateEvent> findRoomStateEvents(String roomId);
 
     /**
      * 查询房间
@@ -93,4 +93,6 @@ public interface IStore {
      * @return
      */
     Mono<IRoom> findRoomByRoomId(String targetRoomId);
+
+    Flux<AbstractRoomStateEvent> findRoomStateEvents(List<String> roomIds);
 }
