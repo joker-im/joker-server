@@ -63,9 +63,9 @@ public class SyncResponse {
     @Builder
     @NoArgsConstructor
     public static class Rooms {
-        private JoinedRooms join;
-        private InvitedRooms invite;
-        private LeftRooms leave;
+        private Map<String, JoinedRooms> join;
+        private Map<String, InvitedRooms> invite;
+        private Map<String, LeftRooms> leave;
     }
 
     @AllArgsConstructor
@@ -73,16 +73,9 @@ public class SyncResponse {
     @Builder
     @NoArgsConstructor
     public static class InvitedRooms {
-        private InviteState inviteState;
+        private State inviteState;
     }
 
-    @AllArgsConstructor
-    @Data
-    @Builder
-    @NoArgsConstructor
-    public static class InviteState {
-        private List<AbstractRoomStateEvent> events;
-    }
 
     @AllArgsConstructor
     @Data
@@ -168,6 +161,8 @@ public class SyncResponse {
     @NoArgsConstructor
     public static class Timeline {
         private List<AbstractRoomEvent> events;
+        private String prevBatch;
+        private Boolean limited;
     }
 
     @AllArgsConstructor

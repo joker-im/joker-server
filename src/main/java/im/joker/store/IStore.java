@@ -1,7 +1,6 @@
 package im.joker.store;
 
 import im.joker.event.EventType;
-import im.joker.event.ImEvent;
 import im.joker.event.room.AbstractRoomEvent;
 import im.joker.event.room.AbstractRoomStateEvent;
 import im.joker.room.IRoom;
@@ -10,6 +9,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author linyurong
@@ -95,4 +95,6 @@ public interface IStore {
     Mono<IRoom> findRoomByRoomId(String targetRoomId);
 
     Flux<AbstractRoomStateEvent> findRoomStateEvents(List<String> roomIds);
+
+    Mono<Map<String, List<AbstractRoomEvent>>> findEventGroupByRoomTopK(List<String> roomIds, int k);
 }

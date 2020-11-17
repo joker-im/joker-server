@@ -1,36 +1,36 @@
 package im.joker.store;
 
-import com.google.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.model.IndexModel;
 import com.mongodb.client.model.IndexOptions;
-import com.mongodb.client.model.PushOptions;
 import im.joker.api.vo.RoomEvents;
 import im.joker.event.EventType;
-import im.joker.event.ImEvent;
 import im.joker.event.room.AbstractRoomEvent;
 import im.joker.event.room.AbstractRoomStateEvent;
 import im.joker.room.IRoom;
 import im.joker.user.IUser;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.expression.spel.ast.Projection;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static im.joker.event.EventType.Typing;
-import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.group;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.project;
 
 /**
  * @author linyurong
@@ -38,6 +38,7 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class ReactiveMongodbStore implements IStore {
 
     private final ReactiveMongoTemplate mongoTemplate;
@@ -211,8 +212,21 @@ public class ReactiveMongodbStore implements IStore {
         return mongoTemplate.find(query, AbstractRoomStateEvent.class, COLLECTION_NAME_EVENTS);
     }
 
-    public Flux<RoomEvents> findEventGroupByRoomTopK(int k) {
+
+    /**
+     * 查询每个房间的top k ,即group by roomId,然后每个房间取最新的k条(逆序)
+     *
+     * @param roomIds
+     * @param k
+     * @return
+     */
+    @Override
+    public Mono<Map<String,List<AbstractRoomEvent>>> findEventGroupByRoomTopK(List<String> roomIds, int k) {
+        if (CollectionUtils.isEmpty(roomIds)) {
+            return Mono.empty();
+        }
         Query query = new Query();
+        MatchOperation matchOperation = new MatchOperation(Criteria.where("room_id").in(roomIds));
         SortOperation sortOperation = new SortOperation(Sort.by(Sort.Direction.DESC, "stream_id"));
         GroupOperation groupOperation = group("room_id")
                 .push(new BasicDBObject()
@@ -223,17 +237,18 @@ public class ReactiveMongodbStore implements IStore {
                         .append("sender", "$sender")
                         .append("stream_id", "$stream_id")
                         .append("transaction_id", "$transaction_id")
+                        .append("event_id", "$event_id")
                         .append("type", "$type")
                         .append("origin_server_ts", "$origin_server_ts")
                         .append("_class", "$_class")
                         .append("unsigned", "$unsigned")).as("last_events");
         ProjectionOperation projection = project()
                 .andExclude("_id")
-                .and("$arrayElemAt").arrayElementAt(0)
-                .as("room_id")
+                .and("$last_events.room_id").arrayElementAt(0).as("room_id")
                 .and("$last_events").slice(k).as("slice_last_events");
-        Aggregation aggregation = Aggregation.newAggregation(sortOperation, groupOperation, projection);
-        return mongoTemplate.aggregate(aggregation, COLLECTION_NAME_EVENTS, RoomEvents.class);
+        Aggregation aggregation = Aggregation.newAggregation(matchOperation, sortOperation, groupOperation, projection);
+        return mongoTemplate.aggregate(aggregation, COLLECTION_NAME_EVENTS, RoomEvents.class)
+                .collect(Collectors.toMap(RoomEvents::getRoomId, RoomEvents::getSliceLastEvents));
     }
 
 }
