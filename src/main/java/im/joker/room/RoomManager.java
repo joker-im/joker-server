@@ -253,11 +253,12 @@ public class RoomManager {
      * @return
      */
     public Mono<List<String>> membershipAboutRooms(String userId, Predicate<MembershipContent> predicate) {
+        // 查询该用户所有房间membership事件
         Flux<AbstractRoomEvent> eventFlux = findEvents(EventType.Membership, userId);
         return eventFlux
                 .collectList()
                 .map(events -> {
-                    // 取出每个房间里面最新的那条membership
+                    // 取出每个房间里面最新的那条membership,组成一个map
                     Map<String, MembershipEvent> roomMemberEventMap = events
                             .stream()
                             .filter(e -> e instanceof MembershipEvent && StringUtils.equals(((MembershipEvent) e).getStateKey(), userId))
@@ -266,9 +267,10 @@ public class RoomManager {
                             .collect(Collectors.toMap(MembershipEvent::getRoomId, e -> e, (o, n) -> o));
 
                     List<String> destRoomIds = Lists.newArrayList();
+                    // 将符合条件的membership放入destRoomIds, 决定放入与否是逻辑交给predicate,predicate传入最新的membershipContent
                     roomMemberEventMap.forEach((roomId, roomMemberEvent) -> {
-                        MembershipContent roomLatestMembershipContent = (MembershipContent) roomMemberEvent.getContent();
-                        if (predicate.test(roomLatestMembershipContent)) {
+                        MembershipContent membershipContent = (MembershipContent) roomMemberEvent.getContent();
+                        if (predicate.test(membershipContent)) {
                             destRoomIds.add(roomId);
                         }
                     });

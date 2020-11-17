@@ -21,3 +21,8 @@ spring:
 
 im:
   web-domain: www.jokerim.org
+
+logging:
+  level:
+    org.springframework.data.mongodb.core.ReactiveMongoTemplate: DEBUG
+    im.joker: debug

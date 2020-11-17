@@ -190,7 +190,7 @@ public class ImEventBuilder {
      */
     public HistoryVisibilityEvent defaultHistoryVisibilityEvent(String roomId, String sender, LocalDateTime time) {
         HistoryVisibilityContent hvc = HistoryVisibilityContent.builder().historyVisibility("joined").build();
-        HistoryVisibilityEvent hvEvent = HistoryVisibilityEvent.builder().content(hvc).build();
+        HistoryVisibilityEvent hvEvent = HistoryVisibilityEvent.builder().content(hvc).type(EventType.HistoryVisibility.getId()).build();
         setCommonEventFiled(hvEvent, roomId, sender, time);
         return hvEvent;
     }

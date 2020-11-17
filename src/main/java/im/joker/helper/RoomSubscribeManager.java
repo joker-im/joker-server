@@ -51,8 +51,7 @@ public class RoomSubscribeManager {
                         return redisTemplate.opsForSet()
                                 .add(String.format(ROOM_SUBSCRIBERS_OF_DEVICE, roomEvent.getRoomId()), deviceId).then();
                     }
-                    return Mono.
-                            empty();
+                    return Mono.empty();
                 });
     }
 
@@ -92,14 +91,14 @@ public class RoomSubscribeManager {
      * @return
      */
     public Flux<String> retrieveRooms(String deviceId) {
-        ScanOptions scanOptions = ScanOptions.scanOptions().match(ROOM_SUBSCRIBERS_OF_DEVICE.replace("%s", "*")).build();
+        ScanOptions scanOptions = ScanOptions.scanOptions().match(String.format(ROOM_SUBSCRIBERS_OF_DEVICE, "*")).build();
         // 扫描所有房间的key
         return redisTemplate.scan(scanOptions)
                 // 判断该deviceId是当前房间的成员否,如果是,那么放到一个地方收集
                 .flatMap(key -> redisTemplate.opsForSet().isMember(key, deviceId).flatMapMany(is -> {
                     if (is) {
                         // 取出对应key
-                        return Flux.just(key.replace(ROOM_SUBSCRIBERS_OF_DEVICE.replace("%s", ""), ""));
+                        return Flux.just(key.replace(String.format(ROOM_SUBSCRIBERS_OF_DEVICE, ""), ""));
                     } else {
                         return Flux.empty();
                     }

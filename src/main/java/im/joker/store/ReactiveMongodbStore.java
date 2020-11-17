@@ -1,8 +1,11 @@
 package im.joker.store;
 
 import com.google.common.collect.Lists;
+import com.mongodb.BasicDBObject;
 import com.mongodb.client.model.IndexModel;
 import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.PushOptions;
+import im.joker.api.vo.RoomEvents;
 import im.joker.event.EventType;
 import im.joker.event.ImEvent;
 import im.joker.event.room.AbstractRoomEvent;
@@ -11,9 +14,12 @@ import im.joker.room.IRoom;
 import im.joker.user.IUser;
 import lombok.RequiredArgsConstructor;
 import org.bson.Document;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.aggregation.*;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.expression.spel.ast.Projection;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -24,6 +30,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static im.joker.event.EventType.Typing;
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.*;
 
 /**
  * @author linyurong
@@ -202,6 +209,31 @@ public class ReactiveMongodbStore implements IStore {
                 .and("type")
                 .in(Arrays.stream(EventType.values()).filter(EventType::isState).map(EventType::getId).collect(Collectors.toList()));
         return mongoTemplate.find(query, AbstractRoomStateEvent.class, COLLECTION_NAME_EVENTS);
+    }
+
+    public Flux<RoomEvents> findEventGroupByRoomTopK(int k) {
+        Query query = new Query();
+        SortOperation sortOperation = new SortOperation(Sort.by(Sort.Direction.DESC, "stream_id"));
+        GroupOperation groupOperation = group("room_id")
+                .push(new BasicDBObject()
+                        .append("room_id", "$room_id")
+                        .append("state_key", "$state_key")
+                        .append("content", "$content")
+                        .append("_id", "$_id")
+                        .append("sender", "$sender")
+                        .append("stream_id", "$stream_id")
+                        .append("transaction_id", "$transaction_id")
+                        .append("type", "$type")
+                        .append("origin_server_ts", "$origin_server_ts")
+                        .append("_class", "$_class")
+                        .append("unsigned", "$unsigned")).as("last_events");
+        ProjectionOperation projection = project()
+                .andExclude("_id")
+                .and("$arrayElemAt").arrayElementAt(0)
+                .as("room_id")
+                .and("$last_events").slice(k).as("slice_last_events");
+        Aggregation aggregation = Aggregation.newAggregation(sortOperation, groupOperation, projection);
+        return mongoTemplate.aggregate(aggregation, COLLECTION_NAME_EVENTS, RoomEvents.class);
     }
 
 }

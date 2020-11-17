@@ -63,8 +63,8 @@ public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
                                 return;
                             }
                         });
+                        return Mono.empty();
                     });
-
 
         }
 
