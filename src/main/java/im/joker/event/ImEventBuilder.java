@@ -149,6 +149,7 @@ public class ImEventBuilder {
                 .build();
         PowerLevelEvent pe = PowerLevelEvent.builder()
                 .type(EventType.PowerLevel.getId())
+                .stateKey("")
                 .content(pc).build();
         setCommonEventFiled(pe, roomId, sender, time);
         return pe;
@@ -175,6 +176,7 @@ public class ImEventBuilder {
 
         RoomJoinRuleEvent event = RoomJoinRuleEvent.builder()
                 .type(EventType.RoomJoinRule.getId())
+                .stateKey("")
                 .content(content)
                 .build();
         setCommonEventFiled(event, roomId, sender, time);
@@ -190,7 +192,9 @@ public class ImEventBuilder {
      */
     public HistoryVisibilityEvent defaultHistoryVisibilityEvent(String roomId, String sender, LocalDateTime time) {
         HistoryVisibilityContent hvc = HistoryVisibilityContent.builder().historyVisibility("joined").build();
-        HistoryVisibilityEvent hvEvent = HistoryVisibilityEvent.builder().content(hvc).type(EventType.HistoryVisibility.getId()).build();
+        HistoryVisibilityEvent hvEvent = HistoryVisibilityEvent.builder().content(hvc)
+                .stateKey("")
+                .type(EventType.HistoryVisibility.getId()).build();
         setCommonEventFiled(hvEvent, roomId, sender, time);
         return hvEvent;
     }

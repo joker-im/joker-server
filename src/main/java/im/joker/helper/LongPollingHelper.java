@@ -1,5 +1,6 @@
 package im.joker.helper;
 
+import im.joker.api.vo.sync.SyncResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RedissonReactiveClient;
 import org.springframework.beans.factory.annotation.Autowired;

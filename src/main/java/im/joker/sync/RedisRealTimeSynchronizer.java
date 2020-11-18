@@ -1,11 +1,9 @@
 package im.joker.sync;
 
-import com.google.common.collect.Lists;
 import im.joker.api.vo.sync.SyncRequest;
 import im.joker.api.vo.sync.SyncResponse;
 import im.joker.device.IDevice;
 import im.joker.event.MembershipType;
-import im.joker.event.content.IContent;
 import im.joker.event.content.state.MembershipContent;
 import im.joker.event.room.AbstractRoomEvent;
 import im.joker.event.room.AbstractRoomStateEvent;
@@ -24,10 +22,10 @@ import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
-import reactor.util.function.Tuple4;
-import reactor.util.function.Tuples;
 
-import java.util.*;
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
@@ -62,11 +60,18 @@ public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
 
     @Override
     public Mono<SyncResponse> syncProcess(SyncRequest request, IDevice loginDevice) {
+        if (request.getTimeout() == null || request.getTimeout() < 5000) {
+            request.setTimeout(30000);
+        }
         boolean fullState = request.getFullState() != null && request.getFullState();
         if (fullState || StringUtils.isBlank(request.getSince())) {
             return initSync(loginDevice);
         }
+        return incrSync(request, loginDevice);
 
+    }
+
+    private Mono<SyncResponse> incrSync(SyncRequest request, IDevice loginDevice) {
         long sinceId = Long.parseLong(request.getSince());
 
         SyncResponse.Rooms rooms = SyncResponse.Rooms.builder().build();
@@ -84,7 +89,7 @@ public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
         AtomicReference<Long> maxStreamId = new AtomicReference<>();
 
         // 当sinceId不为空时候, 从device监听的房间里面每个房间拿n条消息
-        eventSyncQueueManager.takeRelatedEvents(loginDevice.getDeviceId(), limitOfRoom)
+        return eventSyncQueueManager.takeRelatedEvents(loginDevice.getDeviceId(), limitOfRoom)
                 .zipWith(mongodbStore.findLatestStreamId())
                 .map(tuple2 -> {
                     maxStreamId.set(tuple2.getT2());
@@ -176,48 +181,19 @@ public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
 
                     });
 
+
                     if (withoutNewMessageCount.intValue() == 0) {
-                        log.warn("长轮询开始~");
+                        log.debug("deviceId:{}长轮询开始~", loginDevice.getName());
                         return Mono.create((MonoSink<Boolean> monoSink) -> {
                                     longPollingHelper.addSyncDevice(loginDevice.getDeviceId(), monoSink);
                                 }
-                        );
+                        ).map(e -> SyncResponse.builder().nextBatch(String.valueOf(maxStreamId.get() + 1)).rooms(rooms).build());
                     }
 
-                });
+                    return Mono.just(SyncResponse.builder().nextBatch(String.valueOf(maxStreamId.get() + 1)).rooms(rooms).build());
 
-
-        //        SyncRoomEventAdder adder = new SyncRoomEventAdder();
-//        eventQueueManager.takeRelatedEvents(loginDevice.getDeviceId(), 30);
-//        return getActiveRoomsOfDevice(loginDevice.getDeviceId())
-//                .flatMap(roomId -> globalStateHolder.getRedisTemplate().opsForList()
-//                        // TODO limit
-//                        .range(String.format(ImRedisKeys.ACTIVE_ROOM_LATEST_EVENTS, roomId), -30, -1)
-//                        .map(o -> {
-//                            try {
-//                                return (IRoomEvent) redisEventSerializer.deserialize(o);
-//                            } catch (Exception e) {
-//                                throw new MalformedEventException("sync事件反序列出错");
-//                            }
-//                        })
-//                        .sort(Comparator.comparingLong(IRoomEvent::getStreamId).reversed())
-//                        .collectList()
-//                        .map(events -> new SyncEvents(roomId, events)))
-//                .collectList()
-//                .flatMap(o -> {
-//                    adder.addEventList(o);
-//                    if (adder.isExistsData()) {
-//                        return Mono.just(adder.get());
-//                    } else {
-//                        return Mono.create((Consumer<MonoSink<Boolean>>) monoSink -> {
-//                            longPollingHelper.addSyncDevice(loginDevice.getDeviceId(), monoSink);
-//                        });
-//                    }
-//                })
-//                .map(e -> SyncResponse.builder().build())
-//                .timeout(Duration.ofMillis(request.getTimeout().longValue()), Mono.just(SyncResponse.builder().build()))
-//                .map(e -> SyncResponse.builder().build());
-        return Mono.empty();
+                })
+                .timeout(Duration.ofMillis(request.getTimeout()), Mono.just(SyncResponse.builder().nextBatch(String.valueOf(maxStreamId.get() + 1)).build()));
     }
 
     private Mono<SyncResponse> initSync(IDevice loginDevice) {

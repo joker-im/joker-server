@@ -7,6 +7,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import reactor.core.publisher.Flux;
@@ -14,7 +15,6 @@ import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static im.joker.constants.ImRedisKeys.EVENT_LOCK;
 
@@ -23,6 +23,7 @@ import static im.joker.constants.ImRedisKeys.EVENT_LOCK;
 @NoArgsConstructor
 @Builder
 @Data
+@Slf4j
 public class Room implements IRoom {
     @Id
     private String id;
@@ -80,6 +81,7 @@ public class Room implements IRoom {
                     Mono<Void> sendMessageQueueOps = globalStateHolder.getEventSyncQueueManager().addEventToQueue(ev);
                     return Mono.zip(updateSubscribeOps, sendMessageQueueOps).then(globalStateHolder.getMongodbStore().addEvent(ev));
                 })
+                .doOnNext(roomEvent -> log.info("roomEvent:{}", roomEvent))
                 .doOnComplete(() -> globalStateHolder.getLongPollingHelper().notifySyncDevice(device.getDeviceId()).subscribe())
                 .doFinally(s -> globalStateHolder.getRedissonClient().getLock(String.format(EVENT_LOCK, roomId)).unlock(1).subscribe());
     }
