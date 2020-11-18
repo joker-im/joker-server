@@ -161,6 +161,9 @@ public class SyncResponse {
     @NoArgsConstructor
     public static class Timeline {
         private List<AbstractRoomEvent> events;
+        /**
+         * 就是拉取房间消息的from参数
+         */
         private String prevBatch;
         private Boolean limited;
     }

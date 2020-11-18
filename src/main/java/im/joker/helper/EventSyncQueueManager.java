@@ -29,7 +29,7 @@ public class EventSyncQueueManager {
     private RequestProcessor requestProcessor;
 
     /**
-     * 从对应的设备中到自己关心的队列里,拿出对应限制条数的消息
+     * 从对应的设备中到自己关心的队列里,拿出对应限制条数的消息.是有序的
      * key是房间, value是此房间的事件集
      *
      * @param deviceId
@@ -39,12 +39,11 @@ public class EventSyncQueueManager {
     public Mono<Map<String, List<AbstractRoomEvent>>> takeRelatedEvents(String deviceId, int limitOfRoom) {
         Flux<String> careRoomIds = roomSubscribeManager.retrieveRooms(deviceId);
         return careRoomIds.flatMap(roomId -> {
-                    return Mono.just(roomId)
-                            .zipWith(redisTemplate.opsForList().range(String.format(ACTIVE_ROOM_LATEST_EVENTS, roomId), 0, limitOfRoom)
-                                    .map(s -> requestProcessor.toBean(s, AbstractRoomEvent.class))
-                                    .collectList());
-                }
-        ).collectList()
+            return Mono.just(roomId)
+                    .zipWith(redisTemplate.opsForList().range(String.format(ACTIVE_ROOM_LATEST_EVENTS, roomId), 0, limitOfRoom)
+                            .map(s -> requestProcessor.toBean(s, AbstractRoomEvent.class))
+                            .collectList());
+        }).collectSortedList()
                 .map(tuple2s -> {
                     Map<String, List<AbstractRoomEvent>> retMap = Maps.newHashMap();
                     tuple2s.forEach(tuple2 -> retMap.put(tuple2.getT1(), tuple2.getT2()));

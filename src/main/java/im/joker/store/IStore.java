@@ -8,6 +8,7 @@ import im.joker.user.IUser;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -86,6 +87,8 @@ public interface IStore {
      */
     Flux<AbstractRoomStateEvent> findRoomStateEvents(String roomId);
 
+    Flux<AbstractRoomStateEvent> findRoomStateEvents(String roomId, Long beforeStreamId);
+
     /**
      * 查询房间
      *
@@ -94,7 +97,11 @@ public interface IStore {
      */
     Mono<IRoom> findRoomByRoomId(String targetRoomId);
 
-    Flux<AbstractRoomStateEvent> findRoomStateEvents(List<String> roomIds);
 
-    Mono<Map<String, List<AbstractRoomEvent>>> findEventGroupByRoomTopK(List<String> roomIds, int k);
+    Flux<AbstractRoomStateEvent> findRoomStateEvents(Collection<String> roomIds, Long beforeStreamId);
+
+    Mono<Long> findLatestStreamId();
+
+
+    Mono<Map<String, List<AbstractRoomEvent>>> findEventGroupByRoomTopK(List<String> roomIds, int k, boolean asc);
 }

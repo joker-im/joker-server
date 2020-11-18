@@ -135,11 +135,12 @@ public class RoomManager {
         totalEvents.addAll(initRoomStateEvent);
         return mongodbStore.addRoom(room)
                 .flatMapMany(e -> Flux.fromIterable(totalEvents))
-                .flatMap(event -> idGenerator.nextEventStreamId()
-                        .map(streamId -> {
-                            event.setStreamId(streamId);
-                            return event;
-                        }))
+                .zipWith(idGenerator.nextEventStreamId())
+                .map(tuple2 -> {
+                    AbstractRoomStateEvent event = tuple2.getT1();
+                    event.setStreamId(tuple2.getT2());
+                    return event;
+                })
                 .collectList()
                 .flatMapMany(events -> {
                     List<AbstractRoomEvent> collect = events.stream().map(e -> (AbstractRoomEvent) e).collect(Collectors.toList());

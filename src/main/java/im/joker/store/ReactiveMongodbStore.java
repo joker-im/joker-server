@@ -24,6 +24,7 @@ import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -188,11 +189,18 @@ public class ReactiveMongodbStore implements IStore {
 
     @Override
     public Flux<AbstractRoomStateEvent> findRoomStateEvents(String roomId) {
+        return findRoomStateEvents(roomId, null);
+    }
+
+    @Override
+    public Flux<AbstractRoomStateEvent> findRoomStateEvents(String roomId, Long beforeStreamId) {
         Query query = new Query();
         Criteria criteria = Criteria.where("room_id").is(roomId)
                 .and("type")
                 .in(Arrays.stream(EventType.values()).filter(EventType::isState).map(EventType::getId).collect(Collectors.toList()));
-        query.addCriteria(criteria);
+        if (beforeStreamId != null) {
+            criteria.and("stream_id").lte(beforeStreamId);
+        }
         return mongoTemplate.find(query, AbstractRoomStateEvent.class, COLLECTION_NAME_EVENTS);
     }
 
@@ -204,12 +212,21 @@ public class ReactiveMongodbStore implements IStore {
     }
 
     @Override
-    public Flux<AbstractRoomStateEvent> findRoomStateEvents(List<String> roomIds) {
+    public Flux<AbstractRoomStateEvent> findRoomStateEvents(Collection<String> roomIds, Long beforeStreamId) {
         Query query = new Query();
-        Criteria.where("room_id").in(roomIds)
+        Criteria.where("stream_id").lte(beforeStreamId)
+                .and("room_id").in(roomIds)
                 .and("type")
                 .in(Arrays.stream(EventType.values()).filter(EventType::isState).map(EventType::getId).collect(Collectors.toList()));
         return mongoTemplate.find(query, AbstractRoomStateEvent.class, COLLECTION_NAME_EVENTS);
+    }
+
+
+    @Override
+    public Mono<Long> findLatestStreamId() {
+        Query query = new Query();
+        query.with(Sort.by(Sort.Direction.DESC, "stream_id"));
+        return mongoTemplate.findOne(query, AbstractRoomStateEvent.class).map(AbstractRoomEvent::getStreamId);
     }
 
 
@@ -221,13 +238,18 @@ public class ReactiveMongodbStore implements IStore {
      * @return
      */
     @Override
-    public Mono<Map<String,List<AbstractRoomEvent>>> findEventGroupByRoomTopK(List<String> roomIds, int k) {
+    public Mono<Map<String, List<AbstractRoomEvent>>> findEventGroupByRoomTopK(List<String> roomIds, int k, boolean asc) {
         if (CollectionUtils.isEmpty(roomIds)) {
             return Mono.empty();
         }
-        Query query = new Query();
         MatchOperation matchOperation = new MatchOperation(Criteria.where("room_id").in(roomIds));
-        SortOperation sortOperation = new SortOperation(Sort.by(Sort.Direction.DESC, "stream_id"));
+        SortOperation sortOperation;
+        if (asc) {
+            sortOperation = new SortOperation(Sort.by(Sort.Direction.ASC, "stream_id"));
+        } else {
+            sortOperation = new SortOperation(Sort.by(Sort.Direction.DESC, "stream_id"));
+        }
+
         GroupOperation groupOperation = group("room_id")
                 .push(new BasicDBObject()
                         .append("room_id", "$room_id")

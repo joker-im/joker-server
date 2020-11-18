@@ -1,6 +1,7 @@
 package im.joker.room;
 
 import im.joker.event.EventType;
+import im.joker.event.room.AbstractRoomEvent;
 import im.joker.event.room.AbstractRoomStateEvent;
 import im.joker.event.room.state.MembershipEvent;
 import im.joker.event.room.state.PowerLevelEvent;
@@ -12,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -50,8 +52,14 @@ public class RoomState {
 
 
     public List<AbstractRoomStateEvent> distinctStateEvents() {
-        return stateEventsMap.values().stream().sorted((l, r) -> r.getStreamId().compareTo(l.getStreamId())).collect(Collectors.toList());
+        return stateEventsMap.values().stream().sorted(Comparator.comparing(AbstractRoomEvent::getStreamId)).collect(Collectors.toList());
     }
+
+
+    public AbstractRoomStateEvent getEarliestRoomStateEvent() {
+        return stateEvents.get(stateEvents.size() - 1);
+    }
+
 
     /**
      * 残缺的roomState,从状态事件List中获取roomState,是一个
@@ -60,7 +68,7 @@ public class RoomState {
      * @return
      */
     public static RoomState from(List<AbstractRoomStateEvent> list) {
-        List<AbstractRoomStateEvent> stateEvents = list.stream().sorted((a, b) -> b.getStreamId().compareTo(a.getStreamId())).collect(Collectors.toList());
+        List<AbstractRoomStateEvent> stateEvents = list.stream().sorted(Comparator.comparing(AbstractRoomEvent::getStreamId).reversed()).collect(Collectors.toList());
         return new RoomState(null, null, stateEvents, handleStateEvents(stateEvents));
     }
 
@@ -68,9 +76,9 @@ public class RoomState {
     private static Map<String, AbstractRoomStateEvent> handleStateEvents(List<AbstractRoomStateEvent> list) {
         return list.stream().collect(Collectors.toMap(e -> e.getType() + e.getStateKey(), e -> e, (o, n) -> {
             if (o.getStreamId() > n.getStreamId()) {
-                return n;
+                return o;
             }
-            return o;
+            return n;
         }));
     }
 
@@ -95,7 +103,7 @@ public class RoomState {
         Mono<IRoom> roomMono = globalStateHolder.getMongodbStore().findRoomByRoomId(roomId);
         return eventFlux
                 // 逆序
-                .collectSortedList((a, b) -> b.getStreamId().compareTo(a.getStreamId()))
+                .collectSortedList(Comparator.comparing(AbstractRoomEvent::getStreamId).reversed())
                 .zipWith(roomMono)
                 .switchIfEmpty(Mono.error(new ImException(ErrorCode.INVALID_PARAM, HttpStatus.BAD_REQUEST, "房间不存在")))
                 .map(tuple2 -> {
