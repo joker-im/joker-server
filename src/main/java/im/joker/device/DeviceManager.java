@@ -71,7 +71,7 @@ public class DeviceManager {
         Mono<Boolean> expireOps = redisTemplate.expire(String.format(TOKEN_USER_HASH, token), duration);
         Mono<Boolean> expireOps2 = redisTemplate.expire(String.format(USER_DEVICES_TOKENS_HASH, username), duration);
         Mono<Void> saveOps2 = redisTemplate.opsForHash().putAll(String.format(TOKEN_USER_HASH, token), userInfoMap).then();
-        return Mono.zip(saveOps1, saveOps2).then(Mono.zip(expireOps, expireOps2)).flatMap(e -> Mono.just(token));
+        return Mono.when(saveOps1, saveOps2).then(Mono.when(expireOps, expireOps2)).then(Mono.just(token));
     }
 
 
@@ -94,7 +94,7 @@ public class DeviceManager {
         String tokenUser = String.format(TOKEN_USER_HASH, e.getAccessToken());
         Mono<Long> deleteOps1 = redisTemplate.opsForHash().remove(String.format(USER_DEVICES_TOKENS_HASH, e.getUsername()), e.getDeviceId());
         Mono<Long> deleteOps2 = redisTemplate.delete(tokenUser);
-        return Mono.zip(deleteOps1, deleteOps2).then();
+        return Mono.when(deleteOps1, deleteOps2);
     }
 
     public Mono<Void> deleteAllDevices(String username) {

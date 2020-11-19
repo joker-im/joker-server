@@ -23,6 +23,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 
+import javax.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -219,10 +220,14 @@ public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
                 .collect(Collectors.groupingBy(AbstractRoomEvent::getRoomId))
                 .zipWith(mongodbStore.findEventGroupByRoomTopK(roomIds.get(), limitOfRoom, false))
                 .map(tuple2 -> {
+
                     // 每个房间的状态事件,用于组装state
                     Map<String, List<AbstractRoomStateEvent>> fullRoomStateMap = tuple2.getT1();
                     // 每个房间最新的topK事件
                     Map<String, List<AbstractRoomEvent>> latestRoomEventMap = tuple2.getT2();
+
+                    log.debug("fullRoomStateMap:{}", tuple2.getT1());
+                    log.debug("latestRoomEventMap:{}", tuple2.getT2());
 
                     latestRoomEventMap.forEach((roomId, latestRoomEvents) -> {
 
@@ -279,5 +284,27 @@ public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
     @Override
     public Flux<String> getActiveRoomsOfDevice(String deviceId) {
         return Flux.empty();
+    }
+
+
+    @PostConstruct
+    public void test() {
+        roomSubscribeManager.retrieveRooms("b2be6216-cc15-4815-a75d-697a559cafa4")
+                .collectList()
+                .zipWith(mongodbStore.findLatestStreamId())
+                .flatMapMany(tuple2 -> {
+                    log.info("xxx:{}", tuple2.getT1());
+                    log.info("yyy:{}", tuple2.getT2());
+                    return mongodbStore.findRoomStateEvents(tuple2.getT1(), tuple2.getT2());
+                })
+                .collect(Collectors.groupingBy(AbstractRoomEvent::getRoomId))
+                .map(e -> {
+                    for (Map.Entry<String, List<AbstractRoomStateEvent>> stringListEntry : e.entrySet()) {
+                        log.info("roomId:{},events:{}", stringListEntry.getKey(), stringListEntry.getValue());
+                    }
+                    return e;
+                })
+                .subscribe();
+
     }
 }

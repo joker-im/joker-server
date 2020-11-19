@@ -181,9 +181,9 @@ public class ReactiveMongodbStore implements IStore {
     }
 
     @Override
-    public Flux<AbstractRoomEvent> findEvents(EventType eventType, String sender) {
+    public Flux<AbstractRoomEvent> findMembershipEvents(EventType eventType, String stateKey) {
         Query query = new Query();
-        query.addCriteria(Criteria.where("type").is(eventType.getId()).and("sender").is(sender));
+        query.addCriteria(Criteria.where("type").is(eventType.getId()).and("state_key").is(stateKey));
         return mongoTemplate.find(query, AbstractRoomEvent.class, COLLECTION_NAME_EVENTS);
     }
 
@@ -224,9 +224,10 @@ public class ReactiveMongodbStore implements IStore {
 
     @Override
     public Mono<Long> findLatestStreamId() {
+        log.debug("findLatestStreamId");
         Query query = new Query();
         query.with(Sort.by(Sort.Direction.DESC, "stream_id"));
-        return mongoTemplate.findOne(query, AbstractRoomStateEvent.class).map(AbstractRoomEvent::getStreamId);
+        return mongoTemplate.findOne(query, AbstractRoomEvent.class, COLLECTION_NAME_EVENTS).map(AbstractRoomEvent::getStreamId);
     }
 
 
@@ -240,6 +241,7 @@ public class ReactiveMongodbStore implements IStore {
     @Override
     public Mono<Map<String, List<AbstractRoomEvent>>> findEventGroupByRoomTopK(List<String> roomIds, int k, boolean asc) {
         if (CollectionUtils.isEmpty(roomIds)) {
+            log.warn("查询房间为空");
             return Mono.empty();
         }
         MatchOperation matchOperation = new MatchOperation(Criteria.where("room_id").in(roomIds));

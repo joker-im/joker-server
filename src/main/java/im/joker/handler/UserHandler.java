@@ -7,6 +7,8 @@ import im.joker.exception.ImException;
 import im.joker.helper.IdGenerator;
 import im.joker.helper.PasswordEncoder;
 import im.joker.helper.RequestProcessor;
+import im.joker.helper.RoomSubscribeManager;
+import im.joker.presence.PresenceType;
 import im.joker.session.AuthManager;
 import im.joker.store.ReactiveMongodbStore;
 import im.joker.user.User;
@@ -40,6 +42,8 @@ public class UserHandler {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private IdGenerator idGenerator;
+    @Autowired
+    private RoomSubscribeManager roomSubscribeManager;
 
     public Mono<RegisterResponse> register(RegisterRequest registerRequest) {
         String s = requestProcessor.validateMessage(registerRequest);
@@ -85,6 +89,8 @@ public class UserHandler {
     public Mono<LoginResponse> login(LoginRequest loginRequest) {
         requestProcessor.validate(loginRequest);
         return authManager.login(loginRequest)
+                .zipWhen(userSession -> roomSubscribeManager.updateRelation(userSession.getUser().getUserId(),
+                        userSession.getDevice().getDeviceId(), PresenceType.online), (userSession, ignore) -> userSession)
                 .map(userSession -> LoginResponse.builder()
                         .accessToken(userSession.getDevice().getAccessToken())
                         .userId(userSession.getUser().getUsername())

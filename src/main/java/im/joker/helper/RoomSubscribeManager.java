@@ -1,6 +1,5 @@
 package im.joker.helper;
 
-import im.joker.device.IDevice;
 import im.joker.event.MembershipType;
 import im.joker.event.content.state.MembershipContent;
 import im.joker.event.room.AbstractRoomEvent;
@@ -15,7 +14,10 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.PostConstruct;
+
 import static im.joker.constants.ImRedisKeys.ROOM_SUBSCRIBERS_OF_DEVICE;
+import static im.joker.presence.PresenceType.*;
 
 @Component
 @Slf4j
@@ -58,29 +60,32 @@ public class RoomSubscribeManager {
     /**
      * 用户状态更新房间与订阅者的关系
      *
-     * @param loginDevice
+     * @param userId
+     * @param deviceId
      * @param type
      * @return
      */
-    public Mono<Void> updateRelation(IDevice loginDevice, PresenceType type) {
+    public Mono<Long> updateRelation(String userId, String deviceId, PresenceType type) {
         return Mono.just(type)
                 .flatMap(e -> {
-                    switch (e) {
-                        // 当用户在线的时候, 添加是订阅关系
-                        case online ->
-                                // 找出该用户所有关心的房间,并添加订阅
-                                roomManager.membershipAboutRooms(loginDevice.getUserId(),
-                                        content -> MembershipType.Invite.is(content.getMembership()) || MembershipType.Join.is(content.getMembership()))
-                                        .flatMapMany(Flux::fromIterable)
-                                        .flatMap(roomId -> redisTemplate.opsForSet().add(String.format(ROOM_SUBSCRIBERS_OF_DEVICE, roomId), loginDevice.getDeviceId()).then());
-
-                        // 当用户不可用的时候,取消订阅关系
-                        case offline, unavailable -> roomManager.membershipAboutRooms(loginDevice.getUserId(),
+                    // 当用户在线的时候, 添加是订阅关系
+                    if (online.equals(e)) {
+                        // 找出该用户所有关心的房间,并添加订阅
+                        return roomManager.membershipAboutRooms(userId,
                                 content -> MembershipType.Invite.is(content.getMembership()) || MembershipType.Join.is(content.getMembership()))
                                 .flatMapMany(Flux::fromIterable)
-                                .flatMap(roomId -> redisTemplate.opsForSet().remove(String.format(ROOM_SUBSCRIBERS_OF_DEVICE, roomId), loginDevice.getDeviceId()).then());
+                                .flatMap(roomId -> redisTemplate.opsForSet().add(String.format(ROOM_SUBSCRIBERS_OF_DEVICE, roomId), deviceId))
+                                .then(Mono.just(1L));
                     }
-                    return Mono.empty();
+                    if (offline.equals(e) || unavailable.equals(e)) {
+                        // 当用户不可用的时候,取消订阅关系
+                        return roomManager.membershipAboutRooms(userId,
+                                content -> MembershipType.Invite.is(content.getMembership()) || MembershipType.Join.is(content.getMembership()))
+                                .flatMapMany(Flux::fromIterable)
+                                .flatMap(roomId -> redisTemplate.opsForSet().remove(String.format(ROOM_SUBSCRIBERS_OF_DEVICE, roomId), deviceId))
+                                .then(Mono.just(1L));
+                    }
+                    return Mono.just(1L);
                 });
     }
 

@@ -58,7 +58,7 @@ public class Room implements IRoom {
                 .flatMap(e -> {
                     Mono<Void> updateSubscribeOps = globalStateHolder.getRoomSubscribeManager().updateRelation(device.getDeviceId(), e);
                     Mono<Void> sendMessageQueueOps = globalStateHolder.getEventSyncQueueManager().addEventToQueue(ev);
-                    return Mono.zip(updateSubscribeOps, sendMessageQueueOps)
+                    return Mono.when(updateSubscribeOps, sendMessageQueueOps)
                             .then(globalStateHolder.getLongPollingHelper().notifySyncDevice(device.getDeviceId()).map(q -> e));
                 }).doFinally(s -> globalStateHolder.getRedissonClient().getLock(String.format(EVENT_LOCK, roomId)).unlock(1).subscribe());
 
@@ -79,9 +79,10 @@ public class Room implements IRoom {
                 .flatMap(ev -> {
                     Mono<Void> updateSubscribeOps = globalStateHolder.getRoomSubscribeManager().updateRelation(device.getDeviceId(), ev);
                     Mono<Void> sendMessageQueueOps = globalStateHolder.getEventSyncQueueManager().addEventToQueue(ev);
-                    return Mono.zip(updateSubscribeOps, sendMessageQueueOps).then(globalStateHolder.getMongodbStore().addEvent(ev));
+                    return globalStateHolder.getMongodbStore().addEvent(ev)
+                            .flatMap(e -> Mono.when(updateSubscribeOps, sendMessageQueueOps))
+                            .map(e -> ev);
                 })
-                .doOnNext(roomEvent -> log.info("roomEvent:{}", roomEvent))
                 .doOnComplete(() -> globalStateHolder.getLongPollingHelper().notifySyncDevice(device.getDeviceId()).subscribe())
                 .doFinally(s -> globalStateHolder.getRedissonClient().getLock(String.format(EVENT_LOCK, roomId)).unlock(1).subscribe());
     }

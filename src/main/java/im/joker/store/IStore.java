@@ -74,10 +74,10 @@ public interface IStore {
      * 查询某个用户指定的事件类型
      *
      * @param eventType
-     * @param userId
+     * @param stateKey
      * @return
      */
-    Flux<AbstractRoomEvent> findEvents(EventType eventType, String userId);
+    Flux<AbstractRoomEvent> findMembershipEvents(EventType eventType, String stateKey);
 
     /**
      * 查询指定房间的状态事件

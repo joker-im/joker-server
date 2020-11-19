@@ -93,5 +93,9 @@ public class RequestProcessor {
         return "";
     }
 
+    @SneakyThrows
+    public String toJson(Object o) {
+        return objectMapper.writeValueAsString(o);
+    }
 
 }

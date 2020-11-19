@@ -25,6 +25,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 
+import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -135,25 +136,23 @@ public class RoomManager {
         totalEvents.addAll(initRoomStateEvent);
         return mongodbStore.addRoom(room)
                 .flatMapMany(e -> Flux.fromIterable(totalEvents))
-                .zipWith(idGenerator.nextEventStreamId())
-                .map(tuple2 -> {
-                    AbstractRoomStateEvent event = tuple2.getT1();
-                    event.setStreamId(tuple2.getT2());
-                    return event;
-                })
+                .flatMap(event -> idGenerator.nextEventStreamId()
+                        .map(streamId -> {
+                            event.setStreamId(streamId);
+                            return event;
+                        }))
                 .collectList()
                 .flatMapMany(events -> {
                     List<AbstractRoomEvent> collect = events.stream().map(e -> (AbstractRoomEvent) e).collect(Collectors.toList());
                     return room.injectEvents(collect, device);
                 })
-                .then()
-                .flatMap(e -> Mono.just(room));
+                .then(Mono.just(room));
 
     }
 
 
-    public Flux<AbstractRoomEvent> findEvents(EventType eventType, String userId) {
-        return mongodbStore.findEvents(eventType, userId);
+    public Flux<AbstractRoomEvent> findMembershipEvents(EventType eventType, String stateKey) {
+        return mongodbStore.findMembershipEvents(eventType, stateKey);
     }
 
     public Mono<ImEvent> inviteToRoom(String targetRoomId, String targetUserId, IDevice senderDevice) {
@@ -249,20 +248,18 @@ public class RoomManager {
     /**
      * 此方法提供该userId所在的所有房间中,会回调传入每个房间最新的membershipContent以供选择关心的房间
      *
-     * @param userId
+     * @param stateKey
      * @param predicate
      * @return
      */
-    public Mono<List<String>> membershipAboutRooms(String userId, Predicate<MembershipContent> predicate) {
+    public Mono<List<String>> membershipAboutRooms(String stateKey, Predicate<MembershipContent> predicate) {
         // 查询该用户所有房间membership事件
-        Flux<AbstractRoomEvent> eventFlux = findEvents(EventType.Membership, userId);
-        return eventFlux
-                .collectList()
+        return findMembershipEvents(EventType.Membership, stateKey).collectList()
                 .map(events -> {
                     // 取出每个房间里面最新的那条membership,组成一个map
                     Map<String, MembershipEvent> roomMemberEventMap = events
                             .stream()
-                            .filter(e -> e instanceof MembershipEvent && StringUtils.equals(((MembershipEvent) e).getStateKey(), userId))
+                            .filter(e -> e instanceof MembershipEvent && StringUtils.equals(((MembershipEvent) e).getStateKey(), stateKey))
                             .map(e -> (MembershipEvent) e)
                             .sorted((o1, o2) -> o2.getStreamId().compareTo(o1.getStreamId()))
                             .collect(Collectors.toMap(MembershipEvent::getRoomId, e -> e, (o, n) -> o));

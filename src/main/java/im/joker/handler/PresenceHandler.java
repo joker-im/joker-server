@@ -40,12 +40,12 @@ public class PresenceHandler {
                 .set(String.format(USER_PRESENCE, loginDevice.getUsername()),
                         presenceRequest.getPresence(),
                         Duration.ofDays(1L))
-                .then(roomSubscribeManager.updateRelation(loginDevice, exists.get()));
+                .then(roomSubscribeManager.updateRelation(loginDevice.getUserId(), loginDevice.getDeviceId(), exists.get()).then());
     }
 
     public Mono<Void> deletePresence(IDevice loginDevice) {
         return redisTemplate.opsForValue()
                 .delete(String.format(USER_PRESENCE, loginDevice.getUsername()))
-                .then(roomSubscribeManager.updateRelation(loginDevice, PresenceType.offline));
+                .then(roomSubscribeManager.updateRelation(loginDevice.getUserId(), loginDevice.getDeviceId(), PresenceType.offline).then());
     }
 }

@@ -2,17 +2,14 @@ package im.joker.helper;
 
 import com.google.common.collect.Maps;
 import im.joker.event.room.AbstractRoomEvent;
-import im.joker.util.GsonUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static im.joker.constants.ImRedisKeys.ACTIVE_ROOM_LATEST_EVENTS;
 
@@ -60,7 +57,7 @@ public class EventSyncQueueManager {
      */
     public Mono<Void> addEventToQueue(AbstractRoomEvent roomEvent) {
 
-        return redisTemplate.opsForList().rightPush(String.format(ACTIVE_ROOM_LATEST_EVENTS, roomEvent.getRoomId()), GsonUtils.get().toJson(roomEvent))
+        return redisTemplate.opsForList().rightPush(String.format(ACTIVE_ROOM_LATEST_EVENTS, roomEvent.getRoomId()), requestProcessor.toJson(roomEvent))
                 .flatMap(e -> redisTemplate.opsForList().size(String.format(ACTIVE_ROOM_LATEST_EVENTS, roomEvent.getRoomId())))
                 .flatMap(size -> {
                     if (size > limit) {
