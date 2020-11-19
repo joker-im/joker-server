@@ -22,6 +22,7 @@ import org.springframework.util.CollectionUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
+import reactor.util.function.Tuples;
 
 import javax.annotation.PostConstruct;
 import java.time.Duration;
@@ -218,7 +219,10 @@ public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
                     return mongodbStore.findRoomStateEvents(tuple2.getT1(), tuple2.getT2());
                 })
                 .collect(Collectors.groupingBy(AbstractRoomEvent::getRoomId))
-                .zipWith(mongodbStore.findEventGroupByRoomTopK(roomIds.get(), limitOfRoom, false))
+                .flatMap(fullRoomStateMap -> {
+                    return mongodbStore.findEventGroupByRoomTopK(roomIds.get(), limitOfRoom, false)
+                            .map(e -> Tuples.of(fullRoomStateMap, e));
+                })
                 .map(tuple2 -> {
 
                     // 每个房间的状态事件,用于组装state
@@ -246,8 +250,9 @@ public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
 
                             RoomState beforeRoomState = RoomState.from(beforeStateEvents);
                             MembershipEvent membershipEvent = beforeRoomState.searchMembershipEvent(loginDevice.getUserId());
-                            if (membershipEvent != null) {
 
+                            if (membershipEvent != null) {
+                                // 证明timeline
                                 MembershipContent membershipContent = (MembershipContent) membershipEvent.getContent();
                                 SyncResponse.State state = SyncResponse.State.builder().events(beforeRoomState.distinctStateEvents()).build();
                                 SyncResponse.Timeline timeline = SyncResponse.Timeline.builder()
@@ -273,6 +278,8 @@ public class RedisRealTimeSynchronizer implements IRealTimeSynchronizer {
                                     joinedRoom.setTimeline(timeline);
                                     joinedRoomMap.put(roomId, joinedRoom);
                                 }
+                            } else {
+                                // todo timeline全包括的情况
                             }
                         }
                     });
