@@ -11,6 +11,7 @@ import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.state.MembershipEvent
 import im.joker.helper.GlobalStateHolder
+import im.joker.helper.IdGenerator
 import im.joker.helper.ImEventBuilder
 import im.joker.repository.MongoStore
 import org.slf4j.Logger
@@ -45,6 +46,9 @@ class RoomManager {
     @Autowired
     private lateinit var eventBuilder: ImEventBuilder
 
+    @Autowired
+    private lateinit var idGenerator: IdGenerator
+
     /**
      * 创建房间
      */
@@ -55,7 +59,7 @@ class RoomManager {
             createTime = now
             direct = request.direct ?: false
             creator = device.userId
-            roomId = UUID.randomUUID().toString()
+            roomId = idGenerator.newRoomId()
             globalStateHolder = that.globalStateHolder
         }
         log.info("用户:{},创建一个新房间:{}", device.username, room.roomId)
@@ -81,6 +85,19 @@ class RoomManager {
             eventBuilder.membershipEvent(room.roomId, now, device.userId,
                     "", it, device.name ?: "", device.deviceAvatar ?: "", MembershipType.Invite)
         }
+
+        // 初始事件
+        val initRoomStateEvents = request.initialState?.map {
+            it.eventId = UUID.randomUUID().toString()
+            it.stateKey = ""
+            it.streamId = idGenerator.nextEventStreamId()
+            it.originServerTs = now
+            it.transactionId = UUID.randomUUID().toString()
+            it.roomId = room.roomId
+            it.sender = device.userId
+            it
+        }
+
         //重命名事件
         val roomNameEvent = request.name?.let {
             eventBuilder.roomNameEvent(it, room.roomId, device.userId, now)
@@ -93,6 +110,9 @@ class RoomManager {
         val totalEvent =
                 mutableListOf<AbstractRoomEvent>(createEvent, joinEvent, powerDefEvent, visibilityEvent, joinRuleEvent)
         inviteUserEvents?.forEach {
+            totalEvent.add(it)
+        }
+        initRoomStateEvents?.forEach {
             totalEvent.add(it)
         }
         roomNameEvent?.let {

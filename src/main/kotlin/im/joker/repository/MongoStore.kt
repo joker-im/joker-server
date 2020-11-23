@@ -140,7 +140,7 @@ class MongoStore {
     }
 
     suspend fun addEvents(evs: List<AbstractRoomEvent>) {
-        mongoTemplate.insertAll(Mono.just(evs), COLLECTION_NAME_EVENTS).awaitSingle()
+        mongoTemplate.insertAll(Mono.just(evs), COLLECTION_NAME_EVENTS).collectList().awaitSingle()
     }
 
     suspend fun addEvent(ev: AbstractRoomEvent): AbstractRoomEvent {
@@ -162,7 +162,7 @@ class MongoStore {
                 .`in`(EventType.values().filter { it.isState }.map { it.id })
         query.addCriteria(criteria)
         return mongoTemplate.find(query, AbstractRoomStateEvent::class.java, COLLECTION_NAME_EVENTS).collectList()
-                .awaitSingleOrNull().sortedBy { it.streamId }
+                .awaitSingleOrNull()
     }
 
 }
