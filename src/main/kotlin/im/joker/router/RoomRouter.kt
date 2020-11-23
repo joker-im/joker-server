@@ -34,5 +34,8 @@ class RoomRouter {
     suspend fun createRoom(roomRequest: CreateRoomRequest): CreateRoomResponse {
         val device = Mono.deferContextual<Device> { Mono.just(it[AuthFilter.LOGIN_DEVICE]) }.awaitSingle()
         val ret = roomManager.createRoom(device, roomRequest)
+        return CreateRoomResponse().apply {
+            roomId = ret.roomId
+        }
     }
 }

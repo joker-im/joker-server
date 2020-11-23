@@ -1,19 +1,26 @@
 package im.joker.room
 
 import im.joker.api.vo.room.CreateRoomRequest
-import im.joker.api.vo.room.CreateRoomResponse
 import im.joker.device.Device
 import im.joker.event.EventType
 import im.joker.event.MembershipType
+import im.joker.event.PresetType
+import im.joker.event.RoomJoinRuleType
 import im.joker.event.content.state.MembershipContent
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
+import im.joker.event.room.state.MembershipEvent
+import im.joker.helper.GlobalStateHolder
+import im.joker.helper.ImEventBuilder
 import im.joker.repository.MongoStore
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate
 import org.springframework.stereotype.Component
+import java.time.LocalDateTime
+import java.util.*
+import kotlin.collections.ArrayList
 
 /**
  * @Author: mkCen
@@ -32,19 +39,72 @@ class RoomManager {
     @Autowired
     private lateinit var mongoStore: MongoStore
 
+    @Autowired
+    private lateinit var globalStateHolder: GlobalStateHolder
+
+    @Autowired
+    private lateinit var eventBuilder: ImEventBuilder
 
     /**
      * 创建房间
      */
-    suspend fun createRoom(loginDevice: Device, roomRequest: CreateRoomRequest): Room {
+    suspend fun createRoom(device: Device, request: CreateRoomRequest): Room {
+        val now = LocalDateTime.now()
+        val that = this
+        val room = Room().apply {
+            createTime = now
+            direct = request.direct ?: false
+            creator = device.userId
+            roomId = UUID.randomUUID().toString()
+            globalStateHolder = that.globalStateHolder
+        }
+        log.info("用户:{},创建一个新房间:{}", device.username, room.roomId)
+        val createEvent = eventBuilder.createRoomEvent(device.userId, room.roomId, now)
+        val joinEvent: MembershipEvent = eventBuilder.membershipEvent(room.roomId, now, device.userId,
+                "", device.userId, device.name ?: "", device.deviceAvatar ?: "", MembershipType.Join)
+        // 默认的权限定义事件
+        val powerDefEvent = eventBuilder.powerDefEvent(room.roomId, device.userId, now)
+        // 如果存在覆盖的
+        request.powerLevelContentOverride?.let { powerDefEvent.content = it }
+        //房间聊天记录是否可见
+        val visibilityEvent = eventBuilder.defaultHistoryVisibilityEvent(room.roomId, device.userId, now)
+        // 房间加入规则
+        var joinRuleEvent = eventBuilder.roomJoinRuleEvent(RoomJoinRuleType.Public, room.roomId, device.userId, now)
+        // 房间加入规则的预设状态不为空时
+        PresetType.find(request.preset)?.let {
+            if (this.equals(PresetType.Private_chat) || equals(PresetType.Trusted_private_chat)) {
+                joinRuleEvent = eventBuilder.roomJoinRuleEvent(RoomJoinRuleType.Invite, room.roomId, device.userId, now)
+            }
+        }
+        //是否存在顺带邀请用户
+        val inviteUserEvents = request.invite?.map {
+            eventBuilder.membershipEvent(room.roomId, now, device.userId,
+                    "", it, device.name ?: "", device.deviceAvatar ?: "", MembershipType.Invite)
+        }
+        //重命名事件
+        val roomNameEvent = request.name?.let {
+            eventBuilder.roomNameEvent(it, room.roomId, device.userId, now)
+        }
+        //topic事件
+        val roomTopicEvent = request.topic?.let {
+            eventBuilder.roomTopicEvent(it, room.roomId, device.userId, now)
+        }
 
+        val totalEvent =
+                mutableListOf<AbstractRoomEvent>(createEvent, joinEvent, powerDefEvent, visibilityEvent, joinRuleEvent)
+        inviteUserEvents?.forEach {
+            totalEvent.add(it)
+        }
+        roomNameEvent?.let {
+            totalEvent.add(it)
+        }
+        roomTopicEvent?.let {
+            totalEvent.add(it)
+        }
+        mongoStore.addRoom(room)
+        room.injectEvents(totalEvent, device)
+        return room
     }
-
-
-
-
-
-
 
 
     /**
@@ -54,7 +114,8 @@ class RoomManager {
         val membershipEventsMap =
                 findSpecifiedEvents(EventType.Membership, stateKey)
                         .map { it as AbstractRoomStateEvent }
-                        .associateBy { it.roomId + it.stateKey }
+                        .groupingBy { it.type + it.stateKey }
+                        .reduce { _, acc, e -> if (acc.streamId > e.streamId) acc else e }
         val destRoomIds = ArrayList<String>()
         membershipEventsMap.forEach { (k, v) ->
             val content = v.content as MembershipContent
@@ -70,7 +131,7 @@ class RoomManager {
      * 找出所有房间中指定的时间
      */
     suspend fun findSpecifiedEvents(eventType: EventType, stateKey: String): List<AbstractRoomEvent> {
-        return mongoStore.findSpecifiedEvents(eventType, stateKey).sortedBy { it.streamId }
+        return mongoStore.findSpecifiedTypeEvents(eventType, stateKey)
     }
 
 

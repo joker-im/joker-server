@@ -1,6 +1,5 @@
 package im.joker.event.room.state;
 
-import im.joker.event.content.IContent;
 import im.joker.event.content.state.EncryptionContent;
 import im.joker.event.room.AbstractRoomStateEvent;
 
@@ -10,7 +9,7 @@ public class EncryptionEvent extends AbstractRoomStateEvent {
     private EncryptionContent content;
 
     @Override
-    public IContent getContent() {
+    public EncryptionContent getContent() {
         return content;
     }
 

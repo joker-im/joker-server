@@ -22,4 +22,10 @@ class GlobalStateHolder {
 
     @Autowired
     lateinit var mongoStore: MongoStore
+
+    @Autowired
+    lateinit var roomSubscribeManager: RoomSubscribeManager
+
+    @Autowired
+    lateinit var eventAuthorizationValidator: EventAuthorizationValidator
 }

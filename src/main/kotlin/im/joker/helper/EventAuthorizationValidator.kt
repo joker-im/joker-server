@@ -23,7 +23,7 @@ class EventAuthorizationValidator {
      */
     suspend fun canPost(ev: AbstractRoomEvent, device: Device): Boolean {
 
-
+        return false
     }
 
 }

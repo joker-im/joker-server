@@ -5,6 +5,8 @@ import com.mongodb.client.model.IndexOptions
 import com.mongodb.reactivestreams.client.MongoCollection
 import im.joker.event.EventType
 import im.joker.event.room.AbstractRoomEvent
+import im.joker.event.room.AbstractRoomStateEvent
+import im.joker.room.Room
 import im.joker.user.User
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactive.awaitSingleOrNull
@@ -15,6 +17,8 @@ import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
+import java.util.*
+import java.util.stream.Collectors
 import javax.annotation.PostConstruct
 
 /**
@@ -48,7 +52,7 @@ class MongoStore {
 
     private fun createEventCollection(): Mono<String> {
         return mongoTemplate.createCollection(COLLECTION_NAME_EVENTS)
-                .flatMap { o: MongoCollection<Document?> ->
+                .flatMap { o: MongoCollection<Document> ->
                     val index1 = IndexModel(Document.parse("{room_id: 1, _id: -1}"))
                     val index2 = IndexModel(Document.parse("{event_id: 1}"))
                     val index3 = IndexModel(Document.parse("{room_id: 1, type: 1, sender: 1}"))
@@ -61,7 +65,7 @@ class MongoStore {
 
     private fun createUserCollection(): Mono<String> {
         return mongoTemplate.createCollection(COLLECTION_USER) // 创建user的索引
-                .flatMap { o: MongoCollection<Document?> ->
+                .flatMap { o: MongoCollection<Document> ->
                     val index1 = IndexModel(Document.parse("{username:1}"), IndexOptions().unique(true))
                     val index2 = IndexModel(Document.parse("{create_time:-1}"))
                     val index3 = IndexModel(Document.parse("{user_id:-1}"), IndexOptions().unique(true))
@@ -71,7 +75,7 @@ class MongoStore {
 
     private fun createRoomStateCollection(): Mono<String> {
         return mongoTemplate.createCollection(COLLECTION_NAME_ROOM_STATES) // 创建room_state索引
-                .flatMap { o: MongoCollection<Document?> ->
+                .flatMap { o: MongoCollection<Document> ->
                     val index1 = IndexModel(Document.parse("{room_id: -1, event_id: -1}"))
                     val index2 = IndexModel(Document.parse("{room_id: -1, _id: -1}"))
                     val indexes = listOf(index1, index2)
@@ -119,7 +123,7 @@ class MongoStore {
         return mongoTemplate.insert(u, COLLECTION_USER).awaitSingle()
     }
 
-    suspend fun findSpecifiedEvents(eventType: EventType, stateKey: String): List<AbstractRoomEvent> {
+    suspend fun findSpecifiedTypeEvents(eventType: EventType, stateKey: String): List<AbstractRoomEvent> {
         val query = Query()
         query.addCriteria(Criteria.where("type").`is`(eventType.id).and("state_key").`is`(stateKey))
         return mongoTemplate.find(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).collectList().awaitSingleOrNull()
@@ -129,6 +133,36 @@ class MongoStore {
         val query = Query()
         query.addCriteria(Criteria.where("username").`is`(username))
         return mongoTemplate.findOne(query, User::class.java, COLLECTION_USER).awaitSingleOrNull();
+    }
+
+    suspend fun addRoom(room: Room): Room {
+        return mongoTemplate.insert(room, COLLECTION_NAME_ROOMS).awaitSingle()
+    }
+
+    suspend fun addEvents(evs: List<AbstractRoomEvent>) {
+        mongoTemplate.insertAll(Mono.just(evs), COLLECTION_NAME_EVENTS).awaitSingle()
+    }
+
+    suspend fun addEvent(ev: AbstractRoomEvent): AbstractRoomEvent {
+        return mongoTemplate.insert(ev, COLLECTION_NAME_EVENTS).awaitSingle()
+    }
+
+    suspend fun findRoomStateEvents(roomId: String): List<AbstractRoomStateEvent> {
+        return findRoomStateEvents(listOf(roomId), null)
+    }
+
+
+    suspend fun findRoomStateEvents(roomIds: List<String>, beforeStreamId: Long?): List<AbstractRoomStateEvent> {
+        val query = Query()
+        val criteria = Criteria.where("room_id").`in`(roomIds)
+        beforeStreamId?.let {
+            criteria.and("stream_id").lte(beforeStreamId)
+        }
+        criteria.and("type")
+                .`in`(EventType.values().filter { it.isState }.map { it.id })
+        query.addCriteria(criteria)
+        return mongoTemplate.find(query, AbstractRoomStateEvent::class.java, COLLECTION_NAME_EVENTS).collectList()
+                .awaitSingleOrNull().sortedBy { it.streamId }
     }
 
 }

@@ -1,6 +1,5 @@
 package im.joker.event.room.message;
 
-import im.joker.event.content.IContent;
 import im.joker.event.content.message.RedactionContent;
 import im.joker.event.room.AbstractRoomEvent;
 
@@ -11,7 +10,7 @@ public class RedactionEvent extends AbstractRoomEvent {
 
 
     @Override
-    public IContent getContent() {
+    public RedactionContent getContent() {
         return content;
     }
 

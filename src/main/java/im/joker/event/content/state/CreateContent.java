@@ -45,11 +45,11 @@ public class CreateContent extends AbstractStateContent {
         this.predecessor = predecessor;
     }
 
-    public Boolean getmFederate() {
+    public Boolean getMFederate() {
         return mFederate;
     }
 
-    public void setmFederate(Boolean mFederate) {
+    public void setMFederate(Boolean mFederate) {
         this.mFederate = mFederate;
     }
 

@@ -1,6 +1,5 @@
 package im.joker.event.room.other;
 
-import im.joker.event.content.IContent;
 import im.joker.event.content.other.TypingContent;
 import im.joker.event.room.AbstractRoomEvent;
 
@@ -17,7 +16,7 @@ public class TypingEvent extends AbstractRoomEvent {
 
 
     @Override
-    public IContent getContent() {
+    public TypingContent getContent() {
         return content;
     }
 

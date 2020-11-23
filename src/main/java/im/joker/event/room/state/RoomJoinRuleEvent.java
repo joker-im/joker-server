@@ -1,6 +1,5 @@
 package im.joker.event.room.state;
 
-import im.joker.event.content.IContent;
 import im.joker.event.content.state.RoomJoinRuleContent;
 import im.joker.event.room.AbstractRoomStateEvent;
 
@@ -16,7 +15,7 @@ public class RoomJoinRuleEvent extends AbstractRoomStateEvent {
     private RoomJoinRuleContent content;
 
     @Override
-    public IContent getContent() {
+    public RoomJoinRuleContent getContent() {
         return content;
     }
 

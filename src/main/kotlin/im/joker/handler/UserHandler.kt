@@ -55,24 +55,24 @@ class UserHandler {
     suspend fun register(request: RegisterRequest): RegisterResponse = coroutineScope {
         log.info("收到注册请求:{}", requestProcessor.toJson(request))
         requestProcessor.validate(request)
-        var user = User()
-        user.registerDeviceId = StringUtils.defaultIfBlank(request.deviceId, UUID.randomUUID().toString())
-        BeanUtils.copyProperties(request, user)
-        user.userId = idGenerator.userId(user.username)
-        user.password = passwordEncoder.encode(user.password)
-        user.createTime = LocalDateTime.now()
+        var user = User().apply {
+            userId = idGenerator.userId(request.username)
+            password = passwordEncoder.encode(request.password)
+            createTime = LocalDateTime.now()
+            registerDeviceId = StringUtils.defaultIfBlank(request.deviceId, UUID.randomUUID().toString())
+        }
         val async1 = async { mongoStore.addUser(user) }
         val async2 = async {
             deviceManager.findOrCreateDevice(request.username, user.registerDeviceId, user.userId, request.initialDeviceDisplayName, "")
         }
         user = async1.await()
         val device = async2.await()
-        val resp = RegisterResponse()
 
-        resp.accessToken = device.accessToken
-        resp.userId = user.userId
-        resp.deviceId = device.deviceId
-        return@coroutineScope resp
+        return@coroutineScope RegisterResponse().apply {
+            accessToken = device.accessToken
+            userId = user.userId
+            deviceId = device.deviceId
+        }
     }
 
     suspend fun login(request: LoginRequest): LoginResponse {
@@ -85,7 +85,6 @@ class UserHandler {
     }
 
     suspend fun logoutAll(device: Device) {
-
         authManager.logoutAll(device)
     }
 

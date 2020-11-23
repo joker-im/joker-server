@@ -1,6 +1,5 @@
 package im.joker.event.room.state;
 
-import im.joker.event.content.IContent;
 import im.joker.event.content.state.CreateContent;
 import im.joker.event.room.AbstractRoomStateEvent;
 
@@ -12,7 +11,7 @@ public class RoomCreateEvent extends AbstractRoomStateEvent {
 
 
     @Override
-    public IContent getContent() {
+    public CreateContent getContent() {
         return content;
     }
 

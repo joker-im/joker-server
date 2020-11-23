@@ -3,6 +3,7 @@ package im.joker.room
 import im.joker.constants.ImConstants.Companion.EVENT_LOCK
 import im.joker.device.Device
 import im.joker.event.room.AbstractRoomEvent
+import im.joker.helper.EventAuthorizationValidator
 import im.joker.helper.GlobalStateHolder
 import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.springframework.data.annotation.Id
@@ -29,17 +30,22 @@ class Room {
     @Transient
     lateinit var globalStateHolder: GlobalStateHolder
 
-    lateinit var eventAuthorizationValidator:
-
     var direct: Boolean? = null
 
-    var visibility: String? = null
-
     suspend fun injectEvent(ev: AbstractRoomEvent, device: Device): AbstractRoomEvent {
+
         globalStateHolder.redissonClient.getLock(EVENT_LOCK.format(ev.roomId)).lock().awaitSingleOrNull()
-        globalStateHolder.mongoStore.addEvent(ev)
+        val ev2 = globalStateHolder.mongoStore.addEvent(ev)
+        globalStateHolder.redissonClient.getLock(EVENT_LOCK.format(ev.roomId)).unlock()
+        return ev2
     }
 
+    suspend fun injectEvents(evs: List<AbstractRoomEvent>, device: Device) {
+        globalStateHolder.mongoStore.addEvents(evs)
+        evs.forEach {
+            globalStateHolder.roomSubscribeManager.updateRelation(device, it)
+        }
+    }
 
 
 }

@@ -11,6 +11,7 @@ import im.joker.exception.ErrorCode
 import im.joker.exception.ImException
 import im.joker.helper.RequestProcessor
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.slf4j.Logger
@@ -67,8 +68,7 @@ class DeviceManager {
         val token = UUID.randomUUID().toString()
         val duration = Duration.ofDays(7L)
         val tokenDeviceMap = HashMap<String, String>()
-        val deviceTokenMap = HashMap<String, String>()
-        deviceTokenMap[deviceId] = token
+        val deviceTokenMap = mapOf(deviceId to token)
         tokenDeviceMap[TOKEN_USER_HASH_KEY_USERNAME] = username
         tokenDeviceMap[TOKEN_USER_HASH_KEY_DEVICE_ID] = deviceId
         tokenDeviceMap[TOKEN_USER_HASH_KEY_USER_ID] = userId
@@ -78,16 +78,17 @@ class DeviceManager {
         deviceAvatar?.let {
             tokenDeviceMap[TOKEN_USER_HASH_KEY_AVATAR] = it
         }
-        val async1 = async {
-            redisTemplate.opsForHash<String, String>().putAll(USER_DEVICES_TOKENS_HASH.format(username), deviceTokenMap)
-                    .then(redisTemplate.expire(USER_DEVICES_TOKENS_HASH.format(username), duration)).awaitSingleOrNull()
-        }
-        val async2 = async {
-            redisTemplate.opsForHash<String, String>().putAll(TOKEN_USER_HASH.format(token), tokenDeviceMap)
-                    .then(redisTemplate.expire(TOKEN_USER_HASH.format(token), duration)).awaitSingleOrNull()
-        }
-        async1.await()
-        async2.await()
+        val asyncList = listOf(
+                async {
+                    redisTemplate.opsForHash<String, String>().putAll(USER_DEVICES_TOKENS_HASH.format(username), deviceTokenMap)
+                            .then(redisTemplate.expire(USER_DEVICES_TOKENS_HASH.format(username), duration)).awaitSingleOrNull()
+                },
+                async {
+                    redisTemplate.opsForHash<String, String>().putAll(TOKEN_USER_HASH.format(token), tokenDeviceMap)
+                            .then(redisTemplate.expire(TOKEN_USER_HASH.format(token), duration)).awaitSingleOrNull()
+                }
+        )
+        asyncList.awaitAll()
         val device = Device(deviceId, token, username, deviceName, deviceAvatar, userId)
         log.info("创建新device:{}", device)
         return@coroutineScope device
@@ -110,15 +111,14 @@ class DeviceManager {
     }
 
     suspend fun removeDevice(device: Device): Unit = coroutineScope {
-        val async1 = async {
-            redisTemplate.delete(TOKEN_USER_HASH.format(device.accessToken)).awaitSingleOrNull()
-        }
-        val async2 = async {
+        val asyncList = listOf(
+                async {
+                    redisTemplate.delete(TOKEN_USER_HASH.format(device.accessToken)).awaitSingleOrNull()
+                }, async {
             redisTemplate.opsForHash<String, String>()
                     .remove(USER_DEVICES_TOKENS_HASH.format(device.username), device.deviceId).awaitSingleOrNull()
-        }
-        async1.await()
-        async2.await()
+        })
+        asyncList.awaitAll()
     }
 
 
@@ -128,7 +128,7 @@ class DeviceManager {
                 .collectList().awaitSingleOrNull()
         return deviceTokenList.map {
             Device(it.key, it.value, username, "", "", "")
-        }.toList()
+        }
 
     }
 

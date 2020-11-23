@@ -2,7 +2,6 @@ package im.joker.event.room.message;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import im.joker.event.content.AbstractMessageContent;
-import im.joker.event.content.IContent;
 import im.joker.event.room.AbstractRoomEvent;
 
 public class MessageEvent extends AbstractRoomEvent {
@@ -11,7 +10,7 @@ public class MessageEvent extends AbstractRoomEvent {
     private AbstractMessageContent content;
 
     @Override
-    public IContent getContent() {
+    public AbstractMessageContent getContent() {
         return content;
     }
 

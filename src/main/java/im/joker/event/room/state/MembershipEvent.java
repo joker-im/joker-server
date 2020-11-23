@@ -1,6 +1,5 @@
 package im.joker.event.room.state;
 
-import im.joker.event.content.IContent;
 import im.joker.event.content.state.MembershipContent;
 import im.joker.event.room.AbstractRoomStateEvent;
 
@@ -12,7 +11,7 @@ public class MembershipEvent extends AbstractRoomStateEvent {
 
 
     @Override
-    public IContent getContent() {
+    public MembershipContent getContent() {
         return content;
     }
 

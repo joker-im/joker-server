@@ -49,11 +49,9 @@ class AccountRouter {
 
     @GetMapping("/login")
     suspend fun queryLoginFlows(): LoginFlowResponse {
-        val flow = LoginFlowResponse.LoginFlow()
-        flow.type = "m.login.password"
-        val ret = LoginFlowResponse()
-        ret.flows = listOf(flow)
-        return ret
+        return LoginFlowResponse().apply {
+            this.flows = listOf(LoginFlowResponse.LoginFlow().apply { this.type = "m.login.password" })
+        }
     }
 
     @PostMapping("/logout")

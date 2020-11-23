@@ -1,6 +1,5 @@
 package im.joker.event.room.other;
 
-import im.joker.event.content.IContent;
 import im.joker.event.content.other.ReceiptContent;
 import im.joker.event.room.AbstractRoomEvent;
 
@@ -17,7 +16,7 @@ public class ReceiptEvent extends AbstractRoomEvent {
 
 
     @Override
-    public IContent getContent() {
+    public ReceiptContent getContent() {
         return content;
     }
 
