@@ -4,12 +4,14 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.time.LocalDateTime;
 
+import static com.fasterxml.jackson.annotation.JsonTypeInfo.As.EXISTING_PROPERTY;
+
 /**
  * 房间事件。
  *
  * @author linyurong
  **/
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type", visible = true)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = EXISTING_PROPERTY, property = "type", visible = true)
 public abstract class AbstractRoomEvent implements IRoomEvent {
 
     protected String roomId;

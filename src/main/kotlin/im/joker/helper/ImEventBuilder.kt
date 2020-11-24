@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 import java.util.*
-import kotlin.collections.HashMap
 
 @Component
 class ImEventBuilder {
@@ -34,6 +33,7 @@ class ImEventBuilder {
             transactionId = UUID.randomUUID().toString()
             originServerTs = createTime
             this.roomId = roomId
+            eventId = UUID.randomUUID().toString()
         }
 
     }
@@ -56,6 +56,7 @@ class ImEventBuilder {
             transactionId = UUID.randomUUID().toString()
             originServerTs = time
             this.roomId = roomId
+            eventId = UUID.randomUUID().toString()
         }
 
     }
@@ -108,6 +109,7 @@ class ImEventBuilder {
             transactionId = UUID.randomUUID().toString()
             originServerTs = time
             this.roomId = roomId
+            eventId = UUID.randomUUID().toString()
         }
 
     }
@@ -132,6 +134,7 @@ class ImEventBuilder {
             transactionId = UUID.randomUUID().toString()
             originServerTs = time
             this.roomId = roomId
+            eventId = UUID.randomUUID().toString()
         }
     }
 
@@ -148,6 +151,7 @@ class ImEventBuilder {
             transactionId = UUID.randomUUID().toString()
             originServerTs = time
             this.roomId = roomId
+            eventId = UUID.randomUUID().toString()
         }
     }
 
@@ -164,6 +168,7 @@ class ImEventBuilder {
             transactionId = UUID.randomUUID().toString()
             originServerTs = time
             this.roomId = roomId
+            eventId = UUID.randomUUID().toString()
         }
     }
 
@@ -180,6 +185,7 @@ class ImEventBuilder {
             transactionId = UUID.randomUUID().toString()
             originServerTs = time
             this.roomId = roomId
+            eventId = UUID.randomUUID().toString()
         }
     }
 

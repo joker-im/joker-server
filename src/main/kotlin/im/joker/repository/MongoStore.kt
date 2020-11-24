@@ -166,12 +166,12 @@ class MongoStore {
                 .`in`(EventType.values().filter { it.isState }.map { it.id })
         query.addCriteria(criteria)
         return mongoTemplate.find(query, AbstractRoomStateEvent::class.java, COLLECTION_NAME_EVENTS).collectList()
-                .awaitSingleOrNull().sortedBy { it.streamId }
+                .awaitSingleOrNull()
     }
 
     suspend fun findLatestStreamId(): Long {
         val query = Query().with(Sort.by(Sort.Direction.DESC, "stream_id"))
-        return mongoTemplate.findOne(query, AbstractRoomEvent::class.java).map { it.streamId }.awaitSingle()
+        return mongoTemplate.findOne(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).map { it.streamId }.awaitSingle()
     }
 
 

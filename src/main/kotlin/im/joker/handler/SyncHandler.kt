@@ -1,4 +1,4 @@
-package im.joker.sync
+package im.joker.handler
 
 import im.joker.api.vo.sync.SyncRequest
 import im.joker.api.vo.sync.SyncResponse
@@ -14,13 +14,13 @@ import kotlinx.coroutines.coroutineScope
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Component
+import org.springframework.stereotype.Service
 
-@Component
-class RealTimeSynchronizer {
+@Service
+class SyncHandler {
 
 
-    private val log: Logger = LoggerFactory.getLogger(RealTimeSynchronizer::class.java)
+    private val log: Logger = LoggerFactory.getLogger(SyncHandler::class.java)
 
     @Autowired
     private lateinit var longPollingHelper: LongPollingHelper
@@ -57,7 +57,7 @@ class RealTimeSynchronizer {
         val lastStreamId = t1.await()
         val joinRoomIds = t2.await()
         // 查询每个房间的最新状态消息
-        val t4 = async { mongodbStore.findRoomStateEvents(joinRoomIds, lastStreamId) }
+        val t4 = async { mongodbStore.findRoomStateEvents(joinRoomIds, lastStreamId).sortedBy { it.streamId } }
         // 根据这些房间,查询其topK的消息,便于放入timeline
         val t5 = async { mongodbStore.findEventGroupByRoomTopK(joinRoomIds, limitOfRoom, lastStreamId) }
         val latestRoomStateEvents = t4.await().groupBy { it.roomId }
@@ -76,9 +76,10 @@ class RealTimeSynchronizer {
             nextBatch = (lastStreamId + 1).toString()
         }
         roomTopKEvents.forEach { topK ->
-            //  state = ( latestRoomStateEvents#streamId < topK最老的一条streamId)
+            //  state = ( currentFullRoomStateEvents#streamId < topK最老的一条streamId)
             //  timeline = topK
-            val roomState = RoomState.fromEvents(latestRoomStateEvents.getValue(topK.roomId).filter { it.streamId < topK.sliceLastEvents.last().streamId })
+            val currentFullRoomStateEvents = latestRoomStateEvents.getValue(topK.roomId)
+            val roomState = RoomState.fromEvents(currentFullRoomStateEvents.filter { it.streamId < topK.sliceLastEvents.last().streamId })
             // 判断同步的这个人在此房间处于什么状态
             when (roomState.latestMembershipType(device.userId)) {
 
@@ -98,7 +99,7 @@ class RealTimeSynchronizer {
                             events = topK.sliceLastEvents.filter { it.streamId > latestRoomStateEvents.getValue(topK.roomId).first().streamId }
                         }
                         this.state = SyncResponse.State().apply {
-                            events = RoomState.fromEvents(latestRoomStateEvents.getValue(topK.roomId)).distinctStateEvents()
+                            events = RoomState.fromEvents(currentFullRoomStateEvents).distinctStateEvents()
                         }
                     }
                     joinedMap[topK.roomId] = joined
@@ -108,18 +109,24 @@ class RealTimeSynchronizer {
                     // topK - lastStateEvent(MaxStreamId)
                     val left = SyncResponse.LeftRooms().apply {
                         this.timeline = SyncResponse.Timeline().apply {
-                            events = topK.sliceLastEvents.filter { it.streamId > latestRoomStateEvents.getValue(topK.roomId).first().streamId }
+                            events = topK.sliceLastEvents.filter { it.streamId > currentFullRoomStateEvents.first().streamId }
                             limited = true
                         }
                         this.state = SyncResponse.State().apply {
-                            events = RoomState.fromEvents(latestRoomStateEvents.getValue(topK.roomId)).distinctStateEvents()
+                            events = RoomState.fromEvents(currentFullRoomStateEvents).distinctStateEvents()
                         }
                     }
                     leftMap[topK.roomId] = left
                 }
                 // 这种情况是队列中和数据库中保持一致,只发生在房间事件很少的时候,全部放timeline
                 else -> {
-
+                    val joined = SyncResponse.JoinedRooms().apply {
+                        this.timeline = SyncResponse.Timeline().apply {
+                            limited = false
+                            events = topK.sliceLastEvents.sortedBy { it.streamId }
+                        }
+                    }
+                    joinedMap[topK.roomId] = joined
                 }
             }
         }
