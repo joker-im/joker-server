@@ -9,8 +9,8 @@ import im.joker.helper.LongPollingHelper
 import im.joker.helper.RoomSubscribeManager
 import im.joker.repository.MongoStore
 import im.joker.room.RoomState
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -45,7 +45,41 @@ class SyncHandler {
 
     private suspend fun incrSync(request: SyncRequest, device: Device): SyncResponse = coroutineScope {
         log.debug("userId:{},deviceId:{},触发增量同步", device.userId, device.deviceId)
-        SyncResponse()
+        val ret = SyncResponse()
+        val sinceId = request.since.toLong()
+        val joinedMap = HashMap<String, SyncResponse.JoinedRooms>()
+        val invitedMap = HashMap<String, SyncResponse.InvitedRooms>()
+        val leftMap = HashMap<String, SyncResponse.LeftRooms>()
+        // 查询最新的streamId
+        val latestStreamId = mongodbStore.findLatestStreamId()
+
+        ret.apply {
+            this.rooms = SyncResponse.Rooms().apply {
+                this.join = joinedMap
+                this.invite = invitedMap
+                this.leave = leftMap
+            }
+            nextBatch = (latestStreamId + 1).toString()
+        }
+
+        // 从感兴趣的房间里面拿到最新的消息
+        val t2 = async { eventSyncQueueManager.takeRelatedEvent(device.deviceId, limitOfRoom, sinceId, latestStreamId) }
+        val latestRoomEvents = t2.await()
+        // 为空的时候,waiting timeout
+        if (latestRoomEvents.isEmpty()) {
+            val channel = Channel<Boolean>()
+            longPollingHelper.addWaitingDevice(device.deviceId, channel)
+            withTimeout(request.timeout.toLong()) {
+                channel.receive()
+            }
+            return@coroutineScope ret
+        }
+
+        latestRoomEvents.forEach { roomId, roomEevents ->
+
+        }
+
+        ret
     }
 
     private suspend fun initSync(device: Device): SyncResponse = coroutineScope {
@@ -54,12 +88,12 @@ class SyncHandler {
         val t1 = async { mongodbStore.findLatestStreamId() }
         // 拿取感兴趣的房间
         val t2 = async { roomSubscribeManager.searchJoinRoomIds(device.deviceId) }
-        val lastStreamId = t1.await()
+        val latestStreamId = t1.await()
         val joinRoomIds = t2.await()
         // 查询每个房间的最新状态消息
-        val t4 = async { mongodbStore.findRoomStateEvents(joinRoomIds, lastStreamId).sortedBy { it.streamId } }
+        val t4 = async { mongodbStore.findRoomStateEvents(joinRoomIds, latestStreamId).sortedBy { it.streamId } }
         // 根据这些房间,查询其topK的消息,便于放入timeline
-        val t5 = async { mongodbStore.findEventGroupByRoomTopK(joinRoomIds, limitOfRoom, lastStreamId) }
+        val t5 = async { mongodbStore.findEventGroupByRoomTopK(joinRoomIds, limitOfRoom, latestStreamId) }
         val latestRoomStateEvents = t4.await().groupBy { it.roomId }
         val roomTopKEvents = t5.await()
 
@@ -73,7 +107,7 @@ class SyncHandler {
                 this.invite = invitedMap
                 this.leave = leftMap
             }
-            nextBatch = (lastStreamId + 1).toString()
+            nextBatch = (latestStreamId + 1).toString()
         }
         roomTopKEvents.forEach { topK ->
             //  state = ( currentFullRoomStateEvents#streamId < topK最老的一条streamId)
@@ -130,8 +164,6 @@ class SyncHandler {
                 }
             }
         }
-
-
         return@coroutineScope ret
     }
 

@@ -33,7 +33,7 @@ class LongPollingHelper {
     }
 
 
-    fun addSyncDevice(deviceId: String, channel: Channel<Boolean>) {
+    fun addWaitingDevice(deviceId: String, channel: Channel<Boolean>) {
         waitingSyncMap[deviceId] = channel
     }
 

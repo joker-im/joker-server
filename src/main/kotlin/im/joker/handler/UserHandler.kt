@@ -59,6 +59,7 @@ class UserHandler {
             password = passwordEncoder.encode(request.password)
             createTime = LocalDateTime.now()
             registerDeviceId = StringUtils.defaultIfBlank(request.deviceId, UUID.randomUUID().toString())
+            username = request.username
         }
         val async1 = async { mongoStore.addUser(user) }
         val async2 = async {
@@ -67,7 +68,7 @@ class UserHandler {
         user = async1.await()
         val device = async2.await()
 
-        return@coroutineScope RegisterResponse().apply {
+        RegisterResponse().apply {
             accessToken = device.accessToken
             userId = user.userId
             deviceId = device.deviceId

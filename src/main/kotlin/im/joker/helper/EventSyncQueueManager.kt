@@ -47,7 +47,7 @@ class EventSyncQueueManager {
     /**
      * 从设备相关的房间中拿取limitOfRoom条数据,其返回值key是roomId,value是redis队列中提取的
      */
-    suspend fun takeRelatedEvent(deviceId: String, limitOfRoom: Int, afterStreamId: Int): Map<String, List<AbstractRoomEvent>> = coroutineScope {
+    suspend fun takeRelatedEvent(deviceId: String, limitOfRoom: Int, gteStreamId: Long, lteStreamId: Long): Map<String, List<AbstractRoomEvent>> = coroutineScope {
         val roomIds = roomSubscribeManager.searchJoinRoomIds(deviceId)
         val list = roomIds.map {
             async {
@@ -56,6 +56,9 @@ class EventSyncQueueManager {
         }
         return@coroutineScope list.awaitAll().filterNotNull()
                 .map { requestProcessor.toBean(it, AbstractRoomEvent::class.java) }
+                .filter {
+                    it.streamId in gteStreamId..lteStreamId
+                }
                 .groupBy { it.roomId }
     }
 

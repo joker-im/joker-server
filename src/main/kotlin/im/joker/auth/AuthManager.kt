@@ -56,11 +56,12 @@ class AuthManager {
         val presenceRequest = PresenceRequest()
         presenceRequest.presence = PresenceType.ONLINE.id
         presenceHandler.setPresence(presenceRequest, device)
-        val ret = LoginResponse()
-        ret.accessToken = device.accessToken
-        ret.deviceId = device.deviceId
-        ret.userId = device.userId
-        return ret
+        return LoginResponse().apply {
+            accessToken = device.accessToken
+            deviceId = device.deviceId
+            userId = device.userId
+        }
+
     }
 
     suspend fun logout(device: Device) {
