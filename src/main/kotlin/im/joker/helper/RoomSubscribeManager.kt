@@ -1,5 +1,6 @@
 package im.joker.helper
 
+import im.joker.constants.ImConstants.Companion.ROOM_STATE_TOPIC
 import im.joker.constants.ImConstants.Companion.ROOM_SUBSCRIBERS_OF_DEVICE
 import im.joker.device.Device
 import im.joker.event.EventType
@@ -15,6 +16,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactive.awaitSingleOrNull
+import org.redisson.api.RedissonReactiveClient
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -119,5 +121,6 @@ class RoomSubscribeManager {
         asyncList.awaitAll()
         return@coroutineScope roomIds
     }
+
 
 }

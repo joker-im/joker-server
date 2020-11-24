@@ -27,7 +27,7 @@ import java.util.*
 @Component
 class AuthManager {
 
-    val log: Logger = LoggerFactory.getLogger(AuthManager::class.java)
+    private val log: Logger = LoggerFactory.getLogger(AuthManager::class.java)
 
     @Autowired
     private lateinit var mongodbStore: MongoStore
@@ -77,7 +77,7 @@ class AuthManager {
         val presenceRequest = PresenceRequest()
         presenceRequest.presence = PresenceType.ONLINE.id
         devices.forEach {
-            presenceHandler.setPresence(presenceRequest,it)
+            presenceHandler.setPresence(presenceRequest, it)
         }
         deviceManager.deleteAllDevice(devices)
     }

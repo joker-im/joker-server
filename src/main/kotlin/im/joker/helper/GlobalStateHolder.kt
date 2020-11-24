@@ -28,4 +28,15 @@ class GlobalStateHolder {
 
     @Autowired
     lateinit var eventAuthorizationValidator: EventAuthorizationValidator
+
+    @Autowired
+    lateinit var eventSyncQueueManager: EventSyncQueueManager
+
+    @Autowired
+    lateinit var roomStateCache: RoomStateCache
+
+    @Autowired
+    lateinit var longPollingHelper: LongPollingHelper
+
+
 }

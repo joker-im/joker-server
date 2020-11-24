@@ -34,7 +34,7 @@ import kotlin.collections.HashMap
 @Component
 class DeviceManager {
 
-    val log: Logger = LoggerFactory.getLogger(DeviceManager::class.java)
+    private val log: Logger = LoggerFactory.getLogger(DeviceManager::class.java)
 
 
     @Autowired

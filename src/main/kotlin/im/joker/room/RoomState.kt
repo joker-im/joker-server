@@ -1,15 +1,18 @@
 package im.joker.room
 
+import im.joker.event.EventType
 import im.joker.event.MembershipType
 import im.joker.event.room.AbstractRoomEvent
+import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.state.MembershipEvent
+import im.joker.event.room.state.PowerLevelEvent
 import im.joker.helper.GlobalStateHolder
 
 class RoomState {
 
-    lateinit var descStateEvent: List<AbstractRoomEvent>
+    lateinit var descStateEvent: List<AbstractRoomStateEvent>
 
-    private lateinit var descStateMap: Map<String, AbstractRoomEvent>
+    private lateinit var descStateMap: Map<String, AbstractRoomStateEvent>
 
     companion object {
         /**
@@ -19,9 +22,7 @@ class RoomState {
             // 逆序
             val stateEvents = globalStateHolder
                     .mongoStore.findRoomStateEvents(roomId).sortedByDescending { it.streamId }
-            val stateMap = stateEvents.groupingBy {
-                it.type + it.stateKey
-            }.reduce { _, acc, e -> if (acc.streamId > e.streamId) acc else e }
+            val stateMap = toStateMap(stateEvents)
 
             return RoomState().apply {
                 descStateEvent = stateEvents
@@ -29,8 +30,31 @@ class RoomState {
             }
 
         }
+
+        fun fromEvents(list: List<AbstractRoomStateEvent>): RoomState {
+            val handledStateEvents = list.sortedByDescending { it.streamId }
+            val stateMap = toStateMap(handledStateEvents)
+            return RoomState().apply {
+                descStateEvent = handledStateEvents
+                descStateMap = stateMap
+            }
+        }
+
+        private fun toStateMap(handledStateEvents: List<AbstractRoomStateEvent>): Map<String, AbstractRoomStateEvent> {
+            // 新的替换旧的
+            return handledStateEvents.groupingBy {
+                it.type + it.stateKey
+            }.reduce { _, acc, e -> if (acc.streamId > e.streamId) acc else e }
+        }
+
     }
 
+    /**
+     * 查询状态事件.(替换式) , 返回的结果是asc
+     */
+    fun distinctStateEvents(): List<AbstractRoomStateEvent> {
+        return descStateMap.values.sortedBy { it.streamId }
+    }
 
 
     /**
@@ -44,6 +68,13 @@ class RoomState {
             }
             null
         }
+    }
+
+    /**
+     * 查询最新的房间权限定义
+     */
+    fun lastPowerDefEvent(): PowerLevelEvent {
+        return descStateMap[EventType.PowerLevel.id] as PowerLevelEvent
     }
 
 }

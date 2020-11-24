@@ -1,4 +1,5 @@
 package im.joker.constants
+
 class ImConstants {
     companion object {
         /**
@@ -55,6 +56,16 @@ class ImConstants {
          * %s是roomId
          */
         const val EVENT_LOCK = "im.joker:room_event_lock:%s"
+
+        /**
+         * 房间状态变更通知的topic_key
+         */
+        const val ROOM_STATE_TOPIC = "im.joker:room_state_topic"
+
+        /**
+         * 正在sync的设备
+         */
+        const val ROOM_SYNC_DEVICE = "im.joker:sync_device_topic"
     }
 }
 

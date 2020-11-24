@@ -30,9 +30,8 @@ class ImExceptionHandler : ErrorWebExceptionHandler {
     @Autowired
     lateinit var objectMapper: ObjectMapper
 
-    companion object {
-        val log: Logger = LoggerFactory.getLogger(ImExceptionHandler::class.java)
-    }
+    private val log: Logger = LoggerFactory.getLogger(ImExceptionHandler::class.java)
+
 
     override fun handle(exchange: ServerWebExchange, ex: Throwable): Mono<Void> {
         log.error("接口路径:{}, 异常信息:{},异常栈:{} ", exchange.request.path, ex.message, ex.stackTrace)

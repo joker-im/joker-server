@@ -1,8 +1,10 @@
 package im.joker.repository
 
+import com.mongodb.BasicDBObject
 import com.mongodb.client.model.IndexModel
 import com.mongodb.client.model.IndexOptions
 import com.mongodb.reactivestreams.client.MongoCollection
+import im.joker.api.vo.RoomEvents
 import im.joker.event.EventType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
@@ -12,13 +14,15 @@ import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.bson.Document
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.Sort
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate
+import org.springframework.data.mongodb.core.aggregation.Aggregation
+import org.springframework.data.mongodb.core.aggregation.MatchOperation
+import org.springframework.data.mongodb.core.aggregation.SortOperation
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
-import java.util.*
-import java.util.stream.Collectors
 import javax.annotation.PostConstruct
 
 /**
@@ -132,7 +136,7 @@ class MongoStore {
     suspend fun findUserByUsername(username: String): User? {
         val query = Query()
         query.addCriteria(Criteria.where("username").`is`(username))
-        return mongoTemplate.findOne(query, User::class.java, COLLECTION_USER).awaitSingleOrNull();
+        return mongoTemplate.findOne(query, User::class.java, COLLECTION_USER).awaitSingleOrNull()
     }
 
     suspend fun addRoom(room: Room): Room {
@@ -162,7 +166,45 @@ class MongoStore {
                 .`in`(EventType.values().filter { it.isState }.map { it.id })
         query.addCriteria(criteria)
         return mongoTemplate.find(query, AbstractRoomStateEvent::class.java, COLLECTION_NAME_EVENTS).collectList()
-                .awaitSingleOrNull()
+                .awaitSingleOrNull().sortedBy { it.streamId }
+    }
+
+    suspend fun findLatestStreamId(): Long {
+        val query = Query().with(Sort.by(Sort.Direction.DESC, "stream_id"))
+        return mongoTemplate.findOne(query, AbstractRoomEvent::class.java).map { it.streamId }.awaitSingle()
+    }
+
+
+    suspend fun findEventGroupByRoomTopK(joinRoomIds: List<String>, k: Int, beforeStreamId: Long, asc: Boolean = false): List<RoomEvents> {
+        if (joinRoomIds.isEmpty()) {
+            return emptyList()
+        }
+        val matchOperation = MatchOperation(Criteria.where("room_id").`in`(joinRoomIds).and("stream_id").lte(beforeStreamId))
+        val sortOperation = if (asc) {
+            SortOperation(Sort.by(Sort.Direction.ASC, "stream_id"))
+        } else {
+            SortOperation(Sort.by(Sort.Direction.DESC, "stream_id"))
+        }
+        val groupOperation = Aggregation.group("room_id")
+                .push(BasicDBObject()
+                        .append("room_id", "\$room_id")
+                        .append("state_key", "\$state_key")
+                        .append("content", "\$content")
+                        .append("_id", "\$_id")
+                        .append("sender", "\$sender")
+                        .append("stream_id", "\$stream_id")
+                        .append("transaction_id", "\$transaction_id")
+                        .append("event_id", "\$event_id")
+                        .append("type", "\$type")
+                        .append("origin_server_ts", "\$origin_server_ts")
+                        .append("_class", "\$_class")
+                        .append("unsigned", "\$unsigned")).`as`("last_events")
+        val projection = Aggregation.project()
+                .andExclude("_id")
+                .and("\$last_events.room_id").arrayElementAt(0).`as`("room_id")
+                .and("\$last_events").slice(k).`as`("slice_last_events")
+        val aggregation = Aggregation.newAggregation(matchOperation, sortOperation, groupOperation, projection)
+        return mongoTemplate.aggregate(aggregation, COLLECTION_NAME_EVENTS, RoomEvents::class.java).collectList().awaitSingleOrNull()
     }
 
 }
