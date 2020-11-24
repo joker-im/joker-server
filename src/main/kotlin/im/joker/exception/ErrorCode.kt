@@ -28,6 +28,7 @@ enum class ErrorCode(val msg:String) {
     INVALID_PARAM( "无效的请求参数"),
     TOO_LARGE( "请求过大"),
     INVALID_USERNAME( "无效的用户名"),
+    M_USER_IN_USE("用户名已经存在"),
     CANNOT_LEAVE_SERVER_NOTICE_ROOM( "不允许退出通知房间"),
     RESOURCE_LIMIT_EXCEEDED( "资源超过限额"),
     UNSUPPORTED_ROOM_VERSION( "不支持该房间版本"),

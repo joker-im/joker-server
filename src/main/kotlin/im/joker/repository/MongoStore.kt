@@ -125,7 +125,7 @@ class MongoStore {
     }
 
     suspend fun addUser(u: User): User {
-        return mongoTemplate.insert(u, COLLECTION_USER).awaitSingle()
+        return mongoTemplate.insert(u, COLLECTION_USER).awaitSingleOrNull()
     }
 
     suspend fun findSpecifiedTypeEvents(eventType: EventType, stateKey: String): List<AbstractRoomEvent> {

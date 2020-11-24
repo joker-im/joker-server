@@ -7,17 +7,18 @@ import im.joker.api.vo.account.RegisterResponse
 import im.joker.auth.AuthManager
 import im.joker.device.Device
 import im.joker.device.DeviceManager
+import im.joker.exception.ErrorCode
+import im.joker.exception.ImException
 import im.joker.helper.IdGenerator
 import im.joker.helper.PasswordEncoder
 import im.joker.helper.RequestProcessor
 import im.joker.repository.MongoStore
 import im.joker.user.User
-import kotlinx.coroutines.async
-import kotlinx.coroutines.coroutineScope
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 import java.util.*
@@ -51,9 +52,8 @@ class UserHandler {
 
     private val log: Logger = LoggerFactory.getLogger(UserHandler::class.java)
 
-    suspend fun register(request: RegisterRequest): RegisterResponse = coroutineScope {
+    suspend fun register(request: RegisterRequest): RegisterResponse {
         log.info("收到注册请求:{}", requestProcessor.toJson(request))
-        requestProcessor.validate(request)
         var user = User().apply {
             userId = idGenerator.userId(request.username)
             password = passwordEncoder.encode(request.password)
@@ -61,14 +61,15 @@ class UserHandler {
             registerDeviceId = StringUtils.defaultIfBlank(request.deviceId, UUID.randomUUID().toString())
             username = request.username
         }
-        val async1 = async { mongoStore.addUser(user) }
-        val async2 = async {
-            deviceManager.findOrCreateDevice(request.username, user.registerDeviceId, user.userId, request.initialDeviceDisplayName, "")
+        try {
+            user = mongoStore.addUser(user)
+        } catch (e: Exception) {
+            log.error("addUser报错啦", e)
+            throw ImException(ErrorCode.M_USER_IN_USE, HttpStatus.FORBIDDEN)
         }
-        user = async1.await()
-        val device = async2.await()
+        val device = deviceManager.findOrCreateDevice(request.username, user.registerDeviceId, user.userId, request.initialDeviceDisplayName, "")
 
-        RegisterResponse().apply {
+        return RegisterResponse().apply {
             accessToken = device.accessToken
             userId = user.userId
             deviceId = device.deviceId

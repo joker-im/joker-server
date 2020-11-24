@@ -7,6 +7,7 @@ import im.joker.api.vo.account.RegisterRequest
 import im.joker.config.AuthFilter
 import im.joker.device.Device
 import im.joker.handler.UserHandler
+import im.joker.helper.RequestProcessor
 import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
@@ -29,17 +30,22 @@ class AccountRouter {
     @Autowired
     lateinit var userHandler: UserHandler
 
+    @Autowired
+    lateinit var requestProcessor: RequestProcessor
+
 
     @PostMapping("/register")
     suspend fun register(@RequestBody registerRequest: RegisterRequest): ResponseEntity<Any> {
-        return try {
-            ResponseEntity.ok(userHandler.register(registerRequest))
+        try {
+            requestProcessor.validate(registerRequest)
         } catch (e: Exception) {
             val json = """{"session":"FsfiufEOEvnjQXJRBSyTTdNr","flows":[{"stages":["m.login.recaptcha","m.login.terms","m.login.dummy"]},{"stages":["m.login.recaptcha","m.login.terms","m.login.email.identity"]}],"params":{"m.login.recaptcha":{"public_key":"6LcgI54UAAAAABGdGmruw6DdOocFpYVdjYBRe4zb"},"m.login.terms":{"policies":{"privacy_policy":{"version":"1.0","en":{"name":"Terms and Conditions","url":"https://matrix-client.matrix.org/_matrix/consent?v=1.0"}}}}}}"""
-            ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+           return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .body(json)
         }
+        return ResponseEntity.ok(userHandler.register(registerRequest))
+
     }
 
     @PostMapping("/login")

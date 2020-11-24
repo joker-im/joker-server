@@ -6,11 +6,14 @@ import im.joker.device.Device
 import im.joker.event.MembershipType
 import im.joker.helper.EventSyncQueueManager
 import im.joker.helper.LongPollingHelper
+import im.joker.helper.RoomStateCache
 import im.joker.helper.RoomSubscribeManager
 import im.joker.repository.MongoStore
 import im.joker.room.RoomState
-import kotlinx.coroutines.*
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeout
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -33,6 +36,9 @@ class SyncHandler {
 
     @Autowired
     private lateinit var roomSubscribeManager: RoomSubscribeManager
+
+    @Autowired
+    private lateinit var roomStateCache: RoomStateCache
 
     private val limitOfRoom = 30
 
@@ -63,8 +69,7 @@ class SyncHandler {
         }
 
         // 从感兴趣的房间里面拿到最新的消息
-        val t2 = async { eventSyncQueueManager.takeRelatedEvent(device.deviceId, limitOfRoom, sinceId, latestStreamId) }
-        val latestRoomEvents = t2.await()
+        val latestRoomEvents = eventSyncQueueManager.takeRelatedEvent(device.deviceId, limitOfRoom, sinceId, latestStreamId)
         // 为空的时候,waiting timeout
         if (latestRoomEvents.isEmpty()) {
             val channel = Channel<Boolean>()
@@ -74,9 +79,18 @@ class SyncHandler {
             }
             return@coroutineScope ret
         }
+        // 不为空的时候,每个房间都要补充消息,不过需要先拿到当前的roomState,用于判断device所属的membership
+        latestRoomEvents.forEach { (roomId, roomEvents) ->
+            val roomState = roomStateCache.getRoomState(roomId)
 
-        latestRoomEvents.forEach { roomId, roomEevents ->
+            when (roomState.latestMembershipType(device.userId)) {
+                MembershipType.Join -> {
 
+                }
+                else -> {
+
+                }
+            }
         }
 
         ret
@@ -110,17 +124,17 @@ class SyncHandler {
             nextBatch = (latestStreamId + 1).toString()
         }
         roomTopKEvents.forEach { topK ->
-            //  state = ( currentFullRoomStateEvents#streamId < topK最老的一条streamId)
-            //  timeline = topK
-            val currentFullRoomStateEvents = latestRoomStateEvents.getValue(topK.roomId)
-            val roomState = RoomState.fromEvents(currentFullRoomStateEvents.filter { it.streamId < topK.sliceLastEvents.last().streamId })
+            //  timelineOfStartState = ( fullRoomStateEvents#streamId < topK最老的一条streamId)
+            //  timeline = topK - timelineOfStartState 最新的一条状态消息
+            // 过滤掉比topK最旧的streamId还要大的stateEvents即为 timelineOfStartState
+            val timelineOfStartState = RoomState.fromEvents(latestRoomStateEvents.getValue(topK.roomId).filter { it.streamId < topK.sliceLastEvents.last().streamId })
             // 判断同步的这个人在此房间处于什么状态
-            when (roomState.latestMembershipType(device.userId)) {
+            when (timelineOfStartState.latestMembershipType(device.userId)) {
 
                 MembershipType.Invite -> {
                     val invited = SyncResponse.InvitedRooms().apply {
                         this.inviteState = SyncResponse.State().apply {
-                            events = roomState.descStateEvent.sortedBy { it.streamId }
+                            events = timelineOfStartState.distinctStateEvents()
                         }
                     }
                     invitedMap[topK.roomId] = invited
@@ -130,10 +144,10 @@ class SyncHandler {
                     val joined = SyncResponse.JoinedRooms().apply {
                         this.timeline = SyncResponse.Timeline().apply {
                             limited = true
-                            events = topK.sliceLastEvents.filter { it.streamId > latestRoomStateEvents.getValue(topK.roomId).first().streamId }
+                            events = topK.sliceLastEvents.filter { it.streamId > timelineOfStartState.lastStreamId() }
                         }
                         this.state = SyncResponse.State().apply {
-                            events = RoomState.fromEvents(currentFullRoomStateEvents).distinctStateEvents()
+                            events = timelineOfStartState.distinctStateEvents()
                         }
                     }
                     joinedMap[topK.roomId] = joined
@@ -143,11 +157,11 @@ class SyncHandler {
                     // topK - lastStateEvent(MaxStreamId)
                     val left = SyncResponse.LeftRooms().apply {
                         this.timeline = SyncResponse.Timeline().apply {
-                            events = topK.sliceLastEvents.filter { it.streamId > currentFullRoomStateEvents.first().streamId }
+                            events = topK.sliceLastEvents.filter { it.streamId > timelineOfStartState.lastStreamId() }
                             limited = true
                         }
                         this.state = SyncResponse.State().apply {
-                            events = RoomState.fromEvents(currentFullRoomStateEvents).distinctStateEvents()
+                            events = timelineOfStartState.distinctStateEvents()
                         }
                     }
                     leftMap[topK.roomId] = left
@@ -164,7 +178,7 @@ class SyncHandler {
                 }
             }
         }
-        return@coroutineScope ret
+        ret
     }
 
 }

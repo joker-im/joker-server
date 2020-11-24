@@ -13,7 +13,6 @@ import im.joker.helper.RequestProcessor
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.reactive.awaitFirstOrDefault
 import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -51,11 +50,7 @@ class DeviceManager {
             deviceAvatar: String?
     ): Device {
         log.debug("判断username:{}是否存在redis的hash中", username)
-        val token = try {
-            redisTemplate.opsForHash<String, String>().get(USER_DEVICES_TOKENS_HASH.format(username), username).awaitSingleOrNull()
-        } catch (e: Exception) {
-            ""
-        }
+        val token = redisTemplate.opsForHash<String, String>().get(USER_DEVICES_TOKENS_HASH.format(username), username).awaitSingleOrNull()
         return if (token.isNullOrEmpty()) {
             log.debug("username:{} token为空,创建新token", username)
             createNewToken(deviceId, username, deviceName, userId, deviceAvatar)

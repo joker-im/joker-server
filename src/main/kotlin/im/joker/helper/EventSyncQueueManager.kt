@@ -7,6 +7,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
+import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -51,7 +52,7 @@ class EventSyncQueueManager {
         val roomIds = roomSubscribeManager.searchJoinRoomIds(deviceId)
         val list = roomIds.map {
             async {
-                redisTemplate.opsForList().range(ACTIVE_ROOM_LATEST_EVENTS.format(it), 0, -1).awaitFirstOrNull()
+                redisTemplate.opsForList().range(ACTIVE_ROOM_LATEST_EVENTS.format(it), 0, -1).awaitSingleOrNull()
             }
         }
         return@coroutineScope list.awaitAll().filterNotNull()
