@@ -9,9 +9,10 @@ package im.joker.device
 data class Device(val deviceId: String,
                   val accessToken: String,
                   val username: String,
-                  val name: String?,
-                  val deviceAvatar: String?,
-                  val userId: String) {
+                  val name: String,
+                  val userAvatar: String,
+                  val userId: String,
+                  val userDisplayName: String
+)
 
 
-}

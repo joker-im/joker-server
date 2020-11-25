@@ -5,6 +5,7 @@ import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_AVATAR
 import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_DEVICE_ID
 import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_DEVICE_NAME
 import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_USERNAME
+import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME
 import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_USER_ID
 import im.joker.constants.ImConstants.Companion.USER_DEVICES_TOKENS_HASH
 import im.joker.exception.ErrorCode
@@ -46,14 +47,15 @@ class DeviceManager {
 
     suspend fun findOrCreateDevice(
             username: String, deviceId: String,
-            userId: String, deviceName: String?,
-            deviceAvatar: String?
+            userId: String, deviceName: String,
+            userAvatar: String,
+            userDisplayName: String
     ): Device {
         log.debug("判断username:{}是否存在redis的hash中", username)
         val token = redisTemplate.opsForHash<String, String>().get(USER_DEVICES_TOKENS_HASH.format(username), username).awaitSingleOrNull()
         return if (token.isNullOrEmpty()) {
             log.debug("username:{} token为空,创建新token", username)
-            createNewToken(deviceId, username, deviceName, userId, deviceAvatar)
+            createNewToken(deviceId, username, deviceName, userId, userAvatar, userDisplayName)
         } else {
             val entries =
                     redisTemplate.opsForHash<String, String>().entries(TOKEN_USER_HASH.format(token)).awaitSingleOrNull()
@@ -62,20 +64,20 @@ class DeviceManager {
         }
     }
 
-    suspend fun createNewToken(deviceId: String, username: String, deviceName: String?, userId: String, deviceAvatar: String?): Device = coroutineScope {
+    suspend fun createNewToken(deviceId: String, username: String, deviceName:
+    String, userId: String, userAvatar: String, userDisplayName: String): Device = coroutineScope {
         val token = UUID.randomUUID().toString()
         val duration = Duration.ofDays(7L)
-        val tokenDeviceMap = HashMap<String, String>()
+        val tokenDeviceMap = mapOf(
+                TOKEN_USER_HASH_KEY_USERNAME to username,
+                TOKEN_USER_HASH_KEY_USERNAME to deviceId,
+                TOKEN_USER_HASH_KEY_USER_ID to userId,
+                TOKEN_USER_HASH_KEY_AVATAR to userAvatar,
+                TOKEN_USER_HASH_KEY_DEVICE_NAME to deviceName,
+                TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME to userDisplayName
+        )
         val deviceTokenMap = mapOf(deviceId to token)
-        tokenDeviceMap[TOKEN_USER_HASH_KEY_USERNAME] = username
-        tokenDeviceMap[TOKEN_USER_HASH_KEY_DEVICE_ID] = deviceId
-        tokenDeviceMap[TOKEN_USER_HASH_KEY_USER_ID] = userId
-        deviceName?.let {
-            tokenDeviceMap[TOKEN_USER_HASH_KEY_DEVICE_NAME] = it
-        }
-        deviceAvatar?.let {
-            tokenDeviceMap[TOKEN_USER_HASH_KEY_AVATAR] = it
-        }
+
         val asyncList = listOf(
                 async {
                     redisTemplate.opsForHash<String, String>().putAll(USER_DEVICES_TOKENS_HASH.format(username), deviceTokenMap)
@@ -87,7 +89,7 @@ class DeviceManager {
                 }
         )
         asyncList.awaitAll()
-        val device = Device(deviceId, token, username, deviceName, deviceAvatar, userId)
+        val device = Device(deviceId, token, username, deviceName, userAvatar, userId, userDisplayName)
         log.info("创建新device:{}", device)
         return@coroutineScope device
     }
@@ -100,9 +102,10 @@ class DeviceManager {
                     Device(it[TOKEN_USER_HASH_KEY_DEVICE_ID]!!,
                             token,
                             it[TOKEN_USER_HASH_KEY_USERNAME]!!,
-                            it[TOKEN_USER_HASH_KEY_DEVICE_NAME],
-                            it[TOKEN_USER_HASH_KEY_AVATAR],
-                            it[TOKEN_USER_HASH_KEY_USER_ID]!!
+                            it[TOKEN_USER_HASH_KEY_DEVICE_NAME]!!,
+                            it[TOKEN_USER_HASH_KEY_AVATAR]!!,
+                            it[TOKEN_USER_HASH_KEY_USER_ID]!!,
+                            it[TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME]!!
                     )
                 }
 
@@ -125,7 +128,7 @@ class DeviceManager {
                 .entries(USER_DEVICES_TOKENS_HASH.format(username))
                 .collectList().awaitSingleOrNull()
         return deviceTokenList.map {
-            Device(it.key, it.value, username, "", "", "")
+            Device(it.key, it.value, username, "", "", "","")
         }
 
     }

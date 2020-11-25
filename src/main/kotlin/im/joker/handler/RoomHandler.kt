@@ -1,6 +1,7 @@
-package im.joker.room
+package im.joker.handler
 
 import im.joker.api.vo.room.CreateRoomRequest
+import im.joker.api.vo.room.InviteRequest
 import im.joker.device.Device
 import im.joker.event.EventType
 import im.joker.event.MembershipType
@@ -12,12 +13,13 @@ import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.state.MembershipEvent
 import im.joker.helper.GlobalStateHolder
 import im.joker.helper.IdGenerator
+import im.joker.helper.ImCache
 import im.joker.helper.ImEventBuilder
 import im.joker.repository.MongoStore
+import im.joker.room.Room
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.data.redis.core.ReactiveStringRedisTemplate
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 import java.util.*
@@ -30,12 +32,12 @@ import kotlin.collections.ArrayList
  * @Desc:
  */
 @Component
-class RoomManager {
+class RoomHandler {
 
-    val log: Logger = LoggerFactory.getLogger(RoomManager::class.java)
+    val log: Logger = LoggerFactory.getLogger(RoomHandler::class.java)
 
     @Autowired
-    private lateinit var redisTemplate: ReactiveStringRedisTemplate
+    private lateinit var imCache: ImCache
 
     @Autowired
     private lateinit var mongoStore: MongoStore
@@ -65,7 +67,7 @@ class RoomManager {
         log.info("用户:{},创建一个新房间:{}", device.username, room.roomId)
         val createEvent = eventBuilder.createRoomEvent(device.userId, room.roomId, now)
         val joinEvent: MembershipEvent = eventBuilder.membershipEvent(room.roomId, now, device.userId,
-                "", device.userId, device.name ?: "", device.deviceAvatar ?: "", MembershipType.Join)
+                "", device.userId, device.name, device.userAvatar, MembershipType.Join)
         // 默认的权限定义事件
         val powerDefEvent = eventBuilder.powerDefEvent(room.roomId, device.userId, now)
         // 如果存在覆盖的
@@ -83,7 +85,7 @@ class RoomManager {
         //是否存在顺带邀请用户
         val inviteUserEvents = request.invite?.map {
             eventBuilder.membershipEvent(room.roomId, now, device.userId,
-                    "", it, device.name ?: "", device.deviceAvatar ?: "", MembershipType.Invite)
+                    "新房邀请", it, device.name, device.userAvatar, MembershipType.Invite)
         }
 
         // 初始事件
@@ -152,6 +154,24 @@ class RoomManager {
      */
     suspend fun findSpecifiedEvents(eventType: EventType, stateKey: String): List<AbstractRoomEvent> {
         return mongoStore.findSpecifiedTypeEvents(eventType, stateKey)
+    }
+
+    suspend fun findRoom(roomId: String): Room {
+        val room = mongoStore.findRoom(roomId)
+        room?.let {
+            it.globalStateHolder = globalStateHolder
+        }
+        if (room == null) return Room()
+        return room
+    }
+
+    suspend fun inviteToRoom(roomId: String, inviteRequest: InviteRequest, loginDevice: Device) {
+        val room = imCache.getRoom(roomId)
+
+//        val membershipEvent = eventBuilder.membershipEvent(
+//                roomId, LocalDateTime.now(), loginDevice.deviceId,
+//                "主动邀请", inviteRequest.userId,
+//        )
     }
 
 

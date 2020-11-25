@@ -12,6 +12,7 @@ import im.joker.room.Room
 import im.joker.user.User
 import kotlinx.coroutines.reactive.awaitFirstOrDefault
 import kotlinx.coroutines.reactive.awaitSingle
+import kotlinx.coroutines.reactive.awaitSingleOrDefault
 import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.bson.Document
 import org.springframework.beans.factory.annotation.Autowired
@@ -172,7 +173,7 @@ class MongoStore {
 
     suspend fun findLatestStreamId(): Long {
         val query = Query().with(Sort.by(Sort.Direction.DESC, "stream_id"))
-        return mongoTemplate.findOne(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).map { it.streamId }.awaitFirstOrDefault(-1)
+        return mongoTemplate.findOne(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).map { it.streamId }.awaitSingleOrDefault(-1)
     }
 
 
@@ -206,6 +207,12 @@ class MongoStore {
                 .and("\$last_events").slice(k).`as`("slice_last_events")
         val aggregation = Aggregation.newAggregation(matchOperation, sortOperation, groupOperation, projection)
         return mongoTemplate.aggregate(aggregation, COLLECTION_NAME_EVENTS, RoomEvents::class.java).collectList().awaitSingleOrNull()
+    }
+
+    suspend fun findRoom(roomId: String): Room? {
+        val query = Query()
+        query.addCriteria(Criteria.where("room_id").`is`(roomId))
+        return mongoTemplate.findOne(query, Room::class.java, COLLECTION_NAME_ROOMS).awaitSingleOrNull()
     }
 
 }

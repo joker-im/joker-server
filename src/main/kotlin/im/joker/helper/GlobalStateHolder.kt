@@ -33,7 +33,7 @@ class GlobalStateHolder {
     lateinit var eventSyncQueueManager: EventSyncQueueManager
 
     @Autowired
-    lateinit var roomStateCache: RoomStateCache
+    lateinit var imCache: ImCache
 
     @Autowired
     lateinit var longPollingHelper: LongPollingHelper

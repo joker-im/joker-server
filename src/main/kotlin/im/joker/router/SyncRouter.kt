@@ -17,7 +17,7 @@ import reactor.core.publisher.Mono
 
 @RequestMapping(path = ["/_matrix/client/r0"], produces = [MediaType.APPLICATION_JSON_VALUE])
 @RestController
-class SyncRouter {
+class SyncRouter : BaseRouter() {
 
     @Autowired
     private lateinit var syncHandler: SyncHandler
@@ -28,9 +28,7 @@ class SyncRouter {
 
     @GetMapping("/sync")
     suspend fun sync(@RequestParam param: Map<String, String>): SyncResponse {
-        val syncRequest = requestProcessor.convert(param, SyncRequest::class.java)
-        val device = Mono.deferContextual<Device> { Mono.just(it[AuthFilter.LOGIN_DEVICE]) }.awaitSingle()
-        return syncHandler.sync(syncRequest, device)
+        return syncHandler.sync(requestProcessor.convert(param, SyncRequest::class.java), getLoginDevice())
     }
 
 }

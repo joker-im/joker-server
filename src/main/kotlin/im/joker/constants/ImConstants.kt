@@ -23,8 +23,9 @@ class ImConstants {
 
         const val TOKEN_USER_HASH_KEY_DEVICE_NAME = "device_name"
 
-        const val TOKEN_USER_HASH_KEY_AVATAR = "device_avatar"
+        const val TOKEN_USER_HASH_KEY_AVATAR = "user_avatar"
 
+        const val TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME = "user_display_name"
         /**
          * 状态键,用来定位当前用户的登录状态
          * %s是user, value是 ["online", "offline", "unavailable"] 其中之一
@@ -36,6 +37,11 @@ class ImConstants {
          * stream的自增序列
          */
         const val EVENT_STREAM_SEQUENCE = "im.joker:event_stream_sequence"
+
+        /**
+         * 用户名序列
+         */
+        const val USER_DISPLAY_NAME_SEQUENCE = "im.joker:user_display_name_sequence"
 
 
         /**

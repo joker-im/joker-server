@@ -1,6 +1,7 @@
 package im.joker.helper
 
 import im.joker.constants.ImConstants.Companion.EVENT_STREAM_SEQUENCE
+import im.joker.constants.ImConstants.Companion.USER_DISPLAY_NAME_SEQUENCE
 import kotlinx.coroutines.reactive.awaitSingle
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -31,6 +32,10 @@ class IdGenerator {
     suspend fun nextEventStreamId(): Long {
         log.debug("获取nextStreamId")
         return redisTemplate.opsForValue().increment(EVENT_STREAM_SEQUENCE).awaitSingle()
+    }
+
+    suspend fun nextUserSequence(): Long {
+        return redisTemplate.opsForValue().increment(USER_DISPLAY_NAME_SEQUENCE).awaitSingle()
     }
 
     fun newRoomId(): String {

@@ -8,7 +8,7 @@ import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.state.MembershipEvent
 import im.joker.presence.PresenceType
-import im.joker.room.RoomManager
+import im.joker.handler.RoomHandler
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -35,7 +35,7 @@ class RoomSubscribeManager {
     private lateinit var redisTemplate: ReactiveStringRedisTemplate
 
     @Autowired
-    private lateinit var roomManager: RoomManager
+    private lateinit var roomHandler: RoomHandler
 
     /**
      * 用户上线时,需调用此方法, 将自己的deviceId注册到感兴趣的房间
@@ -63,7 +63,7 @@ class RoomSubscribeManager {
                 asyncList.awaitAll()
             }
             PresenceType.ONLINE -> {
-                val joinRoomIds = roomManager.searchJoinRoomIdsFromDb(device.userId)
+                val joinRoomIds = roomHandler.searchJoinRoomIdsFromDb(device.userId)
                 val asyncList = ArrayList<Deferred<Long>>()
                 joinRoomIds.forEach {
                     val async = async {

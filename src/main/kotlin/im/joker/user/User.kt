@@ -22,12 +22,9 @@ class User {
 
     lateinit var username: String
 
-    @Transient
-    val globalStateHolder: GlobalStateHolder? = null
+    lateinit var displayName: String
 
-    var displayName: String? = null
-
-    var avatarUrl: String? = null
+    lateinit var avatarUrl: String
 
     lateinit var createTime: LocalDateTime
 

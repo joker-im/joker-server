@@ -25,7 +25,7 @@ import reactor.core.publisher.Mono
  */
 @RequestMapping(path = ["/_matrix/client/r0"], produces = [MediaType.APPLICATION_JSON_VALUE])
 @RestController
-class AccountRouter {
+class AccountRouter : BaseRouter() {
 
     @Autowired
     lateinit var userHandler: UserHandler
@@ -40,7 +40,7 @@ class AccountRouter {
             requestProcessor.validate(registerRequest)
         } catch (e: Exception) {
             val json = """{"session":"FsfiufEOEvnjQXJRBSyTTdNr","flows":[{"stages":["m.login.recaptcha","m.login.terms","m.login.dummy"]},{"stages":["m.login.recaptcha","m.login.terms","m.login.email.identity"]}],"params":{"m.login.recaptcha":{"public_key":"6LcgI54UAAAAABGdGmruw6DdOocFpYVdjYBRe4zb"},"m.login.terms":{"policies":{"privacy_policy":{"version":"1.0","en":{"name":"Terms and Conditions","url":"https://matrix-client.matrix.org/_matrix/consent?v=1.0"}}}}}}"""
-           return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                     .body(json)
         }
@@ -62,13 +62,11 @@ class AccountRouter {
 
     @PostMapping("/logout")
     suspend fun logout() {
-        val loginDevice = Mono.deferContextual<Device> { Mono.just(it[AuthFilter.LOGIN_DEVICE]) }.awaitSingleOrNull()
-        userHandler.logout(loginDevice)
+        userHandler.logout(getLoginDevice())
     }
 
     @PostMapping("/logout/all")
     suspend fun logoutAll() {
-        val loginDevice = Mono.deferContextual<Device> { Mono.just(it[AuthFilter.LOGIN_DEVICE]) }.awaitSingleOrNull()
-        userHandler.logoutAll(loginDevice)
+        userHandler.logoutAll(getLoginDevice())
     }
 }

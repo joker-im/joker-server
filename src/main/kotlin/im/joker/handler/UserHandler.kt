@@ -67,7 +67,8 @@ class UserHandler {
             log.error("addUser报错啦", e)
             throw ImException(ErrorCode.M_USER_IN_USE, HttpStatus.FORBIDDEN)
         }
-        val device = deviceManager.findOrCreateDevice(request.username, user.registerDeviceId, user.userId, request.initialDeviceDisplayName, "")
+        val device = deviceManager.findOrCreateDevice(request.username, user.registerDeviceId, user.userId,
+                request.initialDeviceDisplayName, "default_user_avatar", "im.joker:" + idGenerator.nextUserSequence())
 
         return RegisterResponse().apply {
             accessToken = device.accessToken

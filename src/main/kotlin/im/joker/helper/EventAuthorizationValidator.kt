@@ -23,7 +23,7 @@ class EventAuthorizationValidator {
     val log: Logger = LoggerFactory.getLogger(EventAuthorizationValidator::class.java)
 
     @Autowired
-    private lateinit var roomStateCache: RoomStateCache
+    private lateinit var imCache: ImCache
 
     /**
      * 检测是否可以发送此消息
@@ -33,7 +33,7 @@ class EventAuthorizationValidator {
         val postEventType = EventType.findByType(ev.type)
         // 如果发送的消息为不支持的类型,那么直接false
         postEventType ?: return false
-        val roomState = roomStateCache.getRoomState(ev.roomId)
+        val roomState = imCache.getRoomState(ev.roomId)
         val senderCurrentMembership = roomState.latestMembershipType(ev.sender)
         // 发送消息的人在房间中没有任何的membershipType,那么直接false
         senderCurrentMembership ?: return false

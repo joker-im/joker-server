@@ -1,6 +1,6 @@
 package im.joker.router
 
-import im.joker.helper.RoomStateCache
+import im.joker.helper.ImCache
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping
@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController
 class VersionRouter {
 
     @Autowired
-    private lateinit var roomStateCache: RoomStateCache
+    private lateinit var imCache: ImCache
 
     @GetMapping
     suspend fun version(): String {
@@ -22,6 +22,6 @@ class VersionRouter {
 
     @GetMapping("/test")
     suspend fun test(): Any {
-        return roomStateCache.getRoomState("!d6d569cd-778e-4169-a9d3-c767ea957613:www.jokerim.org")
+        return imCache.getRoomState("!d6d569cd-778e-4169-a9d3-c767ea957613:www.jokerim.org")
     }
 }

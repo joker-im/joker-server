@@ -12,7 +12,7 @@ import reactor.core.publisher.Mono
 
 @RestController
 @RequestMapping(path = ["/_matrix/client/r0"], produces = [MediaType.APPLICATION_JSON_VALUE])
-class PresenceRouter {
+class PresenceRouter: BaseRouter() {
 
 
     @Autowired
@@ -20,8 +20,7 @@ class PresenceRouter {
 
     @PutMapping("/presence/{userId}/status")
     suspend fun setPresence(@PathVariable userId: String, @RequestBody presenceRequest: PresenceRequest) {
-        val device = Mono.deferContextual<Device> { Mono.just(it[AuthFilter.LOGIN_DEVICE]) }.awaitSingle()
-        presenceHandler.setPresence(presenceRequest, device)
+        presenceHandler.setPresence(presenceRequest, getLoginDevice())
     }
 
 }
