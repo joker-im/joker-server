@@ -12,6 +12,7 @@ import org.springframework.core.io.buffer.DataBuffer
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.web.server.ResponseStatusException
 import org.springframework.web.server.ServerWebExchange
 import reactor.core.publisher.Mono
 import reactor.core.publisher.MonoSink
@@ -52,11 +53,20 @@ class ImExceptionHandler : ErrorWebExceptionHandler {
                 monoSink.success(dataBuffer)
             }.flatMap { e: DataBuffer -> exchange.response.writeWith(Mono.just(e)) }
         } else {
-            exchange.response.statusCode = HttpStatus.INTERNAL_SERVER_ERROR
+            var msg: String? = null
+            var errorCode: ErrorCode? = null
+            if (ex is ResponseStatusException && ex.status == HttpStatus.NOT_FOUND) {
+                exchange.response.statusCode = ex.status
+                msg = "不存在此接口地址"
+                errorCode = ErrorCode.NOT_FOUND
+            } else {
+                exchange.response.statusCode = HttpStatus.INTERNAL_SERVER_ERROR
+            }
             Mono.create { monoSink: MonoSink<DataBuffer> ->
                 var jsonBytes = ByteArray(0)
                 try {
-                    jsonBytes = objectMapper.writeValueAsBytes(Map.of("error_code", ErrorCode.UNKNOWN.name, "msg", ErrorCode.UNKNOWN.msg))
+                    jsonBytes = objectMapper.writeValueAsBytes(Map.of("error_code", errorCode ?: ErrorCode.UNKNOWN.name,
+                            "msg", msg ?: ErrorCode.UNKNOWN.msg))
                 } catch (e: Exception) {
                     log.error("json转换异常", e)
                 }

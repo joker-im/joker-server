@@ -19,6 +19,10 @@ public enum RoomJoinRuleType {
         this.id = id;
     }
 
+    public String getId() {
+        return id;
+    }
+
     public boolean is(String type) {
         return this.name().equalsIgnoreCase(type);
     }

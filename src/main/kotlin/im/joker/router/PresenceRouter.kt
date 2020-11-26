@@ -1,26 +1,23 @@
 package im.joker.router
 
 import im.joker.api.vo.presence.PresenceRequest
-import im.joker.config.AuthFilter
-import im.joker.device.Device
 import im.joker.handler.PresenceHandler
-import kotlinx.coroutines.reactive.awaitSingle
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
-import reactor.core.publisher.Mono
 
 @RestController
 @RequestMapping(path = ["/_matrix/client/r0"], produces = [MediaType.APPLICATION_JSON_VALUE])
-class PresenceRouter: BaseRouter() {
+class PresenceRouter : BaseRouter() {
 
 
     @Autowired
     private lateinit var presenceHandler: PresenceHandler
 
     @PutMapping("/presence/{userId}/status")
-    suspend fun setPresence(@PathVariable userId: String, @RequestBody presenceRequest: PresenceRequest) {
+    suspend fun setPresence(@PathVariable userId: String, @RequestBody presenceRequest: PresenceRequest): String {
         presenceHandler.setPresence(presenceRequest, getLoginDevice())
+        return "{}"
     }
 
 }

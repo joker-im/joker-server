@@ -92,5 +92,9 @@ class UserHandler {
         authManager.logoutAll(device)
     }
 
+    suspend fun findUser(userId: String): User? {
+        return mongoStore.findUserByUserId(userId)
+    }
+
 
 }

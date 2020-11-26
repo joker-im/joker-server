@@ -29,6 +29,7 @@ class LongPollingHelper {
         redissonReactiveClient.getTopic(ROOM_SYNC_DEVICE).addListener(String::class.java) { _, deviceId ->
             log.info("唤醒device:{}", deviceId)
             waitingSyncMap[deviceId]?.offer(true)
+            removeWaitingDevice(deviceId)
         }.subscribe()
     }
 
@@ -39,6 +40,11 @@ class LongPollingHelper {
 
     suspend fun notifySyncDevice(deviceId: String) {
         redissonReactiveClient.getTopic(ROOM_SYNC_DEVICE).publish(deviceId).awaitSingleOrNull()
+    }
+
+    fun removeWaitingDevice(deviceId: String) {
+        val remove = waitingSyncMap.remove(deviceId)
+        remove?.close()
     }
 
 }

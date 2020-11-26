@@ -11,7 +11,6 @@ import im.joker.room.Room
 import im.joker.upload.UploadFile
 import im.joker.user.User
 import kotlinx.coroutines.reactive.awaitSingle
-import kotlinx.coroutines.reactive.awaitSingleOrDefault
 import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.bson.Document
 import org.springframework.beans.factory.annotation.Autowired
@@ -40,7 +39,6 @@ class MongoStore {
 
     companion object {
         const val COLLECTION_NAME_ROOMS = "rooms"
-        const val COLLECTION_NAME_ROOM_STATES = "room_states"
         const val COLLECTION_NAME_EVENTS = "events"
         const val COLLECTION_USER = "users"
         const val COLLECTION_FILE = "files"
@@ -59,11 +57,12 @@ class MongoStore {
     private fun createEventCollection(): Mono<String> {
         return mongoTemplate.createCollection(COLLECTION_NAME_EVENTS)
                 .flatMap {
-                    val index1 = IndexModel(Document.parse("{room_id: 1, _id: -1}"))
-                    val index2 = IndexModel(Document.parse("{event_id: 1}"))
+                    val index1 = IndexModel(Document.parse("{room_id: 1,stream_id:1}"))
+                    val index2 = IndexModel(Document.parse("{event_id: 1}"), IndexOptions().unique(true))
                     val index3 = IndexModel(Document.parse("{room_id: 1, type: 1, sender: 1}"))
                     val index4 = IndexModel(Document.parse("{stream_id:1}"), IndexOptions().unique(true))
-                    Mono.from(it.createIndexes(listOf(index1, index2, index3, index4)))
+                    val index5 = IndexModel(Document.parse("{transaction_id:1}"), IndexOptions().unique(true))
+                    Mono.from(it.createIndexes(listOf(index1, index2, index3, index4, index5)))
                 }
     }
 
@@ -78,19 +77,10 @@ class MongoStore {
                 }
     }
 
-    private fun createRoomStateCollection(): Mono<String> {
-        return mongoTemplate.createCollection(COLLECTION_NAME_ROOM_STATES) // 创建room_state索引
-                .flatMap {
-                    val index1 = IndexModel(Document.parse("{room_id: -1, event_id: -1}"))
-                    val index2 = IndexModel(Document.parse("{room_id: -1, _id: -1}"))
-                    Mono.from(it.createIndexes(listOf(index1, index2)))
-                }
-    }
-
     private fun createFileCollection(): Mono<String> {
         return mongoTemplate.createCollection(COLLECTION_FILE)
                 .flatMap {
-                    val index1 = IndexModel(Document.parse("{filepath: hashed }"))
+                    val index1 = IndexModel(Document.parse("{'filepath': 'hashed' }"))
                     val index2 = IndexModel(Document.parse("{upload_time:-1}"))
                     Mono.from(it.createIndexes(listOf(index1, index2)))
                 }
@@ -106,11 +96,6 @@ class MongoStore {
                 .then(mongoTemplate.collectionExists(COLLECTION_NAME_EVENTS))
                 .flatMap {
                     if (!it) createEventCollection()
-                    else Mono.empty()
-                }
-                .then(mongoTemplate.collectionExists(COLLECTION_NAME_ROOM_STATES))
-                .flatMap {
-                    if (!it) createRoomStateCollection()
                     else Mono.empty()
                 }
                 .then(mongoTemplate.collectionExists(COLLECTION_USER))
@@ -173,7 +158,7 @@ class MongoStore {
 
     suspend fun findLatestStreamId(): Long {
         val query = Query().with(Sort.by(Sort.Direction.DESC, "stream_id"))
-        return mongoTemplate.findOne(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).map { it.streamId }.awaitSingleOrDefault(-1)
+        return mongoTemplate.findOne(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).map { it.streamId }.awaitSingle()
     }
 
 
@@ -242,6 +227,12 @@ class MongoStore {
         query.addCriteria(Criteria.where("stream_id").`in`(gteStreamId, lteStreamId).`is`(roomId).size(limit))
         query.with(Sort.by(Sort.Direction.DESC, "stream_id"))
         return mongoTemplate.find(query, AbstractRoomEvent::class.java).collectList().awaitSingleOrNull()
+    }
+
+    suspend fun findUserByUserId(userId: String): User? {
+        val query = Query()
+        query.addCriteria(Criteria.where("user_id").`is`(userId))
+        return mongoTemplate.findOne(query, User::class.java, COLLECTION_USER).awaitSingleOrNull()
     }
 
 }

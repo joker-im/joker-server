@@ -6,13 +6,15 @@ import im.joker.device.Device
 import im.joker.event.MembershipType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.helper.EventSyncQueueManager
-import im.joker.helper.LongPollingHelper
 import im.joker.helper.ImCache
+import im.joker.helper.LongPollingHelper
 import im.joker.helper.RoomSubscribeManager
 import im.joker.repository.MongoStore
 import im.joker.room.RoomState
-import kotlinx.coroutines.*
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeout
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -68,26 +70,31 @@ class SyncHandler {
         }
 
         // 从感兴趣的房间里面拿到最新的消息
-        val latestRoomEventMap = eventSyncQueueManager.takeRelatedEvent(device.deviceId, limitOfRoom, sinceId, latestStreamId)
+        val latestRoomEventMap = eventSyncQueueManager.takeRelatedEvent(device.deviceId, sinceId, latestStreamId)
         // 为空的时候,waiting timeout
         if (latestRoomEventMap.isEmpty()) {
             val channel = Channel<Boolean>()
             longPollingHelper.addWaitingDevice(device.deviceId, channel)
-            withTimeout(request.timeout.toLong()) {
-                channel.receive()
+            try {
+                withTimeout(request.timeout.toLong()) {
+                    channel.receive()
+                }
+            } catch (e: Exception) {
+                channel.cancel()
             }
+            longPollingHelper.removeWaitingDevice(device.deviceId)
             return@coroutineScope ret
         }
         // 不为空的时候,每个房间都要补充消息,不过需要先拿到当前的roomState,用于判断device所属的membership
         latestRoomEventMap.forEach { (roomId, latestRoomEvents) ->
             val fullRoomState = imCache.getRoomState(roomId)
             // 队列里面最小的streamId,但是最多只取limitOfRoom条
-            val roomLimitEvents = latestRoomEvents.slice(IntRange(latestRoomEvents.size - 1 - limitOfRoom, latestRoomEvents.size - 1))
+            val roomLimitEvents = if (latestRoomEvents.size > limitOfRoom) latestRoomEvents.slice(IntRange(latestRoomEvents.size - 1 - limitOfRoom, latestRoomEvents.size - 1)) else latestRoomEvents
             val minStreamId = roomLimitEvents.first().streamId
             // 比队列里面最小的streamId还要小的作为timelineOfStartState
             val timelineOfStartState = RoomState.fromEvents(fullRoomState.descStateEvent.filter { it.streamId < minStreamId })
 
-            fillRetEvents(timelineOfStartState, device, invitedMap, roomId, roomLimitEvents, joinedMap, leftMap, latestRoomEvents.size == roomLimitEvents.size)
+            fillRetEvents(timelineOfStartState, device, invitedMap, roomId, roomLimitEvents, joinedMap, leftMap, latestRoomEvents.size > roomLimitEvents.size)
         }
 
         ret

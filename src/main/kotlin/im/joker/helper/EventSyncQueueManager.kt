@@ -48,19 +48,22 @@ class EventSyncQueueManager {
     /**
      * 从设备相关的房间中拿取limitOfRoom条数据,其返回值key是roomId,value是redis队列中提取的
      */
-    suspend fun takeRelatedEvent(deviceId: String, limitOfRoom: Int, gteStreamId: Long, lteStreamId: Long): Map<String, List<AbstractRoomEvent>> = coroutineScope {
+    suspend fun takeRelatedEvent(deviceId: String, gteStreamId: Long, lteStreamId: Long): Map<String, List<AbstractRoomEvent>> = coroutineScope {
         val roomIds = roomSubscribeManager.searchJoinRoomIds(deviceId)
         val list = roomIds.map {
             async {
-                redisTemplate.opsForList().range(ACTIVE_ROOM_LATEST_EVENTS.format(it), 0, -1).awaitSingleOrNull()
+                redisTemplate.opsForList().range(ACTIVE_ROOM_LATEST_EVENTS.format(it), 0, -1).collectList().awaitSingleOrNull()
             }
         }
-        return@coroutineScope list.awaitAll().filterNotNull()
-                .map { requestProcessor.toBean(it, AbstractRoomEvent::class.java) }
-                .filter {
-                    it.streamId in gteStreamId..lteStreamId
-                }
-                .groupBy { it.roomId }
+        val eventMap = HashMap<String, List<AbstractRoomEvent>>()
+        list.awaitAll().forEach { it1 ->
+            val roomEvents = it1.map { requestProcessor.toBean(it, AbstractRoomEvent::class.java) }
+                    .filter {
+                        it.streamId in gteStreamId..lteStreamId
+                    }
+            if (roomEvents.isNotEmpty()) eventMap[roomEvents[0].roomId] = roomEvents
+        }
+        return@coroutineScope eventMap
     }
 
 }

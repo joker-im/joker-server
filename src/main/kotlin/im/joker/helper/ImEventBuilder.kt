@@ -102,7 +102,7 @@ class ImEventBuilder {
 
         return PowerLevelEvent().apply {
             this.type = EventType.PowerLevel.id
-            this.stateKey = stateKey
+            this.stateKey = ""
             this.content = pc
             this.sender = sender
             streamId = idGenerator.nextEventStreamId()
@@ -140,7 +140,7 @@ class ImEventBuilder {
 
     suspend fun roomJoinRuleEvent(joinRuleType: RoomJoinRuleType, roomId: String, sender: String, time: LocalDateTime): RoomJoinRuleEvent {
         val content = RoomJoinRuleContent().apply {
-            this.joinRule = joinRuleType.name
+            this.joinRule = joinRuleType.id
         }
         return RoomJoinRuleEvent().apply {
             stateKey = ""

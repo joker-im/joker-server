@@ -141,13 +141,13 @@ class RoomHandler {
         val membershipEventsMap =
                 findSpecifiedEvents(EventType.Membership, stateKey)
                         .map { it as AbstractRoomStateEvent }
-                        .groupingBy { it.type + it.stateKey }
+                        .groupingBy { it.roomId + it.type + it.stateKey }
                         .reduce { _, acc, e -> if (acc.streamId > e.streamId) acc else e }
         val destRoomIds = ArrayList<String>()
-        membershipEventsMap.forEach { (k, v) ->
+        membershipEventsMap.forEach { (_, v) ->
             val content = v.content as MembershipContent
             if (MembershipType.Join.`is`(content.membership)) {
-                destRoomIds.add(k)
+                destRoomIds.add(v.roomId)
             }
         }
         return destRoomIds
