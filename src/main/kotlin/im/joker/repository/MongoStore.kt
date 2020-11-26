@@ -53,7 +53,7 @@ class MongoStore {
 
     private fun createRoomCollection(): Mono<String> {
         return mongoTemplate.createCollection(COLLECTION_NAME_ROOMS) // 创建room的索引
-                .flatMap { o -> Mono.from(o.createIndex(Document.parse("{room_id: 1}"), IndexOptions().unique(true))) }
+                .flatMap { Mono.from(it.createIndex(Document.parse("{room_id: 1}"), IndexOptions().unique(true))) }
     }
 
     private fun createEventCollection(): Mono<String> {
@@ -99,27 +99,27 @@ class MongoStore {
     private fun createCollectionAndIndex(): Mono<Void> {
         // 创建room
         return mongoTemplate.collectionExists(COLLECTION_NAME_ROOMS)
-                .flatMap { exists ->
-                    if (!exists) createRoomCollection()
+                .flatMap {
+                    if (!it) createRoomCollection()
                     else Mono.empty()
                 }
                 .then(mongoTemplate.collectionExists(COLLECTION_NAME_EVENTS))
-                .flatMap { exists ->
-                    if (!exists) createEventCollection()
+                .flatMap {
+                    if (!it) createEventCollection()
                     else Mono.empty()
                 }
                 .then(mongoTemplate.collectionExists(COLLECTION_NAME_ROOM_STATES))
-                .flatMap { exists ->
-                    if (!exists) createRoomStateCollection()
+                .flatMap {
+                    if (!it) createRoomStateCollection()
                     else Mono.empty()
                 }
                 .then(mongoTemplate.collectionExists(COLLECTION_USER))
-                .flatMap { exists ->
-                    if (!exists) createUserCollection()
+                .flatMap {
+                    if (!it) createUserCollection()
                     else Mono.empty()
                 }.then(mongoTemplate.collectionExists(COLLECTION_FILE))
-                .flatMap { exists ->
-                    if (!exists) createFileCollection()
+                .flatMap {
+                    if (!it) createFileCollection()
                     else Mono.empty()
                 }
                 .then()
