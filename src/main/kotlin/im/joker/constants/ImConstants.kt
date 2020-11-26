@@ -23,7 +23,7 @@ class ImConstants {
 
         const val TOKEN_USER_HASH_KEY_DEVICE_NAME = "device_name"
 
-        const val TOKEN_USER_HASH_KEY_AVATAR = "user_avatar"
+        const val TOKEN_USER_HASH_KEY_USER_AVATAR = "user_avatar"
 
         const val TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME = "user_display_name"
         /**

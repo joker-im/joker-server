@@ -7,28 +7,28 @@ import java.util.List;
 
 public class MessageResponse {
 
-    private Integer start;
+    private Long start;
 
-    private Integer end;
+    private Long end;
 
     private List<AbstractRoomEvent> chunk;
 
     private List<AbstractRoomStateEvent> state;
 
 
-    public Integer getStart() {
+    public Long getStart() {
         return start;
     }
 
-    public void setStart(Integer start) {
+    public void setStart(Long start) {
         this.start = start;
     }
 
-    public Integer getEnd() {
+    public Long getEnd() {
         return end;
     }
 
-    public void setEnd(Integer end) {
+    public void setEnd(Long end) {
         this.end = end;
     }
 

@@ -1,7 +1,7 @@
 package im.joker.device
 
 import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH
-import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_AVATAR
+import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_USER_AVATAR
 import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_DEVICE_ID
 import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_DEVICE_NAME
 import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_USERNAME
@@ -24,7 +24,6 @@ import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 import java.time.Duration
 import java.util.*
-import kotlin.collections.HashMap
 
 /**
  * @Author: mkCen
@@ -70,11 +69,11 @@ class DeviceManager {
         val duration = Duration.ofDays(7L)
         val tokenDeviceMap = mapOf(
                 TOKEN_USER_HASH_KEY_USERNAME to username,
-                TOKEN_USER_HASH_KEY_USERNAME to deviceId,
                 TOKEN_USER_HASH_KEY_USER_ID to userId,
-                TOKEN_USER_HASH_KEY_AVATAR to userAvatar,
+                TOKEN_USER_HASH_KEY_USER_AVATAR to userAvatar,
                 TOKEN_USER_HASH_KEY_DEVICE_NAME to deviceName,
-                TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME to userDisplayName
+                TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME to userDisplayName,
+                TOKEN_USER_HASH_KEY_DEVICE_ID to deviceId
         )
         val deviceTokenMap = mapOf(deviceId to token)
 
@@ -103,7 +102,7 @@ class DeviceManager {
                             token,
                             it[TOKEN_USER_HASH_KEY_USERNAME]!!,
                             it[TOKEN_USER_HASH_KEY_DEVICE_NAME]!!,
-                            it[TOKEN_USER_HASH_KEY_AVATAR]!!,
+                            it[TOKEN_USER_HASH_KEY_USER_AVATAR]!!,
                             it[TOKEN_USER_HASH_KEY_USER_ID]!!,
                             it[TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME]!!
                     )
@@ -128,7 +127,7 @@ class DeviceManager {
                 .entries(USER_DEVICES_TOKENS_HASH.format(username))
                 .collectList().awaitSingleOrNull()
         return deviceTokenList.map {
-            Device(it.key, it.value, username, "", "", "","")
+            Device(it.key, it.value, username, "", "", "", "")
         }
 
     }

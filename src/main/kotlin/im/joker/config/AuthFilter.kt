@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
+import org.springframework.util.AntPathMatcher
 import org.springframework.util.CollectionUtils
 import org.springframework.web.server.ServerWebExchange
 import org.springframework.web.server.WebFilter
@@ -36,22 +37,25 @@ class AuthFilter : WebFilter {
 
     companion object {
         const val LOGIN_DEVICE = "login_device"
-
-        private val withoutAuthUrls = listOf(
-                Tuples.of(HttpMethod.POST, "/_matrix/client/r0/register"),
-                Tuples.of(HttpMethod.GET, "/_matrix/client/r0/login"),
-                Tuples.of(HttpMethod.GET, "/_matrix/client/versions"),
-                Tuples.of(HttpMethod.POST, "/_matrix/client/r0/login"),
-                Tuples.of(HttpMethod.GET, "/_matrix/client/versions/test"),
-                Tuples.of(HttpMethod.GET, "/favicon.ico")
-        )
     }
+
+    private val withoutAuthUrls = listOf(
+            Tuples.of(HttpMethod.POST, "/_matrix/client/r0/register"),
+            Tuples.of(HttpMethod.GET, "/_matrix/client/r0/login"),
+            Tuples.of(HttpMethod.GET, "/_matrix/client/versions"),
+            Tuples.of(HttpMethod.POST, "/_matrix/client/r0/login"),
+            Tuples.of(HttpMethod.GET, "/_matrix/client/versions/test"),
+            Tuples.of(HttpMethod.GET, "/favicon.ico"),
+            Tuples.of(HttpMethod.GET,"/_matrix/client/r0/download/**")
+    )
+
+    private val antMatcher = AntPathMatcher()
 
     override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
         val request = exchange.request
         val url = request.path.value()
         val method = request.method
-        val exists = withoutAuthUrls.stream().anyMatch { e: Tuple2<HttpMethod, String> -> e.t1 == method && e.t2 == url }
+        val exists = withoutAuthUrls.stream().anyMatch { e: Tuple2<HttpMethod, String> -> e.t1 == method && antMatcher.match(e.t2, url) }
         if (HttpMethod.OPTIONS == method || exists) {
             return chain.filter(exchange)
         }
@@ -60,7 +64,7 @@ class AuthFilter : WebFilter {
         headers?.let {
             token = it[0].substringAfter("Bearer ")
         }
-        if(token.isNullOrBlank()){
+        if (token.isNullOrBlank()) {
             throw ImException(ErrorCode.UNAUTHORIZED, HttpStatus.UNAUTHORIZED)
         }
 

@@ -9,9 +9,9 @@ public class MessageRequest {
     private String roomId;
 
     @NotNull(message = "from不可为空")
-    private Integer from;
+    private Long from;
 
-    private Integer to;
+    private Long to;
 
     @NotNull(message = "dir不可为空,并且必须为b或者f")
     @Pattern(regexp = "[b,f]$", message = "dir必须为b或者f")
@@ -29,19 +29,19 @@ public class MessageRequest {
         this.roomId = roomId;
     }
 
-    public Integer getFrom() {
+    public Long getFrom() {
         return from;
     }
 
-    public void setFrom(Integer from) {
+    public void setFrom(Long from) {
         this.from = from;
     }
 
-    public Integer getTo() {
+    public Long getTo() {
         return to;
     }
 
-    public void setTo(Integer to) {
+    public void setTo(Long to) {
         this.to = to;
     }
 

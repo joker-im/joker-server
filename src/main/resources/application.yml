@@ -19,8 +19,14 @@ spring:
       FIELD: PUBLIC_ONLY
 
 
+  codec:
+    max-in-memory-size: 200MB
+
+
 im:
   web-domain: www.jokerim.org
+  # 上传文件的路径
+  file-root-dir: joker_files
 
 logging:
   level:

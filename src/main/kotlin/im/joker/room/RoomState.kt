@@ -2,6 +2,7 @@ package im.joker.room
 
 import im.joker.event.EventType
 import im.joker.event.MembershipType
+import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.state.MembershipEvent
 import im.joker.event.room.state.PowerLevelEvent
@@ -69,9 +70,8 @@ class RoomState {
         }
     }
 
-
-    fun lastStreamId(): Long {
-        return descStateEvent.first().streamId
+    fun latestMembershipEvent(userId: String): AbstractRoomStateEvent? {
+        return descStateMap[userId]
     }
 
     /**

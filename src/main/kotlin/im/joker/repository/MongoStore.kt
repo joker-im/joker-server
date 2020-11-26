@@ -3,14 +3,13 @@ package im.joker.repository
 import com.mongodb.BasicDBObject
 import com.mongodb.client.model.IndexModel
 import com.mongodb.client.model.IndexOptions
-import com.mongodb.reactivestreams.client.MongoCollection
 import im.joker.api.vo.RoomEvents
 import im.joker.event.EventType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.room.Room
+import im.joker.upload.UploadFile
 import im.joker.user.User
-import kotlinx.coroutines.reactive.awaitFirstOrDefault
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactive.awaitSingleOrDefault
 import kotlinx.coroutines.reactive.awaitSingleOrNull
@@ -44,6 +43,7 @@ class MongoStore {
         const val COLLECTION_NAME_ROOM_STATES = "room_states"
         const val COLLECTION_NAME_EVENTS = "events"
         const val COLLECTION_USER = "users"
+        const val COLLECTION_FILE = "files"
     }
 
     @PostConstruct
@@ -53,76 +53,76 @@ class MongoStore {
 
     private fun createRoomCollection(): Mono<String> {
         return mongoTemplate.createCollection(COLLECTION_NAME_ROOMS) // 创建room的索引
-                .flatMap { o: MongoCollection<Document> -> Mono.from(o.createIndex(Document.parse("{room_id: 1}"), IndexOptions().unique(true))) }
+                .flatMap { o -> Mono.from(o.createIndex(Document.parse("{room_id: 1}"), IndexOptions().unique(true))) }
     }
 
     private fun createEventCollection(): Mono<String> {
         return mongoTemplate.createCollection(COLLECTION_NAME_EVENTS)
-                .flatMap { o: MongoCollection<Document> ->
+                .flatMap {
                     val index1 = IndexModel(Document.parse("{room_id: 1, _id: -1}"))
                     val index2 = IndexModel(Document.parse("{event_id: 1}"))
                     val index3 = IndexModel(Document.parse("{room_id: 1, type: 1, sender: 1}"))
                     val index4 = IndexModel(Document.parse("{stream_id:1}"), IndexOptions().unique(true))
-                    val indexes = listOf(index1, index2, index3, index4)
-                    Mono.from(o.createIndexes(indexes))
+                    Mono.from(it.createIndexes(listOf(index1, index2, index3, index4)))
                 }
     }
 
 
     private fun createUserCollection(): Mono<String> {
         return mongoTemplate.createCollection(COLLECTION_USER) // 创建user的索引
-                .flatMap { o: MongoCollection<Document> ->
+                .flatMap {
                     val index1 = IndexModel(Document.parse("{username:1}"), IndexOptions().unique(true))
                     val index2 = IndexModel(Document.parse("{create_time:-1}"))
                     val index3 = IndexModel(Document.parse("{user_id:-1}"), IndexOptions().unique(true))
-                    Mono.from(o.createIndexes(listOf(index1, index2, index3)))
+                    Mono.from(it.createIndexes(listOf(index1, index2, index3)))
                 }
     }
 
     private fun createRoomStateCollection(): Mono<String> {
         return mongoTemplate.createCollection(COLLECTION_NAME_ROOM_STATES) // 创建room_state索引
-                .flatMap { o: MongoCollection<Document> ->
+                .flatMap {
                     val index1 = IndexModel(Document.parse("{room_id: -1, event_id: -1}"))
                     val index2 = IndexModel(Document.parse("{room_id: -1, _id: -1}"))
-                    val indexes = listOf(index1, index2)
-                    Mono.from(o.createIndexes(indexes))
+                    Mono.from(it.createIndexes(listOf(index1, index2)))
+                }
+    }
+
+    private fun createFileCollection(): Mono<String> {
+        return mongoTemplate.createCollection(COLLECTION_FILE)
+                .flatMap {
+                    val index1 = IndexModel(Document.parse("{filepath: hashed }"))
+                    val index2 = IndexModel(Document.parse("{upload_time:-1}"))
+                    Mono.from(it.createIndexes(listOf(index1, index2)))
                 }
     }
 
     private fun createCollectionAndIndex(): Mono<Void> {
         // 创建room
         return mongoTemplate.collectionExists(COLLECTION_NAME_ROOMS)
-                .flatMap { exists: Boolean? ->
-                    if (!exists!!) {
-                        return@flatMap createRoomCollection()
-                    } else {
-                        return@flatMap Mono.empty<String>()
-                    }
+                .flatMap { exists ->
+                    if (!exists) createRoomCollection()
+                    else Mono.empty()
                 }
                 .then(mongoTemplate.collectionExists(COLLECTION_NAME_EVENTS))
-                .flatMap { exists: Boolean ->
-                    if (!exists) {
-                        return@flatMap createEventCollection()
-                    } else {
-                        return@flatMap Mono.empty<String>()
-                    }
+                .flatMap { exists ->
+                    if (!exists) createEventCollection()
+                    else Mono.empty()
                 }
                 .then(mongoTemplate.collectionExists(COLLECTION_NAME_ROOM_STATES))
-                .flatMap { exists: Boolean ->
-                    if (!exists) {
-                        return@flatMap createRoomStateCollection()
-                    } else {
-                        return@flatMap Mono.empty<String>()
-                    }
+                .flatMap { exists ->
+                    if (!exists) createRoomStateCollection()
+                    else Mono.empty()
                 }
                 .then(mongoTemplate.collectionExists(COLLECTION_USER))
-                .flatMap { exists: Boolean ->
-                    if (!exists) {
-                        return@flatMap createUserCollection()
-                    } else {
-                        return@flatMap Mono.empty<String>()
-                    }
-                }.then()
+                .flatMap { exists ->
+                    if (!exists) createUserCollection()
+                    else Mono.empty()
+                }.then(mongoTemplate.collectionExists(COLLECTION_FILE))
+                .flatMap { exists ->
+                    if (!exists) createFileCollection()
+                    else Mono.empty()
+                }
+                .then()
     }
 
     suspend fun addUser(u: User): User {
@@ -213,6 +213,35 @@ class MongoStore {
         val query = Query()
         query.addCriteria(Criteria.where("room_id").`is`(roomId))
         return mongoTemplate.findOne(query, Room::class.java, COLLECTION_NAME_ROOMS).awaitSingleOrNull()
+    }
+
+    suspend fun addUploadFile(up: UploadFile): UploadFile {
+        return mongoTemplate.insert(up, COLLECTION_FILE).awaitSingle()
+    }
+
+    suspend fun findUploadFile(mediaId: String): UploadFile? {
+        val query = Query()
+        query.addCriteria(Criteria.where("_id").`is`(mediaId))
+        return mongoTemplate.findOne(query, UploadFile::class.java, COLLECTION_FILE).awaitSingleOrNull()
+    }
+
+
+    /**
+     * 时间线往前查询count条该房间的消息
+     */
+    suspend fun findForwardRoomEvents(roomId: String, gteStreamId: Long, limit: Int): List<AbstractRoomEvent> {
+        val query = Query()
+        query.addCriteria(Criteria.where("stream_id").gte(gteStreamId).and("room_id").`is`(roomId).size(limit))
+        query.with(Sort.by(Sort.Direction.ASC, "stream_id"))
+        return mongoTemplate.find(query, AbstractRoomEvent::class.java).collectList().awaitSingleOrNull()
+    }
+
+
+    suspend fun findBackwardEvents(roomId: String, gteStreamId: Long, lteStreamId: Long, limit: Int): List<AbstractRoomEvent> {
+        val query = Query()
+        query.addCriteria(Criteria.where("stream_id").`in`(gteStreamId, lteStreamId).`is`(roomId).size(limit))
+        query.with(Sort.by(Sort.Direction.DESC, "stream_id"))
+        return mongoTemplate.find(query, AbstractRoomEvent::class.java).collectList().awaitSingleOrNull()
     }
 
 }

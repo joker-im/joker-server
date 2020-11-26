@@ -1,10 +1,7 @@
 package im.joker.router
 
 import com.google.gson.JsonObject
-import im.joker.api.vo.room.CreateRoomRequest
-import im.joker.api.vo.room.CreateRoomResponse
-import im.joker.api.vo.room.EventIdResponse
-import im.joker.api.vo.room.InviteRequest
+import im.joker.api.vo.room.*
 import im.joker.event.EventType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.exception.ErrorCode
@@ -80,4 +77,39 @@ class RoomRouter : BaseRouter() {
     suspend fun inviteToRoom(@PathVariable roomId: String, @RequestBody inviteRequest: InviteRequest) {
         roomHandler.inviteToRoom(roomId, inviteRequest, getLoginDevice())
     }
+
+
+    @PostMapping("/rooms/{roomId}/join")
+    suspend fun joinRoom(@PathVariable roomId: String): JoinRoomResponse {
+        roomHandler.joinRoom(roomId, getLoginDevice())
+        return JoinRoomResponse().apply {
+            this.roomId = roomId
+        }
+    }
+
+    @PostMapping("/rooms/{roomId}/leave")
+    suspend fun leaveRoom(@PathVariable roomId: String) {
+        roomHandler.leaveRoom(roomId, getLoginDevice())
+    }
+
+    @PostMapping("/rooms/{roomId}/kick")
+    suspend fun kick(@PathVariable roomId: String, @RequestBody kickRequest: KickRequest) {
+        requestProcessor.validate(kickRequest)
+        roomHandler.kick(roomId, kickRequest, getLoginDevice())
+    }
+
+
+    /**
+     * 从此房间中拉取消息
+     */
+    @GetMapping("/rooms/{roomId}/message")
+    suspend fun messages(@PathVariable roomId: String, @RequestBody param: Map<String, String>): MessageResponse {
+        val messageRequest = requestProcessor.convert(param, MessageRequest::class.java)
+        log.info("收到拉取房间消息的请求,deviceId:{},roomId:{}", getLoginDevice().deviceId, roomId)
+        requestProcessor.validate(messageRequest)
+        messageRequest.roomId = roomId
+        return roomHandler.findEventsChunk(messageRequest, getLoginDevice())
+    }
+
+
 }

@@ -24,7 +24,7 @@ class User {
 
     lateinit var displayName: String
 
-    lateinit var avatarUrl: String
+    lateinit var avatar: String
 
     lateinit var createTime: LocalDateTime
 

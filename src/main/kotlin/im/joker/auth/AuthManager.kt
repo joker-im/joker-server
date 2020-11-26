@@ -12,7 +12,6 @@ import im.joker.helper.IdGenerator
 import im.joker.helper.PasswordEncoder
 import im.joker.presence.PresenceType
 import im.joker.repository.MongoStore
-import org.apache.commons.lang3.RandomStringUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -58,7 +57,7 @@ class AuthManager {
             throw ImException(ErrorCode.CAPTCHA_INVALID, HttpStatus.FORBIDDEN)
         }
         val device = deviceManager.findOrCreateDevice(user.username, request.deviceId, user.userId,
-                request.initialDeviceDisplayName, user.avatarUrl, user.displayName)
+                request.initialDeviceDisplayName, user.avatar, user.displayName)
         val presenceRequest = PresenceRequest()
         presenceRequest.presence = PresenceType.ONLINE.id
         presenceHandler.setPresence(presenceRequest, device)

@@ -87,7 +87,7 @@ class SyncHandler {
             // 比队列里面最小的streamId还要小的作为timelineOfStartState
             val timelineOfStartState = RoomState.fromEvents(fullRoomState.descStateEvent.filter { it.streamId < minStreamId })
 
-            fillEvents(timelineOfStartState, device, invitedMap, roomId, roomLimitEvents, joinedMap, leftMap, latestRoomEvents.size == roomLimitEvents.size)
+            fillRetEvents(timelineOfStartState, device, invitedMap, roomId, roomLimitEvents, joinedMap, leftMap, latestRoomEvents.size == roomLimitEvents.size)
         }
 
         ret
@@ -129,14 +129,14 @@ class SyncHandler {
             val timelineEvent = topK.sliceLastEvents.sortedBy { it.streamId }
             val roomId = topK.roomId
             // 填充事件到结果中
-            fillEvents(timelineOfStartState, device, invitedMap, roomId, timelineEvent, joinedMap, leftMap)
+            fillRetEvents(timelineOfStartState, device, invitedMap, roomId, timelineEvent, joinedMap, leftMap)
         }
         ret
     }
 
-    private fun fillEvents(timelineOfStartState: RoomState, device: Device, invitedMap: HashMap<String, SyncResponse.InvitedRooms>,
-                           roomId: String, timelineEvent: List<AbstractRoomEvent>, joinedMap: HashMap<String, SyncResponse.JoinedRooms>, leftMap:
-                           HashMap<String, SyncResponse.LeftRooms>, limited: Boolean = true) {
+    private fun fillRetEvents(timelineOfStartState: RoomState, device: Device, invitedMap: HashMap<String, SyncResponse.InvitedRooms>,
+                              roomId: String, timelineEvent: List<AbstractRoomEvent>, joinedMap: HashMap<String, SyncResponse.JoinedRooms>, leftMap:
+                              HashMap<String, SyncResponse.LeftRooms>, limited: Boolean = true) {
         // 判断同步的这个人在此房间处于什么状态
         when (timelineOfStartState.latestMembershipType(device.userId)) {
 
@@ -154,6 +154,7 @@ class SyncHandler {
                     this.timeline = SyncResponse.Timeline().apply {
                         this.limited = limited
                         events = timelineEvent
+                        prevBatch = (timelineEvent.last().streamId + 1).toString()
                     }
                     this.state = SyncResponse.State().apply {
                         events = timelineOfStartState.distinctStateEvents()
@@ -168,6 +169,7 @@ class SyncHandler {
                     this.timeline = SyncResponse.Timeline().apply {
                         events = timelineEvent
                         this.limited = limited
+                        prevBatch = (timelineEvent.last().streamId + 1).toString()
                     }
                     this.state = SyncResponse.State().apply {
                         events = timelineOfStartState.distinctStateEvents()
@@ -181,6 +183,7 @@ class SyncHandler {
                     this.timeline = SyncResponse.Timeline().apply {
                         this.limited = limited
                         events = timelineEvent
+                        prevBatch = (timelineEvent.last().streamId + 1).toString()
                     }
                 }
                 joinedMap[roomId] = joined

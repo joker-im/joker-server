@@ -60,6 +60,8 @@ class UserHandler {
             createTime = LocalDateTime.now()
             registerDeviceId = StringUtils.defaultIfBlank(request.deviceId, UUID.randomUUID().toString())
             username = request.username
+            avatar = "default_user_avatar"
+            displayName = "im.joker:" + idGenerator.nextUserSequence()
         }
         try {
             user = mongoStore.addUser(user)
@@ -68,7 +70,7 @@ class UserHandler {
             throw ImException(ErrorCode.M_USER_IN_USE, HttpStatus.FORBIDDEN)
         }
         val device = deviceManager.findOrCreateDevice(request.username, user.registerDeviceId, user.userId,
-                request.initialDeviceDisplayName, "default_user_avatar", "im.joker:" + idGenerator.nextUserSequence())
+                request.initialDeviceDisplayName, user.avatar, user.displayName)
 
         return RegisterResponse().apply {
             accessToken = device.accessToken
