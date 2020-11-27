@@ -4,18 +4,14 @@ import im.joker.api.vo.account.LoginFlowResponse
 import im.joker.api.vo.account.LoginRequest
 import im.joker.api.vo.account.LoginResponse
 import im.joker.api.vo.account.RegisterRequest
-import im.joker.config.AuthFilter
-import im.joker.device.Device
 import im.joker.handler.UserHandler
 import im.joker.helper.RequestProcessor
-import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import reactor.core.publisher.Mono
 
 /**
  * @Author: mkCen
@@ -25,7 +21,7 @@ import reactor.core.publisher.Mono
  */
 @RequestMapping(path = ["/_matrix/client/r0"], produces = [MediaType.APPLICATION_JSON_VALUE])
 @RestController
-class AccountRouter : BaseRouter() {
+class AccountController : BaseController() {
 
     @Autowired
     lateinit var userHandler: UserHandler

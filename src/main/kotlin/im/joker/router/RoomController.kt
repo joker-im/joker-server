@@ -1,14 +1,14 @@
 package im.joker.router
 
-import com.google.gson.JsonObject
+import com.fasterxml.jackson.databind.JsonNode
 import im.joker.api.vo.room.*
 import im.joker.event.EventType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.exception.ErrorCode
 import im.joker.exception.ImException
-import im.joker.helper.RequestProcessor
 import im.joker.handler.RoomHandler
 import im.joker.helper.ImCache
+import im.joker.helper.RequestProcessor
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -24,9 +24,9 @@ import org.springframework.web.bind.annotation.*
  */
 @RestController
 @RequestMapping(path = ["/_matrix/client/r0"], produces = [MediaType.APPLICATION_JSON_VALUE])
-class RoomRouter : BaseRouter() {
+class RoomController : BaseController() {
 
-    private val log: Logger = LoggerFactory.getLogger(RoomRouter::class.java)
+    private val log: Logger = LoggerFactory.getLogger(RoomController::class.java)
 
     @Autowired
     private lateinit var roomHandler: RoomHandler
@@ -57,19 +57,7 @@ class RoomRouter : BaseRouter() {
                                  @PathVariable("eventType") type: String,
                                  @PathVariable("txnId") txId: String,
                                  @RequestBody jsonBody: String): EventIdResponse {
-        val eventType = EventType.findByType(type)
-        eventType ?: throw ImException(ErrorCode.INVALID_PARAM, HttpStatus.BAD_REQUEST, "无法识别次事件类型")
-        if (eventType.isState) throw ImException(ErrorCode.INVALID_PARAM, HttpStatus.BAD_REQUEST, "此接口不支持状态事件")
-        val contentObject = requestProcessor.toBean(jsonBody, JsonObject::class.java)
-        val eventJsonObject = JsonObject()
-        eventJsonObject.addProperty("type", type)
-        eventJsonObject.add("content", contentObject)
-        val event = requestProcessor.toBean(eventJsonObject.toString(), AbstractRoomEvent::class.java)
-        val room = imCache.getRoom(roomId)
-        room.injectEvent(event, getLoginDevice())
-        return EventIdResponse().apply {
-            this.eventId = eventId
-        }
+        return roomHandler.sendMessageEvent(type, jsonBody, roomId, txId, getLoginDevice())
     }
 
 
@@ -102,8 +90,8 @@ class RoomRouter : BaseRouter() {
     /**
      * 从此房间中拉取消息
      */
-    @GetMapping("/rooms/{roomId}/message")
-    suspend fun messages(@PathVariable roomId: String, @RequestBody param: Map<String, String>): MessageResponse {
+    @GetMapping("/rooms/{roomId}/messages")
+    suspend fun messages(@PathVariable roomId: String, @RequestParam param: Map<String, String>): MessageResponse {
         val messageRequest = requestProcessor.convert(param, MessageRequest::class.java)
         log.info("收到拉取房间消息的请求,deviceId:{},roomId:{}", getLoginDevice().deviceId, roomId)
         requestProcessor.validate(messageRequest)

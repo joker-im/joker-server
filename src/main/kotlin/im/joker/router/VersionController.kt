@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping(path = ["/_matrix/client/versions"], produces = [MediaType.APPLICATION_JSON_VALUE])
 @RestController
 
-class VersionRouter {
+class VersionController {
 
     @Autowired
     private lateinit var imCache: ImCache

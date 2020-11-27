@@ -1,5 +1,6 @@
 package im.joker.handler
 
+import com.fasterxml.jackson.databind.JsonNode
 import im.joker.api.vo.room.*
 import im.joker.device.Device
 import im.joker.event.EventType
@@ -12,13 +13,11 @@ import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.state.MembershipEvent
 import im.joker.exception.ErrorCode
 import im.joker.exception.ImException
-import im.joker.helper.GlobalStateHolder
-import im.joker.helper.IdGenerator
-import im.joker.helper.ImCache
-import im.joker.helper.ImEventBuilder
+import im.joker.helper.*
 import im.joker.repository.MongoStore
 import im.joker.room.Room
 import im.joker.room.RoomState
+import im.joker.router.RoomController
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -55,6 +54,9 @@ class RoomHandler {
 
     @Autowired
     private lateinit var idGenerator: IdGenerator
+
+    @Autowired
+    private lateinit var requestProcessor: RequestProcessor
 
     /**
      * 创建房间
@@ -231,23 +233,51 @@ class RoomHandler {
 
         if (messageRequest.dir == "b") {
             val backwardEvents = mongoStore.findBackwardEvents(messageRequest.roomId, userLatestJoinStreamId, messageRequest.from, messageRequest.limit)
+            val retStart = if (backwardEvents.isEmpty()) userLatestJoinStreamId else backwardEvents.last().streamId - 1
             // 往后拉的时候应该是不需要状态消息的. 并且start的位置最多是到join为止
             return MessageResponse().apply {
                 chunk = backwardEvents
-                start = max(backwardEvents.last().streamId - 1, userLatestJoinStreamId)
+                start = retStart
                 end = userLatestJoinStreamId
             }
 
         } else {
             val forwardEvents = mongoStore.findForwardRoomEvents(messageRequest.roomId, messageRequest.from, messageRequest.limit)
+            val latestStreamId = mongoStore.findLatestStreamId()
+            val retStart = if (forwardEvents.isEmpty()) latestStreamId else forwardEvents.last().streamId + 1
             val stateEvents = forwardEvents.filterIsInstance<AbstractRoomStateEvent>()
             val handledStateEvents = RoomState.fromEvents(stateEvents).distinctStateEvents()
             return MessageResponse().apply {
                 chunk = forwardEvents
                 state = handledStateEvents
-                start = forwardEvents.last().streamId + 1
-                end = mongoStore.findLatestStreamId()
+                start = retStart
+                end = latestStreamId
             }
+        }
+    }
+
+    suspend fun sendMessageEvent(type: String, jsonBody: String, roomId: String, txId: String, device: Device): EventIdResponse {
+        val eventType = EventType.findByType(type)
+        eventType ?: throw ImException(ErrorCode.INVALID_PARAM, HttpStatus.BAD_REQUEST, "无法识别次事件类型")
+        if (eventType.isState) throw ImException(ErrorCode.INVALID_PARAM, HttpStatus.BAD_REQUEST, "此接口不支持状态事件")
+        val contentObject = requestProcessor.toBean(jsonBody, JsonNode::class.java)
+        val eventJsonObject = requestProcessor.createObjectNode()
+        eventJsonObject.put("type", type)
+        eventJsonObject.set<JsonNode>("content", contentObject)
+        val event = requestProcessor.toBean(eventJsonObject.toString(), AbstractRoomEvent::class.java)
+                .apply {
+                    this.roomId = roomId
+                    this.transactionId = txId
+                    this.streamId = idGenerator.nextEventStreamId()
+                    this.sender = device.userId
+                    this.originServerTs = LocalDateTime.now()
+                    this.eventId = UUID.randomUUID().toString()
+                }
+
+        val room = imCache.getRoom(roomId)
+        room.injectEvent(event, device)
+        return EventIdResponse().apply {
+            this.eventId = eventId
         }
     }
 

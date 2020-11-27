@@ -2,6 +2,7 @@ package im.joker.helper;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import im.joker.exception.ImException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -56,6 +57,10 @@ public class RequestProcessor {
             throw new ImException(INVALID_PARAM, HttpStatus.INTERNAL_SERVER_ERROR, "服务端转换错误");
 
         }
+    }
+
+    public ObjectNode createObjectNode() {
+        return objectMapper.createObjectNode();
     }
 
     public <T> T parameterToBean(ServerRequest serverRequest, Class<T> clazz) {

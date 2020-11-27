@@ -3,20 +3,16 @@ package im.joker.router
 import im.joker.api.vo.sync.FilterResponse
 import im.joker.api.vo.sync.SyncRequest
 import im.joker.api.vo.sync.SyncResponse
-import im.joker.config.AuthFilter
-import im.joker.device.Device
 import im.joker.handler.SyncHandler
 import im.joker.helper.RequestProcessor
-import kotlinx.coroutines.reactive.awaitSingle
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
-import reactor.core.publisher.Mono
 import java.util.*
 
 @RequestMapping(path = ["/_matrix/client/r0"], produces = [MediaType.APPLICATION_JSON_VALUE])
 @RestController
-class SyncRouter : BaseRouter() {
+class SyncController : BaseController() {
 
     @Autowired
     private lateinit var syncHandler: SyncHandler

@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono
 
 @RestController
 @RequestMapping(path = ["/_matrix/client/r0"], produces = [MediaType.APPLICATION_JSON_VALUE])
-open class BaseRouter {
+open class BaseController {
 
     suspend fun getLoginDevice(): Device {
         return Mono.deferContextual<Device> { Mono.just(it[AuthFilter.LOGIN_DEVICE]) }.awaitSingle()

@@ -5,6 +5,7 @@ import im.joker.api.vo.sync.SyncResponse
 import im.joker.device.Device
 import im.joker.event.MembershipType
 import im.joker.event.room.AbstractRoomEvent
+import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.helper.EventSyncQueueManager
 import im.joker.helper.ImCache
 import im.joker.helper.LongPollingHelper
@@ -167,6 +168,12 @@ class SyncHandler {
                     this.state = SyncResponse.State().apply {
                         events = timelineOfStartState.distinctStateEvents()
                     }
+                    this.summary = SyncResponse.RoomSummary().apply {
+                        val joinMembers = timelineOfStartState.findSpecificStateMembers(MembershipType.Join).take(4)
+                        this.heroes = joinMembers
+                        this.joinedMemberCount = joinMembers.size
+                        this.invitedMemberCount = timelineOfStartState.findSpecificStateMembers(MembershipType.Invite).size
+                    }
                 }
                 joinedMap[roomId] = joined
             }
@@ -187,11 +194,18 @@ class SyncHandler {
             }
             // 这种情况是队列中和数据库中保持一致,只发生在房间事件很少的时候,全部放timeline
             else -> {
+                val timeLineState = RoomState.fromEvents(timelineEvent.filterIsInstance<AbstractRoomStateEvent>())
                 val joined = SyncResponse.JoinedRooms().apply {
                     this.timeline = SyncResponse.Timeline().apply {
                         this.limited = limited
                         events = timelineEvent
                         prevBatch = (timelineEvent.last().streamId + 1).toString()
+                        summary = SyncResponse.RoomSummary().apply {
+                            val joinMembers = timeLineState.findSpecificStateMembers(MembershipType.Join).take(4)
+                            this.heroes = joinMembers
+                            this.joinedMemberCount = joinMembers.size
+                            this.invitedMemberCount = timeLineState.findSpecificStateMembers(MembershipType.Invite).size
+                        }
                     }
                 }
                 joinedMap[roomId] = joined

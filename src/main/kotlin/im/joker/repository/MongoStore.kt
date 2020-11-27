@@ -11,6 +11,7 @@ import im.joker.room.Room
 import im.joker.upload.UploadFile
 import im.joker.user.User
 import kotlinx.coroutines.reactive.awaitSingle
+import kotlinx.coroutines.reactive.awaitSingleOrDefault
 import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.bson.Document
 import org.springframework.beans.factory.annotation.Autowired
@@ -158,7 +159,7 @@ class MongoStore {
 
     suspend fun findLatestStreamId(): Long {
         val query = Query().with(Sort.by(Sort.Direction.DESC, "stream_id"))
-        return mongoTemplate.findOne(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).map { it.streamId }.awaitSingle()
+        return mongoTemplate.findOne(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).map { it.streamId }.awaitSingleOrDefault(-1L)
     }
 
 
@@ -216,7 +217,8 @@ class MongoStore {
      */
     suspend fun findForwardRoomEvents(roomId: String, gteStreamId: Long, limit: Int): List<AbstractRoomEvent> {
         val query = Query()
-        query.addCriteria(Criteria.where("stream_id").gte(gteStreamId).and("room_id").`is`(roomId).size(limit))
+        query.addCriteria(Criteria.where("stream_id").gte(gteStreamId).and("room_id").`is`(roomId))
+                .limit(limit)
         query.with(Sort.by(Sort.Direction.ASC, "stream_id"))
         return mongoTemplate.find(query, AbstractRoomEvent::class.java).collectList().awaitSingleOrNull()
     }
@@ -224,7 +226,8 @@ class MongoStore {
 
     suspend fun findBackwardEvents(roomId: String, gteStreamId: Long, lteStreamId: Long, limit: Int): List<AbstractRoomEvent> {
         val query = Query()
-        query.addCriteria(Criteria.where("stream_id").`in`(gteStreamId, lteStreamId).`is`(roomId).size(limit))
+        query.addCriteria(Criteria.where("stream_id").`in`(gteStreamId, lteStreamId).and("room_id").`is`(roomId))
+                .limit(limit)
         query.with(Sort.by(Sort.Direction.DESC, "stream_id"))
         return mongoTemplate.find(query, AbstractRoomEvent::class.java).collectList().awaitSingleOrNull()
     }

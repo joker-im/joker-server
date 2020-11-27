@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController
  */
 @RestController
 @RequestMapping(path = ["/_matrix/client/r0/profile"], produces = [MediaType.APPLICATION_JSON_VALUE])
-class UserDataRouter : BaseRouter() {
+class UserDataController : BaseController() {
 
     @Autowired
     private lateinit var userHandler: UserHandler

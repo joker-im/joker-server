@@ -358,13 +358,13 @@ public class SyncResponse {
     }
 
     private static class AccountData {
-        private List<AbstractRoomEvent> events;
+        private List<Map<String,Object>> events;
 
-        public List<AbstractRoomEvent> getEvents() {
+        public List<Map<String,Object>> getEvents() {
             return events;
         }
 
-        public void setEvents(List<AbstractRoomEvent> events) {
+        public void setEvents(List<Map<String,Object>> events) {
             this.events = events;
         }
     }

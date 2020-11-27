@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping(path = ["/_matrix/client/r0"], produces = [MediaType.APPLICATION_JSON_VALUE])
 @RestController
 
-class PushRuleRouter {
+class PushRuleController {
 
 
     @GetMapping("/pushrules/")

@@ -2,7 +2,7 @@ package im.joker.room
 
 import im.joker.event.EventType
 import im.joker.event.MembershipType
-import im.joker.event.room.AbstractRoomEvent
+import im.joker.event.content.state.MembershipContent
 import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.state.MembershipEvent
 import im.joker.event.room.state.PowerLevelEvent
@@ -61,7 +61,7 @@ class RoomState {
      * 查询用户最新的membership状态
      */
     fun latestMembershipType(userId: String): MembershipType? {
-        val membershipEvent = descStateMap[userId]
+        val membershipEvent = descStateMap[EventType.Membership.id + userId]
         return membershipEvent?.let {
             if (it is MembershipEvent) {
                 return@let MembershipType.find(it.content.membership)
@@ -70,8 +70,11 @@ class RoomState {
         }
     }
 
+    /**
+     * 查询某个人最新的membership事件
+     */
     fun latestMembershipEvent(userId: String): AbstractRoomStateEvent? {
-        return descStateMap[userId]
+        return descStateMap[EventType.Membership.id + userId]
     }
 
     /**
@@ -80,5 +83,14 @@ class RoomState {
     fun lastPowerDefEvent(): PowerLevelEvent {
         return descStateMap[EventType.PowerLevel.id] as PowerLevelEvent
     }
+
+    /**
+     * 查询所有在此房间指定状态的userIds
+     */
+    fun findSpecificStateMembers(membershipType: MembershipType): List<String> {
+        return descStateMap.filter { it.value is MembershipEvent && membershipType.`is`((it.value.content as MembershipContent).membership) }
+                .map { it.value.stateKey }
+    }
+
 
 }

@@ -14,11 +14,11 @@ import java.net.URLEncoder
 
 @RequestMapping(path = ["/_matrix/client/r0"], produces = [MediaType.APPLICATION_JSON_VALUE])
 @RestController
-class MediaRouter : BaseRouter() {
+class MediaController : BaseController() {
 
     private val defaultAvatarMap = HashMap<String, ByteArray>().apply {
-        this["default_user_avatar"] = MediaRouter::class.java.getResourceAsStream("/avatar/default_user_avatar.png").readBytes()
-        this["default_room_avatar"] = MediaRouter::class.java.getResourceAsStream("/avatar/default_room_avatar.png").readBytes()
+        this["default_user_avatar"] = MediaController::class.java.getResourceAsStream("/avatar/default_user_avatar.png").readBytes()
+        this["default_room_avatar"] = MediaController::class.java.getResourceAsStream("/avatar/default_room_avatar.png").readBytes()
     }
 
 
