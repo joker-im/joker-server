@@ -10,6 +10,8 @@ import im.joker.event.RoomJoinRuleType
 import im.joker.event.content.state.MembershipContent
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
+import im.joker.event.room.other.FullReadMarkerEvent
+import im.joker.event.room.other.ReceiptEvent
 import im.joker.event.room.state.MembershipEvent
 import im.joker.exception.ErrorCode
 import im.joker.exception.ImException
@@ -281,11 +283,19 @@ class RoomHandler {
 
     suspend fun setReadMarker(roomId: String, readMarkerRequest: ReadMarkerRequest, loginDevice: Device) {
         val now = LocalDateTime.now()
-        val fullReadMarkerEvent = eventBuilder.fullReadMarkerEvent(roomId, readMarkerRequest.fullRead, now, loginDevice)
-        val receiptEvent = eventBuilder.receiptEvent(roomId, readMarkerRequest.read, now, loginDevice)
+        var fullReadMarkerEvent: FullReadMarkerEvent? = null
+        var receiptEvent: ReceiptEvent? = null
+        readMarkerRequest.fullRead?.let {
+            fullReadMarkerEvent = eventBuilder.fullReadMarkerEvent(roomId, readMarkerRequest.fullRead, now, loginDevice)
+        }
+        readMarkerRequest.read?.let {
+            receiptEvent = eventBuilder.receiptEvent(roomId, readMarkerRequest.read, now, loginDevice)
+        }
         val room = imCache.getRoom(roomId)
         listOf(fullReadMarkerEvent, receiptEvent).forEach {
-            room.injectEvent(it, loginDevice)
+            it?.let {
+                room.injectEvent(it, loginDevice)
+            }
         }
 
     }

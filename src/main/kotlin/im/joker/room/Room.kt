@@ -41,7 +41,7 @@ class Room {
         try {
             if (ev.roomId == null || roomId != ev.roomId) throw ImException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "房间不存在,无法发送")
             // 房间上锁
-            globalStateHolder.redissonClient.getLock(EVENT_LOCK.format(ev.roomId)).lock().awaitSingleOrNull()
+            globalStateHolder.redissonClient.getLock(EVENT_LOCK.format(ev.roomId)).lock(1).awaitSingleOrNull()
             // 校验权限
             if (!globalStateHolder.eventAuthorizationValidator.canPost(ev, device)) {
                 throw ImException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "无权限发此种类型的消息")
@@ -63,7 +63,7 @@ class Room {
             globalStateHolder.longPollingHelper.notifySyncDevice(device.deviceId)
         } finally {
             // 解锁
-            globalStateHolder.redissonClient.getLock(EVENT_LOCK.format(ev.roomId)).unlock().awaitSingleOrNull()
+            globalStateHolder.redissonClient.getLock(EVENT_LOCK.format(ev.roomId)).unlock(1).awaitSingleOrNull()
         }
         return ev
     }

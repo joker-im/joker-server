@@ -33,4 +33,9 @@ class SyncController : BaseController() {
         }
     }
 
+    @GetMapping("/user/{userId}/filter/{filterId}")
+    suspend fun getFilter(@PathVariable userId: String, @PathVariable filterId: String): String {
+        return """{"room":{"state":{"types":["m.room.*"],"not_rooms":["!726s6s6q:example.com"]},"timeline":{"limit":10,"types":["m.room.message"],"not_rooms":["!726s6s6q:example.com"],"not_senders":["@spam:example.com"]},"ephemeral":{"types":["m.receipt","m.typing"],"not_rooms":["!726s6s6q:example.com"],"not_senders":["@spam:example.com"]}},"presence":{"types":["m.presence"],"not_senders":["@alice:example.com"]},"event_format":"client","event_fields":["type","content","sender"]}""";
+    }
+
 }

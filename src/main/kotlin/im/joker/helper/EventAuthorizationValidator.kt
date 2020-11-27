@@ -91,10 +91,18 @@ class EventAuthorizationValidator {
                 }
             }
             //当发送的是编辑事件
-            EventType.Receipt -> {
+            EventType.Redaction -> {
                 val needPower = powerDefContent.events?.get(senderEvent.type) ?: powerDefContent.redact
                 return userPower >= needPower
             }
+            EventType.MFullRead -> {
+                return true
+            }
+
+            EventType.Receipt -> {
+                return true
+            }
+
             // 暂时不支持其他事件
             else -> return false
         }

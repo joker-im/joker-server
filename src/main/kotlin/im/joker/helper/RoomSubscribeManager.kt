@@ -80,7 +80,7 @@ class RoomSubscribeManager {
 
     suspend fun updateRelation(device: Device, ev: AbstractRoomEvent) {
         // 如果不是membership事件,那么无需更新房间订阅关系
-        if (!EventType.Membership.`is`(ev.type) && ev is AbstractRoomStateEvent) {
+        if (!EventType.Membership.`is`(ev.type)) {
             return
         }
         val evMembershipType = (ev as MembershipEvent).content.membership
