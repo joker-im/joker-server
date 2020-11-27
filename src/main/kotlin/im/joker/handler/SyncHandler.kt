@@ -52,7 +52,7 @@ class SyncHandler {
 
     private suspend fun incrementSync(request: SyncRequest, device: Device): SyncResponse = coroutineScope {
         log.debug("userId:{},deviceId:{},触发增量同步", device.userId, device.deviceId)
-        val ret = SyncResponse()
+        var ret = SyncResponse()
         val sinceId = request.since.toLong()
         val joinedMap = HashMap<String, SyncResponse.JoinedRooms>()
         val invitedMap = HashMap<String, SyncResponse.InvitedRooms>()
@@ -78,6 +78,7 @@ class SyncHandler {
             try {
                 withTimeout(request.timeout.toLong()) {
                     channel.receive()
+                    ret = incrementSync(request, device)
                 }
             } catch (e: Exception) {
                 channel.cancel()
