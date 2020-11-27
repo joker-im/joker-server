@@ -7,6 +7,7 @@ import im.joker.api.vo.RoomEvents
 import im.joker.event.EventType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
+import im.joker.event.room.other.FullReadMarkerEvent
 import im.joker.room.Room
 import im.joker.upload.UploadFile
 import im.joker.user.User
@@ -22,6 +23,7 @@ import org.springframework.data.mongodb.core.aggregation.MatchOperation
 import org.springframework.data.mongodb.core.aggregation.SortOperation
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
+import org.springframework.data.mongodb.core.query.Update
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 import javax.annotation.PostConstruct
@@ -43,6 +45,7 @@ class MongoStore {
         const val COLLECTION_NAME_EVENTS = "events"
         const val COLLECTION_USER = "users"
         const val COLLECTION_FILE = "files"
+        const val COLLECTION_ROOM_FULL_READ_MARKER = "room_full_read_marker"
     }
 
     @PostConstruct
@@ -87,28 +90,38 @@ class MongoStore {
                 }
     }
 
+    private fun createReadMarkerCollection(): Mono<String> {
+        return mongoTemplate.createCollection(COLLECTION_ROOM_FULL_READ_MARKER)
+                .flatMap {
+                    val index1 = IndexModel(Document.parse("{user_id:1,room_id:1}"), IndexOptions().unique(true))
+                    val index2 = IndexModel(Document.parse("{read_marker_time:-1}"))
+                    Mono.from(it.createIndexes(listOf(index1, index2)))
+                }
+
+    }
+
+
     private fun createCollectionAndIndex(): Mono<Void> {
         // 创建room
         return mongoTemplate.collectionExists(COLLECTION_NAME_ROOMS)
                 .flatMap {
-                    if (!it) createRoomCollection()
-                    else Mono.empty()
+                    if (!it) createRoomCollection() else Mono.empty()
                 }
                 .then(mongoTemplate.collectionExists(COLLECTION_NAME_EVENTS))
                 .flatMap {
-                    if (!it) createEventCollection()
-                    else Mono.empty()
+                    if (!it) createEventCollection() else Mono.empty()
                 }
                 .then(mongoTemplate.collectionExists(COLLECTION_USER))
                 .flatMap {
-                    if (!it) createUserCollection()
-                    else Mono.empty()
+                    if (!it) createUserCollection() else Mono.empty()
                 }.then(mongoTemplate.collectionExists(COLLECTION_FILE))
                 .flatMap {
-                    if (!it) createFileCollection()
-                    else Mono.empty()
+                    if (!it) createFileCollection() else Mono.empty()
                 }
-                .then()
+                .then(mongoTemplate.collectionExists(COLLECTION_ROOM_FULL_READ_MARKER))
+                .flatMap {
+                    if (!it) createReadMarkerCollection() else Mono.empty()
+                }.then()
     }
 
     suspend fun addUser(u: User): User {
@@ -223,7 +236,9 @@ class MongoStore {
         return mongoTemplate.find(query, AbstractRoomEvent::class.java).collectList().awaitSingleOrNull()
     }
 
-
+    /**
+     * 时间线往后查询count条房间的消息
+     */
     suspend fun findBackwardEvents(roomId: String, gteStreamId: Long, lteStreamId: Long, limit: Int): List<AbstractRoomEvent> {
         val query = Query()
         query.addCriteria(Criteria.where("stream_id").`in`(gteStreamId, lteStreamId).and("room_id").`is`(roomId))
@@ -236,6 +251,19 @@ class MongoStore {
         val query = Query()
         query.addCriteria(Criteria.where("user_id").`is`(userId))
         return mongoTemplate.findOne(query, User::class.java, COLLECTION_USER).awaitSingleOrNull()
+    }
+
+    /**
+     * 设置完全读标志
+     */
+    suspend fun setFullReadEvent(ev: FullReadMarkerEvent) {
+        val query = Query().addCriteria(Criteria.where("user_id").`is`(ev.sender).and("room_id").`is`(ev.roomId))
+        val update = Update().set("event_id", ev.eventId)
+                .set("user_id", ev.sender)
+                .set("room_id", ev.roomId)
+                .set("read_marker_time", ev.originServerTs)
+        mongoTemplate.upsert(query, update, COLLECTION_ROOM_FULL_READ_MARKER)
+
     }
 
 }

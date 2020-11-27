@@ -3,6 +3,8 @@ package im.joker.room
 import im.joker.constants.ImConstants.Companion.EVENT_LOCK
 import im.joker.device.Device
 import im.joker.event.room.AbstractRoomEvent
+import im.joker.event.room.other.FullReadMarkerEvent
+import im.joker.event.room.other.ReceiptEvent
 import im.joker.event.room.other.TypingEvent
 import im.joker.exception.ErrorCode
 import im.joker.exception.ImException
@@ -44,7 +46,13 @@ class Room {
             if (!globalStateHolder.eventAuthorizationValidator.canPost(ev, device)) {
                 throw ImException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "无权限发此种类型的消息")
             }
-            if (ev !is TypingEvent) globalStateHolder.mongoStore.addEvent(ev)
+            if (ev is FullReadMarkerEvent) {
+                // fullReadMarker 存Mongodb
+                globalStateHolder.mongoStore.setFullReadEvent(ev)
+            } else if (ev !is TypingEvent || ev !is ReceiptEvent) {
+                // 回执事件和打字事件不存到mongo
+                globalStateHolder.mongoStore.addEvent(ev)
+            }
             // 更新设备和房间的订阅消息
             globalStateHolder.roomSubscribeManager.updateRelation(device, ev)
             // 更新房间状态消息

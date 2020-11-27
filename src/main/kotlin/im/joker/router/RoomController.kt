@@ -100,4 +100,13 @@ class RoomController : BaseController() {
     }
 
 
+    /**
+     * 设置房间已读
+     */
+    @PostMapping("/rooms/{roomId}/read_markers")
+    suspend fun setReadMarker(@PathVariable roomId: String, @RequestBody readMarkerRequest: ReadMarkerRequest): String {
+        roomHandler.setReadMarker(roomId, readMarkerRequest, getLoginDevice())
+        return "{}"
+    }
+
 }

@@ -17,7 +17,6 @@ import im.joker.helper.*
 import im.joker.repository.MongoStore
 import im.joker.room.Room
 import im.joker.room.RoomState
-import im.joker.router.RoomController
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -26,7 +25,6 @@ import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 import java.util.*
 import kotlin.collections.ArrayList
-import kotlin.math.max
 import kotlin.math.min
 
 /**
@@ -279,6 +277,17 @@ class RoomHandler {
         return EventIdResponse().apply {
             this.eventId = eventId
         }
+    }
+
+    suspend fun setReadMarker(roomId: String, readMarkerRequest: ReadMarkerRequest, loginDevice: Device) {
+        val now = LocalDateTime.now()
+        val fullReadMarkerEvent = eventBuilder.fullReadMarkerEvent(roomId, readMarkerRequest.fullRead, now, loginDevice)
+        val receiptEvent = eventBuilder.receiptEvent(roomId, readMarkerRequest.read, now, loginDevice)
+        val room = imCache.getRoom(roomId)
+        listOf(fullReadMarkerEvent, receiptEvent).forEach {
+            room.injectEvent(it, loginDevice)
+        }
+
     }
 
 

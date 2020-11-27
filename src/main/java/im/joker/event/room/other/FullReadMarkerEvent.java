@@ -9,7 +9,7 @@ import im.joker.event.room.AbstractRoomEvent;
  * @Time: 10:08
  * @Desc:
  */
-public class FullReadEvent extends AbstractRoomEvent {
+public class FullReadMarkerEvent extends AbstractRoomEvent {
 
 
     private FullReadContent content;

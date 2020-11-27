@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import im.joker.event.content.IContent;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -48,33 +49,26 @@ public class ReceiptContent implements IContent {
 
     public static class Receipts {
         @JsonProperty("m.read")
-        private Map<String, Receipt> mRead;
+        private Map<String, Receipt> read;
 
-        public Map<String, Receipt> getmRead() {
-            return mRead;
+        public Map<String, Receipt> getRead() {
+            return read;
         }
 
-        public void setmRead(Map<String, Receipt> mRead) {
-            this.mRead = mRead;
+        public void setRead(Map<String, Receipt> read) {
+            this.read = read;
         }
     }
 
     public static class Receipt {
+        private LocalDateTime ts;
 
-        private Map<String, Object> properties = new HashMap<>();
-
-        @JsonAnySetter
-        public void add(String key, Object value) {
-            properties.put(key, value);
+        public LocalDateTime getTs() {
+            return ts;
         }
 
-        @JsonAnyGetter
-        public Map<String, Object> getProperties() {
-            return properties;
-        }
-
-        public void setProperties(Map<String, Object> properties) {
-            this.properties = properties;
+        public void setTs(LocalDateTime ts) {
+            this.ts = ts;
         }
     }
 

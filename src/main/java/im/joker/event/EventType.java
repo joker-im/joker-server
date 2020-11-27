@@ -2,7 +2,7 @@ package im.joker.event;
 
 import im.joker.event.room.message.MessageEvent;
 import im.joker.event.room.message.RedactionEvent;
-import im.joker.event.room.other.FullReadEvent;
+import im.joker.event.room.other.FullReadMarkerEvent;
 import im.joker.event.room.other.ReceiptEvent;
 import im.joker.event.room.other.TypingEvent;
 import im.joker.event.room.state.*;
@@ -53,7 +53,7 @@ public enum EventType {
     Receipt(" m.receipt", false, ReceiptEvent.class),
 
     // 已读某个房间标志事件
-    MFullRead("m.fully_read", false, FullReadEvent.class),
+    MFullRead("m.fully_read", false, FullReadMarkerEvent.class),
 
 
     ;

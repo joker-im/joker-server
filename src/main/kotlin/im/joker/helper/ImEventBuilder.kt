@@ -1,9 +1,14 @@
 package im.joker.helper
 
+import im.joker.device.Device
 import im.joker.event.EventType
 import im.joker.event.MembershipType
 import im.joker.event.RoomJoinRuleType
+import im.joker.event.content.other.FullReadContent
+import im.joker.event.content.other.ReceiptContent
 import im.joker.event.content.state.*
+import im.joker.event.room.other.FullReadMarkerEvent
+import im.joker.event.room.other.ReceiptEvent
 import im.joker.event.room.state.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -186,6 +191,47 @@ class ImEventBuilder {
             originServerTs = time
             this.roomId = roomId
             eventId = UUID.randomUUID().toString()
+        }
+    }
+
+    suspend fun fullReadMarkerEvent(roomId: String, eventId: String, time: LocalDateTime, loginDevice: Device): FullReadMarkerEvent {
+        val content = FullReadContent().apply {
+            this.eventId = eventId
+        }
+        return FullReadMarkerEvent().apply {
+            this.content = content
+            this.roomId = roomId
+            type = EventType.MFullRead.id
+            this.sender = loginDevice.userId
+            streamId = idGenerator.nextEventStreamId()
+            transactionId = UUID.randomUUID().toString()
+            originServerTs = time
+            this.eventId = UUID.randomUUID().toString()
+
+        }
+
+    }
+
+    suspend fun receiptEvent(roomId: String, read: String, now: LocalDateTime, loginDevice: Device): ReceiptEvent {
+        val eventId = UUID.randomUUID().toString()
+        val content = ReceiptContent().apply {
+            properties[eventId] = ReceiptContent.Receipts().apply {
+                val receipt = ReceiptContent.Receipt().apply {
+                    this.ts = now
+                }
+                this.read[loginDevice.userId] = receipt
+            }
+        }
+        return ReceiptEvent().apply {
+            this.content = content
+            this.roomId = roomId
+            type = EventType.Receipt.id
+            this.sender = loginDevice.userId
+            streamId = idGenerator.nextEventStreamId()
+            transactionId = UUID.randomUUID().toString()
+            originServerTs = now
+            this.eventId = UUID.randomUUID().toString()
+
         }
     }
 
