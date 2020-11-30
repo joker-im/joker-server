@@ -49,7 +49,7 @@ class MediaHandler {
             mongoStore.addUploadFile(uploadFile)
 
             return@withContext UploadResponse().apply {
-                contentUri = "mxc://${uploadFile.servername}/${uploadFile.id}"
+                contentUri = toMediaUrl(uploadFile.id)
             }
         }
 
@@ -58,6 +58,10 @@ class MediaHandler {
     suspend fun getFile(mediaId: String): UploadFile? {
         return mongoStore.findUploadFile(mediaId)
 
+    }
+
+    fun toMediaUrl(id: String): String {
+        return "mxc://${webDomain.removePrefix("www.")}/${id}"
     }
 
 }

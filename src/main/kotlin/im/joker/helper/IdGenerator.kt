@@ -43,7 +43,7 @@ class IdGenerator {
     }
 
     fun roomVersion(): String {
-        return "0.0"
+        return "5"
     }
 
     fun userId(username: String): String {

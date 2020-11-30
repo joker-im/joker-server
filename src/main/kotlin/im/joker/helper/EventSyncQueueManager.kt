@@ -2,6 +2,7 @@ package im.joker.helper
 
 import im.joker.constants.ImConstants.Companion.ACTIVE_ROOM_LATEST_EVENTS
 import im.joker.event.room.AbstractRoomEvent
+import im.joker.event.room.AbstractRoomStateEvent
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -47,8 +48,9 @@ class EventSyncQueueManager {
 
     /**
      * 从设备相关的房间中拿取limitOfRoom条数据,其返回值key是roomId,value是redis队列中提取的
+     * 过滤其本人说的话
      */
-    suspend fun takeRelatedEvent(deviceId: String, gteStreamId: Long, lteStreamId: Long): Map<String, List<AbstractRoomEvent>> = coroutineScope {
+    suspend fun takeRelatedEvent(deviceId: String, sender: String, gteStreamId: Long, lteStreamId: Long): Map<String, List<AbstractRoomEvent>> = coroutineScope {
         val roomIds = roomSubscribeManager.searchJoinRoomIds(deviceId)
         val list = roomIds.map {
             async {
@@ -59,7 +61,11 @@ class EventSyncQueueManager {
         list.awaitAll().forEach { it1 ->
             val roomEvents = it1.map { requestProcessor.toBean(it, AbstractRoomEvent::class.java) }
                     .filter {
-                        it.streamId in gteStreamId..lteStreamId
+                        val inRange = it.streamId in gteStreamId..lteStreamId
+                        val isStateEvent = it is AbstractRoomStateEvent
+                        val isSender = it.sender == sender
+                        // 在范围内,如果是状态事件直接可以返回.但不是状态事件不能返回与自己相关的事件
+                        inRange && (isStateEvent || !isSender)
                     }
             if (roomEvents.isNotEmpty()) eventMap[roomEvents[0].roomId] = roomEvents
         }

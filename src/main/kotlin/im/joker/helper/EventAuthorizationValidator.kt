@@ -3,6 +3,7 @@ package im.joker.helper
 import im.joker.device.Device
 import im.joker.event.EventType
 import im.joker.event.MembershipType
+import im.joker.event.content.state.MembershipContent
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.state.MembershipEvent
 import im.joker.room.RoomState
@@ -67,9 +68,10 @@ class EventAuthorizationValidator {
             }
             // 当发送的消息为membership消息
             EventType.Membership -> {
-                when (MembershipType.find(senderEvent.type)) {
+                val membershipType = (senderEvent.content as MembershipContent).membership
+                when (MembershipType.find(membershipType)) {
                     MembershipType.Ban -> {
-                        val needPower = powerDefContent.events?.get(senderEvent.type) ?: (powerDefContent.ban
+                        val needPower = powerDefContent.events?.get(membershipType) ?: (powerDefContent.ban
                                 ?: powerDefContent.stateDefault)
                         return userPower >= needPower
                     }
@@ -78,12 +80,12 @@ class EventAuthorizationValidator {
                         if ((senderEvent as MembershipEvent).stateKey == device.userId) {
                             return true
                         }
-                        val needPower = powerDefContent.events?.get(senderEvent.type) ?: (powerDefContent.kick
+                        val needPower = powerDefContent.events?.get(membershipType) ?: (powerDefContent.kick
                                 ?: powerDefContent.stateDefault)
                         return userPower >= needPower
                     }
                     MembershipType.Invite -> {
-                        val needPower = powerDefContent.events?.get(senderEvent.type) ?: (powerDefContent.invite
+                        val needPower = powerDefContent.events?.get(membershipType) ?: (powerDefContent.invite
                                 ?: powerDefContent.stateDefault)
                         return userPower >= needPower
                     }
@@ -100,6 +102,10 @@ class EventAuthorizationValidator {
             }
 
             EventType.Receipt -> {
+                return true
+            }
+
+            EventType.Typing -> {
                 return true
             }
 

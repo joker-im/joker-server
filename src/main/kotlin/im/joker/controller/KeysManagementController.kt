@@ -1,4 +1,4 @@
-package im.joker.router
+package im.joker.controller
 
 import im.joker.api.vo.key.KeyQueryRequest
 import im.joker.api.vo.key.KeyQueryResponse

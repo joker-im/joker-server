@@ -92,5 +92,9 @@ class RoomState {
                 .map { it.value.stateKey }
     }
 
+    fun findMembershipEvents(membershipType: MembershipType): List<MembershipEvent> {
+        return descStateMap.filter { it.value is MembershipEvent && membershipType.`is`((it.value.content as MembershipContent).membership) }
+                .map { it.value as MembershipEvent }
+    }
 
 }

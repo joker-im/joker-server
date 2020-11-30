@@ -1,4 +1,4 @@
-package im.joker.router
+package im.joker.controller
 
 import im.joker.config.AuthFilter
 import im.joker.device.Device

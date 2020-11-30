@@ -1,4 +1,4 @@
-package im.joker.router
+package im.joker.controller
 
 import im.joker.helper.ImCache
 import org.springframework.beans.factory.annotation.Autowired

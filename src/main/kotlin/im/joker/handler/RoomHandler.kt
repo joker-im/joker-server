@@ -177,7 +177,7 @@ class RoomHandler {
      */
     suspend fun inviteToRoom(roomId: String, inviteRequest: InviteRequest, loginDevice: Device) {
         val room = imCache.getRoom(roomId)
-        val membershipEvent = eventBuilder.membershipEvent(roomId, LocalDateTime.now(), loginDevice.deviceId,
+        val membershipEvent = eventBuilder.membershipEvent(roomId, LocalDateTime.now(), loginDevice.userId,
                 "主动邀请", inviteRequest.userId, loginDevice.userDisplayName, loginDevice.userAvatar, MembershipType.Invite)
         room.injectEvent(membershipEvent, loginDevice)
     }
@@ -277,7 +277,7 @@ class RoomHandler {
         val room = imCache.getRoom(roomId)
         room.injectEvent(event, device)
         return EventIdResponse().apply {
-            this.eventId = eventId
+            this.eventId = event.eventId
         }
     }
 
@@ -298,6 +298,24 @@ class RoomHandler {
             }
         }
 
+    }
+
+    suspend fun findRoomMembers(findMembersRequest: FindMembersRequest): FindMembersResponse {
+        val roomState = imCache.getRoomState(findMembersRequest.roomId)
+
+        return FindMembersResponse().apply {
+            findMembersRequest.membership?.let {
+                this.chunk = roomState.findMembershipEvents(MembershipType.find(findMembersRequest.membership))
+            }
+        }
+
+    }
+
+    suspend fun sendTypingEvent(typingRequest: TypingRequest, loginDevice: Device) {
+        if (typingRequest.typing) {
+            val typingEvent = eventBuilder.typingEvent(loginDevice.userId, typingRequest.roomId, LocalDateTime.now())
+            imCache.getRoom(typingEvent.roomId).injectEvent(typingEvent, loginDevice)
+        }
     }
 
 

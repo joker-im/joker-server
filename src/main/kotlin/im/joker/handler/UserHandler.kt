@@ -96,5 +96,8 @@ class UserHandler {
         return mongoStore.findUserByUserId(userId)
     }
 
+    suspend fun findUsersByTerm(searchTerm: String, limit: Int): List<User> {
+        return mongoStore.findUsersBySearchTerm(searchTerm,limit)
+    }
 
 }

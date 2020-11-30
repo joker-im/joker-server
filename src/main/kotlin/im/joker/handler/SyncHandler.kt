@@ -6,6 +6,7 @@ import im.joker.device.Device
 import im.joker.event.MembershipType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
+import im.joker.event.room.other.TypingEvent
 import im.joker.helper.EventSyncQueueManager
 import im.joker.helper.ImCache
 import im.joker.helper.LongPollingHelper
@@ -71,7 +72,7 @@ class SyncHandler {
         }
 
         // 从感兴趣的房间里面拿到最新的消息
-        val latestRoomEventMap = eventSyncQueueManager.takeRelatedEvent(device.deviceId, sinceId, latestStreamId)
+        val latestRoomEventMap = eventSyncQueueManager.takeRelatedEvent(device.deviceId, device.userId, sinceId, latestStreamId)
         // 为空的时候,waiting timeout
         if (latestRoomEventMap.isEmpty()) {
             val channel = Channel<Boolean>()
@@ -146,6 +147,9 @@ class SyncHandler {
     private fun fillRetEvents(timelineOfStartState: RoomState, device: Device, invitedMap: HashMap<String, SyncResponse.InvitedRooms>,
                               roomId: String, timelineEvent: List<AbstractRoomEvent>, joinedMap: HashMap<String, SyncResponse.JoinedRooms>, leftMap:
                               HashMap<String, SyncResponse.LeftRooms>, limited: Boolean = true) {
+
+        val ephemeralEvent = timelineEvent.filterIsInstance<TypingEvent>()
+
         // 判断同步的这个人在此房间处于什么状态
         when (timelineOfStartState.latestMembershipType(device.userId)) {
 
@@ -173,6 +177,9 @@ class SyncHandler {
                         this.heroes = joinMembers
                         this.joinedMemberCount = joinMembers.size
                         this.invitedMemberCount = timelineOfStartState.findSpecificStateMembers(MembershipType.Invite).size
+                    }
+                    this.ephemeral = SyncResponse.Ephemeral().apply {
+                        this.events = ephemeralEvent
                     }
                 }
                 joinedMap[roomId] = joined

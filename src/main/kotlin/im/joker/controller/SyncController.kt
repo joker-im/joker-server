@@ -1,4 +1,4 @@
-package im.joker.router
+package im.joker.controller
 
 import im.joker.api.vo.sync.FilterResponse
 import im.joker.api.vo.sync.SyncRequest

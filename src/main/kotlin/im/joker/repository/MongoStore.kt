@@ -21,6 +21,7 @@ import org.springframework.data.mongodb.core.ReactiveMongoTemplate
 import org.springframework.data.mongodb.core.aggregation.Aggregation
 import org.springframework.data.mongodb.core.aggregation.MatchOperation
 import org.springframework.data.mongodb.core.aggregation.SortOperation
+import org.springframework.data.mongodb.core.query.BasicQuery
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.data.mongodb.core.query.Update
@@ -264,6 +265,12 @@ class MongoStore {
                 .set("read_marker_time", ev.originServerTs)
         mongoTemplate.upsert(query, update, COLLECTION_ROOM_FULL_READ_MARKER)
 
+    }
+
+    suspend fun findUsersBySearchTerm(searchItem: String, limit: Int): List<User> {
+        val query = BasicQuery("""{${'$'}or:[ { "user_id" : /$searchItem/},{"display_name":/$searchItem/}]}""")
+                .limit(limit)
+        return mongoTemplate.find(query, User::class.java, COLLECTION_USER).collectList().awaitSingleOrNull()
     }
 
 }

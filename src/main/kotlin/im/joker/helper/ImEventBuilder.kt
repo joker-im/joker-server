@@ -1,14 +1,17 @@
 package im.joker.helper
 
+import com.google.common.collect.Lists
 import im.joker.device.Device
 import im.joker.event.EventType
 import im.joker.event.MembershipType
 import im.joker.event.RoomJoinRuleType
 import im.joker.event.content.other.FullReadContent
 import im.joker.event.content.other.ReceiptContent
+import im.joker.event.content.other.TypingContent
 import im.joker.event.content.state.*
 import im.joker.event.room.other.FullReadMarkerEvent
 import im.joker.event.room.other.ReceiptEvent
+import im.joker.event.room.other.TypingEvent
 import im.joker.event.room.state.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -232,6 +235,22 @@ class ImEventBuilder {
             originServerTs = now
             this.eventId = UUID.randomUUID().toString()
 
+        }
+    }
+
+    suspend fun typingEvent(sender: String, roomId: String, time: LocalDateTime): TypingEvent {
+        val typingContent = TypingContent().apply {
+            this.userIds = Lists.newArrayList(sender)
+        }
+        return TypingEvent().apply {
+            this.content = typingContent
+            this.roomId = roomId
+            type = EventType.Typing.id
+            this.sender = sender
+            streamId = idGenerator.nextEventStreamId()
+            transactionId = UUID.randomUUID().toString()
+            originServerTs = time
+            this.eventId = UUID.randomUUID().toString()
         }
     }
 

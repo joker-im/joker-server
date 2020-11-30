@@ -47,7 +47,7 @@ class ImCache {
         log.info("初始化imCache...")
         roomStateCache = CacheBuilder.newBuilder()
                 .maximumSize(2000)
-                .refreshAfterWrite(Duration.ofMinutes(10))
+                .expireAfterAccess(Duration.ofMinutes(10))
                 .build(CacheLoader.from<String, Deferred<RoomState>> {
                     coroutineScope.async {
                         RoomState.from(it ?: "", globalStateHolder)
@@ -56,7 +56,7 @@ class ImCache {
 
         roomCache = CacheBuilder.newBuilder()
                 .maximumSize(2000)
-                .refreshAfterWrite(Duration.ofHours(1))
+                .expireAfterAccess(Duration.ofMinutes(10))
                 .build(CacheLoader.from<String, Deferred<Room>> {
                     coroutineScope.async {
                         it ?: Room()

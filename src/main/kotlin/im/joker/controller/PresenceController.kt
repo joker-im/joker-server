@@ -1,4 +1,4 @@
-package im.joker.router
+package im.joker.controller
 
 import im.joker.api.vo.presence.PresenceRequest
 import im.joker.handler.PresenceHandler

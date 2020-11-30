@@ -1,18 +1,12 @@
-package im.joker.router
+package im.joker.controller
 
-import com.fasterxml.jackson.databind.JsonNode
 import im.joker.api.vo.room.*
-import im.joker.event.EventType
-import im.joker.event.room.AbstractRoomEvent
-import im.joker.exception.ErrorCode
-import im.joker.exception.ImException
 import im.joker.handler.RoomHandler
 import im.joker.helper.ImCache
 import im.joker.helper.RequestProcessor
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.*
 
@@ -62,8 +56,9 @@ class RoomController : BaseController() {
 
 
     @PostMapping("/rooms/{roomId}/invite")
-    suspend fun inviteToRoom(@PathVariable roomId: String, @RequestBody inviteRequest: InviteRequest) {
+    suspend fun inviteToRoom(@PathVariable roomId: String, @RequestBody inviteRequest: InviteRequest):String {
         roomHandler.inviteToRoom(roomId, inviteRequest, getLoginDevice())
+        return "{}"
     }
 
 
@@ -76,14 +71,16 @@ class RoomController : BaseController() {
     }
 
     @PostMapping("/rooms/{roomId}/leave")
-    suspend fun leaveRoom(@PathVariable roomId: String) {
+    suspend fun leaveRoom(@PathVariable roomId: String): String {
         roomHandler.leaveRoom(roomId, getLoginDevice())
+        return "{}"
     }
 
     @PostMapping("/rooms/{roomId}/kick")
-    suspend fun kick(@PathVariable roomId: String, @RequestBody kickRequest: KickRequest) {
+    suspend fun kick(@PathVariable roomId: String, @RequestBody kickRequest: KickRequest): String {
         requestProcessor.validate(kickRequest)
         roomHandler.kick(roomId, kickRequest, getLoginDevice())
+        return "{}"
     }
 
 
@@ -106,6 +103,22 @@ class RoomController : BaseController() {
     @PostMapping("/rooms/{roomId}/read_markers")
     suspend fun setReadMarker(@PathVariable roomId: String, @RequestBody readMarkerRequest: ReadMarkerRequest): String {
         roomHandler.setReadMarker(roomId, readMarkerRequest, getLoginDevice())
+        return "{}"
+    }
+
+
+    @GetMapping("/rooms/{roomId}/members")
+    suspend fun findRoomMembers(@PathVariable roomId: String, @RequestParam map: Map<String, Any>): FindMembersResponse {
+        val findMembersRequest = requestProcessor.convert(map, FindMembersRequest::class.java)
+        findMembersRequest.roomId = roomId
+        return roomHandler.findRoomMembers(findMembersRequest)
+    }
+
+
+    @PutMapping("/rooms/{roomId}/typing/{userId}")
+    suspend fun sendTypingEvent(@PathVariable roomId: String, @PathVariable userId: String, @RequestBody typingRequest: TypingRequest): String {
+        typingRequest.roomId = roomId
+        roomHandler.sendTypingEvent(typingRequest, getLoginDevice())
         return "{}"
     }
 

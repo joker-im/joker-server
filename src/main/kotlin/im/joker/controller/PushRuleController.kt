@@ -1,4 +1,4 @@
-package im.joker.router
+package im.joker.controller
 
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.GetMapping

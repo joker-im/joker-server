@@ -1,4 +1,4 @@
-package im.joker.router
+package im.joker.controller
 
 import im.joker.api.vo.account.LoginFlowResponse
 import im.joker.api.vo.account.LoginRequest
@@ -65,4 +65,5 @@ class AccountController : BaseController() {
     suspend fun logoutAll() {
         userHandler.logoutAll(getLoginDevice())
     }
+
 }
