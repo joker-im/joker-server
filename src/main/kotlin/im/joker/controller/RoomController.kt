@@ -56,13 +56,13 @@ class RoomController : BaseController() {
 
 
     @PostMapping("/rooms/{roomId}/invite")
-    suspend fun inviteToRoom(@PathVariable roomId: String, @RequestBody inviteRequest: InviteRequest):String {
+    suspend fun inviteToRoom(@PathVariable roomId: String, @RequestBody inviteRequest: InviteRequest): String {
         roomHandler.inviteToRoom(roomId, inviteRequest, getLoginDevice())
         return "{}"
     }
 
 
-    @PostMapping("/rooms/{roomId}/join")
+    @PostMapping("/rooms/{roomId}/join", "/join/{roomId}")
     suspend fun joinRoom(@PathVariable roomId: String): JoinRoomResponse {
         roomHandler.joinRoom(roomId, getLoginDevice())
         return JoinRoomResponse().apply {

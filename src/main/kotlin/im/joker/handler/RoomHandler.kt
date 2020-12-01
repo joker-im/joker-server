@@ -139,16 +139,15 @@ class RoomHandler {
     /**
      * 查询state_key当前加入的所有房间(不包含历史)
      */
-    suspend fun searchJoinRoomIdsFromDb(stateKey: String): List<String> {
+    suspend fun searchRelatedRoomFromDb(stateKey: String): List<String> {
         val membershipEventsMap =
                 findSpecifiedEvents(EventType.Membership, stateKey)
-                        .map { it as AbstractRoomStateEvent }
+                        .map { it as MembershipEvent }
                         .groupingBy { it.roomId + it.type + it.stateKey }
                         .reduce { _, acc, e -> if (acc.streamId > e.streamId) acc else e }
         val destRoomIds = ArrayList<String>()
         membershipEventsMap.forEach { (_, v) ->
-            val content = v.content as MembershipContent
-            if (MembershipType.Join.`is`(content.membership)) {
+            if (MembershipType.Join.`is`(v.content.membership) || MembershipType.Invite.`is`(v.content.membership)) {
                 destRoomIds.add(v.roomId)
             }
         }

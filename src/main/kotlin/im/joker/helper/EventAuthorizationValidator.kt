@@ -43,7 +43,8 @@ class EventAuthorizationValidator {
             // 发送消息的人在此room的状态是invite.只能发送leave或者是join
             MembershipType.Invite -> {
                 if (ev !is MembershipEvent) return false
-                if (!MembershipType.Leave.`is`(ev.content.membership) || !MembershipType.Join.`is`(ev.content.membership)) return false
+                // 如果发送的事件不为leave,也不为join,那么false
+                if (!MembershipType.Leave.`is`(ev.content.membership) && !MembershipType.Join.`is`(ev.content.membership)) return false
                 return true
             }
             // 发送消息的人在此房间的状态是join,那么要判断各种发送事件权限细节

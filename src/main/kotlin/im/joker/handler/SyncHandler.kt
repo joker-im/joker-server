@@ -202,20 +202,7 @@ class SyncHandler {
             // 这种情况是队列中和数据库中保持一致,只发生在房间事件很少的时候,全部放timeline
             else -> {
                 val timeLineState = RoomState.fromEvents(timelineEvent.filterIsInstance<AbstractRoomStateEvent>())
-                val joined = SyncResponse.JoinedRooms().apply {
-                    this.timeline = SyncResponse.Timeline().apply {
-                        this.limited = limited
-                        events = timelineEvent
-                        prevBatch = (timelineEvent.last().streamId + 1).toString()
-                        summary = SyncResponse.RoomSummary().apply {
-                            val joinMembers = timeLineState.findSpecificStateMembers(MembershipType.Join).take(4)
-                            this.heroes = joinMembers
-                            this.joinedMemberCount = joinMembers.size
-                            this.invitedMemberCount = timeLineState.findSpecificStateMembers(MembershipType.Invite).size
-                        }
-                    }
-                }
-                joinedMap[roomId] = joined
+                fillRetEvents(timeLineState, device, invitedMap, roomId, timelineEvent, joinedMap, leftMap)
             }
         }
     }

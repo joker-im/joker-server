@@ -5,7 +5,6 @@ import im.joker.device.Device
 import im.joker.event.EventType
 import im.joker.event.MembershipType
 import im.joker.event.room.AbstractRoomEvent
-import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.state.MembershipEvent
 import im.joker.presence.PresenceType
 import im.joker.handler.RoomHandler
@@ -63,7 +62,7 @@ class RoomSubscribeManager {
                 asyncList.awaitAll()
             }
             PresenceType.ONLINE -> {
-                val joinRoomIds = roomHandler.searchJoinRoomIdsFromDb(device.userId)
+                val joinRoomIds = roomHandler.searchRelatedRoomFromDb(device.userId)
                 val asyncList = ArrayList<Deferred<Long>>()
                 joinRoomIds.forEach {
                     val async = async {
