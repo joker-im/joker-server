@@ -86,4 +86,8 @@ class ImCache {
         if (ev is AbstractRoomStateEvent) redissonClient.getTopic(ImConstants.ROOM_STATE_TOPIC).publish(ev.roomId)
     }
 
+    fun notifyStateChange(roomId: String) {
+        redissonClient.getTopic(ImConstants.ROOM_STATE_TOPIC).publish(roomId)
+    }
+
 }

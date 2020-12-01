@@ -81,6 +81,8 @@ class Room {
         }
         // 长轮询唤醒
         globalStateHolder.longPollingHelper.notifySyncDevice(evs[0].roomId, device)
+        // 更新房间状态消息
+        globalStateHolder.imCache.notifyStateChange(evs[0].roomId)
     }
 
 

@@ -74,7 +74,7 @@ class RoomHandler {
         log.info("用户:{},创建一个新房间:{}", device.username, room.roomId)
         val createEvent = eventBuilder.createRoomEvent(device.userId, room.roomId, now)
         val joinEvent: MembershipEvent = eventBuilder.membershipEvent(room.roomId, now, device.userId,
-                "", device.userId, device.name, device.userAvatar, MembershipType.Join)
+                "", device.userId, device.userDisplayName, device.userAvatar, MembershipType.Join)
         // 默认的权限定义事件
         val powerDefEvent = eventBuilder.powerDefEvent(room.roomId, device.userId, now)
         // 如果存在覆盖的
@@ -92,7 +92,7 @@ class RoomHandler {
         //是否存在顺带邀请用户
         val inviteUserEvents = request.invite?.map {
             eventBuilder.membershipEvent(room.roomId, now, device.userId,
-                    "新房邀请", it, device.name, device.userAvatar, MembershipType.Invite)
+                    "新房邀请", it, device.userDisplayName, device.userAvatar, MembershipType.Invite)
         }
 
         // 初始事件

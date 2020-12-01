@@ -234,7 +234,7 @@ class MongoStore {
         query.addCriteria(Criteria.where("stream_id").gte(gteStreamId).and("room_id").`is`(roomId))
                 .limit(limit)
         query.with(Sort.by(Sort.Direction.ASC, "stream_id"))
-        return mongoTemplate.find(query, AbstractRoomEvent::class.java).collectList().awaitSingleOrNull()
+        return mongoTemplate.find(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).collectList().awaitSingleOrNull()
     }
 
     /**
@@ -242,10 +242,12 @@ class MongoStore {
      */
     suspend fun findBackwardEvents(roomId: String, gteStreamId: Long, lteStreamId: Long, limit: Int): List<AbstractRoomEvent> {
         val query = Query()
-        query.addCriteria(Criteria.where("stream_id").`in`(gteStreamId, lteStreamId).and("room_id").`is`(roomId))
+        query.addCriteria(Criteria.where("room_id").`is`(roomId)
+                .andOperator(Criteria.where("stream_id").lte(lteStreamId), Criteria.where("stream_id").gte(gteStreamId))
+        )
                 .limit(limit)
         query.with(Sort.by(Sort.Direction.DESC, "stream_id"))
-        return mongoTemplate.find(query, AbstractRoomEvent::class.java).collectList().awaitSingleOrNull()
+        return mongoTemplate.find(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).collectList().awaitSingleOrNull()
     }
 
     suspend fun findUserByUserId(userId: String): User? {
