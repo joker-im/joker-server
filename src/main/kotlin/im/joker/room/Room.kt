@@ -74,8 +74,6 @@ class Room {
         evs.forEach {
             // 更新设备和房间的订阅消息
             globalStateHolder.roomSubscribeManager.updateRelation(device, it)
-            // 更新房间状态消息
-            globalStateHolder.imCache.notifyStateChange(it)
             // 添加事件到redis队列
             globalStateHolder.eventSyncQueueManager.addToEventQueue(it)
         }

@@ -12,8 +12,8 @@ class KeysManagementController : BaseController() {
 
 
     @PostMapping("/keys/upload")
-    suspend fun upload(@RequestBody req: KeysUploadRequest): Map<String, Int> {
-        return mapOf("one_time_key_counts" to 0)
+    suspend fun upload(@RequestBody req: KeysUploadRequest): String {
+        return "{}"
     }
 
 

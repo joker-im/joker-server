@@ -90,7 +90,7 @@ class EventAuthorizationValidator {
                                 ?: powerDefContent.stateDefault)
                         return userPower >= needPower
                     }
-                    else -> return false
+                    else -> return true
                 }
             }
             //当发送的是编辑事件

@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.redisson.api.RedissonReactiveClient
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -82,12 +83,12 @@ class ImCache {
         roomStateCache.refresh(roomId)
     }
 
-    fun notifyStateChange(ev: AbstractRoomEvent) {
-        if (ev is AbstractRoomStateEvent) redissonClient.getTopic(ImConstants.ROOM_STATE_TOPIC).publish(ev.roomId)
+    suspend fun notifyStateChange(ev: AbstractRoomEvent) {
+        if (ev is AbstractRoomStateEvent) redissonClient.getTopic(ImConstants.ROOM_STATE_TOPIC).publish(ev.roomId).awaitSingleOrNull()
     }
 
-    fun notifyStateChange(roomId: String) {
-        redissonClient.getTopic(ImConstants.ROOM_STATE_TOPIC).publish(roomId)
+    suspend fun notifyStateChange(roomId: String) {
+        redissonClient.getTopic(ImConstants.ROOM_STATE_TOPIC).publish(roomId).awaitSingleOrNull()
     }
 
 }
