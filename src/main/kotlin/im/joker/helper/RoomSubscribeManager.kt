@@ -118,5 +118,12 @@ class RoomSubscribeManager {
         return@coroutineScope roomIds
     }
 
+    /**
+     * 查询该房间的订阅的设备id
+     */
+    suspend fun searchRoomSubscriber(roomId: String): List<String> {
+        return redisTemplate.opsForSet().members(ROOM_SUBSCRIBERS_OF_DEVICE.format(roomId)).collectList().awaitSingleOrNull()
+    }
+
 
 }

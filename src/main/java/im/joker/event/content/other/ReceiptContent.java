@@ -49,7 +49,7 @@ public class ReceiptContent implements IContent {
 
     public static class Receipts {
         @JsonProperty("m.read")
-        private Map<String, Receipt> read;
+        private Map<String, Receipt> read = new HashMap<>();
 
         public Map<String, Receipt> getRead() {
             return read;

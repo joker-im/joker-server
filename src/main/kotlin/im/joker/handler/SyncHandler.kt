@@ -52,8 +52,9 @@ class SyncHandler {
         return if (init) initSync(device) else incrementSync(request, device)
     }
 
-    private suspend fun incrementSync(request: SyncRequest, device: Device): SyncResponse = coroutineScope {
+    private suspend fun incrementSync(request: SyncRequest, device: Device, channel: Channel<Boolean> = Channel()): SyncResponse = coroutineScope {
         log.debug("userId:{},deviceId:{},触发增量同步", device.userId, device.deviceId)
+        longPollingHelper.addWaitingDevice(device.deviceId, channel)
         var ret = SyncResponse()
         val sinceId = request.since.toLong()
         val joinedMap = HashMap<String, SyncResponse.JoinedRooms>()
@@ -75,12 +76,10 @@ class SyncHandler {
         val latestRoomEventMap = eventSyncQueueManager.takeRelatedEvent(device.deviceId, device.userId, sinceId, latestStreamId)
         // 为空的时候,waiting timeout
         if (latestRoomEventMap.isEmpty()) {
-            val channel = Channel<Boolean>()
-            longPollingHelper.addWaitingDevice(device.deviceId, channel)
             try {
                 withTimeout(request.timeout.toLong()) {
                     channel.receive()
-                    ret = incrementSync(request, device)
+                    ret = incrementSync(request, device, channel)
                 }
             } catch (e: Exception) {
                 channel.cancel()

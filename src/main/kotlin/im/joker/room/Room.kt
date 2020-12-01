@@ -49,7 +49,7 @@ class Room {
             if (ev is FullReadMarkerEvent) {
                 // fullReadMarker 存Mongodb
                 globalStateHolder.mongoStore.setFullReadEvent(ev)
-            } else if (ev !is TypingEvent || ev !is ReceiptEvent) {
+            } else if (ev !is TypingEvent && ev !is ReceiptEvent) {
                 // 回执事件和打字事件不存到mongo
                 globalStateHolder.mongoStore.addEvent(ev)
             }
@@ -60,7 +60,7 @@ class Room {
             // 添加事件到redis队列
             globalStateHolder.eventSyncQueueManager.addToEventQueue(ev)
             // 长轮询唤醒
-            globalStateHolder.longPollingHelper.notifySyncDevice(device.deviceId)
+            globalStateHolder.longPollingHelper.notifySyncDevice(ev.roomId, device)
         } finally {
             // 解锁
             globalStateHolder.redissonClient.getLock(EVENT_LOCK.format(ev.roomId)).unlock(1).awaitSingleOrNull()
@@ -80,7 +80,7 @@ class Room {
             globalStateHolder.eventSyncQueueManager.addToEventQueue(it)
         }
         // 长轮询唤醒
-        globalStateHolder.longPollingHelper.notifySyncDevice(device.deviceId)
+        globalStateHolder.longPollingHelper.notifySyncDevice(evs[0].roomId, device)
     }
 
 

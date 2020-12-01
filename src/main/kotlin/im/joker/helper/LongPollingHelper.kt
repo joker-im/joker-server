@@ -1,7 +1,11 @@
 package im.joker.helper
 
 import im.joker.constants.ImConstants.Companion.ROOM_SYNC_DEVICE
+import im.joker.device.Device
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.redisson.api.RedissonReactiveClient
 import org.slf4j.Logger
@@ -23,6 +27,9 @@ class LongPollingHelper {
 
     private val waitingSyncMap = ConcurrentHashMap<String, Channel<Boolean>>()
 
+    @Autowired
+    private lateinit var roomSubscribeManager: RoomSubscribeManager
+
 
     @PostConstruct
     fun init() {
@@ -38,8 +45,17 @@ class LongPollingHelper {
         waitingSyncMap[deviceId] = channel
     }
 
-    suspend fun notifySyncDevice(deviceId: String) {
-        redissonReactiveClient.getTopic(ROOM_SYNC_DEVICE).publish(deviceId).awaitSingleOrNull()
+    suspend fun notifySyncDevice(roomId: String, device: Device): Unit = coroutineScope {
+        val deviceIds = roomSubscribeManager.searchRoomSubscriber(roomId)
+        // 自己发的事件不唤醒自己,只唤醒别人
+        val deferredList = deviceIds
+                .filter {
+                    it != device.deviceId
+                }
+                .map {
+                    async { redissonReactiveClient.getTopic(ROOM_SYNC_DEVICE).publish(it).awaitSingleOrNull() }
+                }
+        deferredList.awaitAll()
     }
 
     fun removeWaitingDevice(deviceId: String) {
