@@ -38,11 +38,11 @@ class EventSyncQueueManager {
      */
     suspend fun addToEventQueue(ev: AbstractRoomEvent) {
 //        log.debug("将ev放入消息队列:{}", requestProcessor.toJson(ev))
-        redisTemplate.opsForList().rightPush(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId), requestProcessor.toJson(ev)).awaitFirstOrNull()
+        redisTemplate.opsForList().rightPush(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId), requestProcessor.toJson(ev)).awaitSingleOrNull()
         val queueSize = redisTemplate.opsForList().size(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId)).awaitSingle()
         // 当超过limit条事件的时候,修整该房间队列,删除最老的消息,以维持队列保证limit条
         if (limit > queueSize) {
-            redisTemplate.opsForList().trim(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId), queueSize - limit, -1).awaitFirstOrNull()
+            redisTemplate.opsForList().trim(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId), queueSize - limit, -1).awaitSingleOrNull()
         }
     }
 

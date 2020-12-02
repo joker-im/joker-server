@@ -2,6 +2,8 @@ package im.joker.helper
 
 import im.joker.constants.ImConstants.Companion.ROOM_SYNC_DEVICE
 import im.joker.device.Device
+import im.joker.event.room.AbstractRoomEvent
+import im.joker.event.room.AbstractRoomStateEvent
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
@@ -45,12 +47,12 @@ class LongPollingHelper {
         waitingSyncMap[deviceId] = channel
     }
 
-    suspend fun notifySyncDevice(roomId: String, device: Device): Unit = coroutineScope {
-        val deviceIds = roomSubscribeManager.searchRoomSubscriber(roomId)
-        // 自己发的事件不唤醒自己,只唤醒别人
+    suspend fun notifySyncDevice(event: AbstractRoomEvent, device: Device): Unit = coroutineScope {
+        val deviceIds = roomSubscribeManager.searchRoomSubscriber(event.roomId)
+        // 自己发的事件不唤醒自己,只唤醒别人.(除了状态事件)
         val deferredList = deviceIds
                 .filter {
-                    it != device.deviceId
+                    event is AbstractRoomStateEvent || it != device.deviceId
                 }
                 .map {
                     async { redissonReactiveClient.getTopic(ROOM_SYNC_DEVICE).publish(it).awaitSingleOrNull() }

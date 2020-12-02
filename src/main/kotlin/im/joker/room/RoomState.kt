@@ -40,6 +40,13 @@ class RoomState {
             }
         }
 
+        fun build(): RoomState {
+            return RoomState().apply {
+                descStateEvent = ArrayList()
+                descStateMap = HashMap()
+            }
+        }
+
         private fun toStateMap(handledStateEvents: List<AbstractRoomStateEvent>): Map<String, AbstractRoomStateEvent> {
             // 新的替换旧的
             return handledStateEvents.groupingBy {

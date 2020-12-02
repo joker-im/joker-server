@@ -19,6 +19,9 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate
+import org.springframework.data.redis.core.deleteAndAwait
+import org.springframework.data.redis.core.getAndAwait
+import org.springframework.data.redis.core.removeAndAwait
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
@@ -50,10 +53,10 @@ class DeviceManager {
             userAvatar: String,
             userDisplayName: String
     ): Device {
-        log.debug("判断username:{}是否存在redis的hash中", username)
-        val token = redisTemplate.opsForHash<String, String>().get(USER_DEVICES_TOKENS_HASH.format(username), username).awaitSingleOrNull()
+        log.debug("判断userId:{}是否存在redis的hash中", userId)
+        val token = redisTemplate.opsForHash<String, String>().get(USER_DEVICES_TOKENS_HASH.format(userId), deviceId).awaitSingleOrNull()
         return if (token.isNullOrEmpty()) {
-            log.debug("username:{} token为空,创建新token", username)
+            log.debug("userId:{} token为空,创建新token", username)
             createNewToken(deviceId, username, deviceName, userId, userAvatar, userDisplayName)
         } else {
             val entries =
@@ -79,8 +82,8 @@ class DeviceManager {
 
         val asyncList = listOf(
                 async {
-                    redisTemplate.opsForHash<String, String>().putAll(USER_DEVICES_TOKENS_HASH.format(username), deviceTokenMap)
-                            .then(redisTemplate.expire(USER_DEVICES_TOKENS_HASH.format(username), duration)).awaitSingleOrNull()
+                    redisTemplate.opsForHash<String, String>().putAll(USER_DEVICES_TOKENS_HASH.format(userId), deviceTokenMap)
+                            .then(redisTemplate.expire(USER_DEVICES_TOKENS_HASH.format(userId), duration)).awaitSingleOrNull()
                 },
                 async {
                     redisTemplate.opsForHash<String, String>().putAll(TOKEN_USER_HASH.format(token), tokenDeviceMap)
@@ -94,7 +97,7 @@ class DeviceManager {
     }
 
     fun find(token: String): Mono<Device> {
-        return redisTemplate.opsForHash<String, String>().entries(java.lang.String.format(TOKEN_USER_HASH, token))
+        return redisTemplate.opsForHash<String, String>().entries(TOKEN_USER_HASH.format(token))
                 .switchIfEmpty(Mono.error(ImException(ErrorCode.UNKNOWN_TOKEN, HttpStatus.FORBIDDEN)))
                 .collectMap({ it.key }, { it.value })
                 .map {
@@ -113,22 +116,30 @@ class DeviceManager {
     suspend fun removeDevice(device: Device): Unit = coroutineScope {
         val asyncList = listOf(
                 async {
-                    redisTemplate.delete(TOKEN_USER_HASH.format(device.accessToken)).awaitSingleOrNull()
+                    redisTemplate.deleteAndAwait(TOKEN_USER_HASH.format(device.accessToken))
                 }, async {
             redisTemplate.opsForHash<String, String>()
-                    .remove(USER_DEVICES_TOKENS_HASH.format(device.username), device.deviceId).awaitSingleOrNull()
+                    .removeAndAwait(USER_DEVICES_TOKENS_HASH.format(device.username), device.deviceId)
         })
         asyncList.awaitAll()
     }
 
 
-    suspend fun findDeviceTokens(username: String): List<Device> {
+    suspend fun findDevices(device: Device): List<Device> {
         val deviceTokenList = redisTemplate.opsForHash<String, String>()
-                .entries(USER_DEVICES_TOKENS_HASH.format(username))
+                .entries(USER_DEVICES_TOKENS_HASH.format(device.userId))
                 .collectList().awaitSingleOrNull()
         return deviceTokenList.map {
-            Device(it.key, it.value, username, "", "", "", "")
+            Device(it.key, it.value, device.username, device.name, device.userAvatar, device.userId, device.userDisplayName)
         }
+
+    }
+
+    suspend fun findDeviceIdsByUserId(userId: String): MutableSet<String> {
+        val devicesTokens = redisTemplate.opsForHash<String, String>()
+                .entries(USER_DEVICES_TOKENS_HASH.format(userId))
+                .collectMap({ it.key }, { it.value }).awaitSingleOrNull()
+        return devicesTokens.keys.toMutableSet()
 
     }
 

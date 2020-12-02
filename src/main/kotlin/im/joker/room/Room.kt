@@ -54,13 +54,13 @@ class Room {
                 globalStateHolder.mongoStore.addEvent(ev)
             }
             // 更新设备和房间的订阅消息
-            globalStateHolder.roomSubscribeManager.updateRelation(device, ev)
+            globalStateHolder.roomSubscribeManager.updateRelation(ev)
             // 更新房间状态消息
             globalStateHolder.imCache.notifyStateChange(ev)
             // 添加事件到redis队列
             globalStateHolder.eventSyncQueueManager.addToEventQueue(ev)
             // 长轮询唤醒
-            globalStateHolder.longPollingHelper.notifySyncDevice(ev.roomId, device)
+            globalStateHolder.longPollingHelper.notifySyncDevice(ev, device)
         } finally {
             // 解锁
             globalStateHolder.redissonClient.getLock(EVENT_LOCK.format(ev.roomId)).unlock(1).awaitSingleOrNull()
@@ -73,12 +73,12 @@ class Room {
         globalStateHolder.mongoStore.addEvents(evs)
         evs.forEach {
             // 更新设备和房间的订阅消息
-            globalStateHolder.roomSubscribeManager.updateRelation(device, it)
+            globalStateHolder.roomSubscribeManager.updateRelation(it)
             // 添加事件到redis队列
             globalStateHolder.eventSyncQueueManager.addToEventQueue(it)
         }
         // 长轮询唤醒
-        globalStateHolder.longPollingHelper.notifySyncDevice(evs[0].roomId, device)
+        globalStateHolder.longPollingHelper.notifySyncDevice(evs[0], device)
         // 更新房间状态消息
         globalStateHolder.imCache.notifyStateChange(evs[0].roomId)
     }

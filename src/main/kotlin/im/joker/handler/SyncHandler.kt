@@ -7,10 +7,7 @@ import im.joker.event.MembershipType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.other.TypingEvent
-import im.joker.helper.EventSyncQueueManager
-import im.joker.helper.ImCache
-import im.joker.helper.LongPollingHelper
-import im.joker.helper.RoomSubscribeManager
+import im.joker.helper.*
 import im.joker.repository.MongoStore
 import im.joker.room.RoomState
 import kotlinx.coroutines.async
@@ -39,6 +36,9 @@ class SyncHandler {
 
     @Autowired
     private lateinit var roomSubscribeManager: RoomSubscribeManager
+
+    @Autowired
+    private lateinit var roomMessageHelper: RoomMessageHelper
 
     @Autowired
     private lateinit var imCache: ImCache
@@ -88,15 +88,28 @@ class SyncHandler {
             return@coroutineScope ret
         }
         // 不为空的时候,每个房间都要补充消息,不过需要先拿到当前的roomState,用于判断device所属的membership
-        latestRoomEventMap.forEach { (roomId, latestRoomEvents) ->
+        latestRoomEventMap.forEach { (roomId, events) ->
+            var latestRoomEvents = events
+            // 该用户在该房间能读的最大的streamId
+            val maxStreamId = roomMessageHelper.getRoomMaxStreamId(device.userId, roomId)
+            // 保证该用户只能sync到maxStreamId之间的事件
+            maxStreamId?.let { max ->
+                latestRoomEvents = events.filter { it.streamId < max }
+            }
+            // 如果过滤后房间事件为0,那么跳过本房间处理
+            if (latestRoomEvents.isEmpty()) return@forEach
             val fullRoomState = imCache.getRoomState(roomId)
-            // 队列里面最小的streamId,但是最多只取limitOfRoom条
-            val roomLimitEvents = if (latestRoomEvents.size > limitOfRoom) latestRoomEvents.slice(IntRange(latestRoomEvents.size - 1 - limitOfRoom, latestRoomEvents.size - 1)) else latestRoomEvents
-            val minStreamId = roomLimitEvents.first().streamId
-            // 比队列里面最小的streamId还要小的作为timelineOfStartState
-            val timelineOfStartState = RoomState.fromEvents(fullRoomState.descStateEvent.filter { it.streamId < minStreamId })
+            val queueMinStreamId = latestRoomEvents.first().streamId
 
-            fillRetEvents(timelineOfStartState, device, invitedMap, roomId, roomLimitEvents, joinedMap, leftMap, latestRoomEvents.size > roomLimitEvents.size)
+            val timelineOfStartState = RoomState.fromEvents(fullRoomState.descStateEvent.filter { it.streamId < queueMinStreamId })
+            var limited = false
+            // 队列里面最小的streamId,但是最多只取limitOfRoom条
+            if (latestRoomEvents.size > limitOfRoom) {
+                latestRoomEvents = latestRoomEvents.slice(IntRange(latestRoomEvents.size - 1 - limitOfRoom, latestRoomEvents.size - 1))
+                // 比队列里面最小的streamId还要小的作为timelineOfStartState
+                limited = true
+            }
+            fillRetEvents(timelineOfStartState, device, invitedMap, roomId, latestRoomEvents, joinedMap, leftMap, limited)
         }
 
         ret
@@ -130,6 +143,14 @@ class SyncHandler {
             nextBatch = (latestStreamId + 1).toString()
         }
         roomTopKEvents.forEach { topK ->
+            // 该用户在该房间能读的最大的streamId
+            val maxStreamId = roomMessageHelper.getRoomMaxStreamId(device.userId, topK.roomId)
+            maxStreamId?.let { max ->
+                topK.sliceLastEvents = topK.sliceLastEvents.filter { it.streamId < max }
+            }
+            if (topK.sliceLastEvents.isEmpty()) {
+                return@forEach
+            }
             //  timelineOfStartState = ( fullRoomStateEvents#streamId < topK最老的一条streamId)
             //  timeline = topK - timelineOfStartState 最新的一条状态消息
             // 过滤掉比topK最旧的streamId还要大的stateEvents即为 timelineOfStartState
@@ -168,8 +189,10 @@ class SyncHandler {
                         events = timelineEvent
                         prevBatch = (timelineEvent.last().streamId + 1).toString()
                     }
-                    this.state = SyncResponse.State().apply {
-                        events = timelineOfStartState.distinctStateEvents()
+                    if (limited) {
+                        this.state = SyncResponse.State().apply {
+                            events = timelineOfStartState.distinctStateEvents()
+                        }
                     }
                     this.summary = SyncResponse.RoomSummary().apply {
                         val joinMembers = timelineOfStartState.findSpecificStateMembers(MembershipType.Join).take(4)
@@ -192,8 +215,10 @@ class SyncHandler {
                         this.limited = limited
                         prevBatch = (timelineEvent.last().streamId + 1).toString()
                     }
-                    this.state = SyncResponse.State().apply {
-                        events = timelineOfStartState.distinctStateEvents()
+                    if (limited) {
+                        this.state = SyncResponse.State().apply {
+                            events = timelineOfStartState.distinctStateEvents()
+                        }
                     }
                 }
                 leftMap[roomId] = left
@@ -201,7 +226,7 @@ class SyncHandler {
             // 这种情况是队列中和数据库中保持一致,只发生在房间事件很少的时候,全部放timeline
             else -> {
                 val timeLineState = RoomState.fromEvents(timelineEvent.filterIsInstance<AbstractRoomStateEvent>())
-                fillRetEvents(timeLineState, device, invitedMap, roomId, timelineEvent, joinedMap, leftMap)
+                fillRetEvents(timeLineState, device, invitedMap, roomId, timelineEvent, joinedMap, leftMap, limited)
             }
         }
     }

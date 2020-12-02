@@ -2,6 +2,7 @@ package im.joker.helper
 
 import im.joker.constants.ImConstants.Companion.ROOM_SUBSCRIBERS_OF_DEVICE
 import im.joker.device.Device
+import im.joker.device.DeviceManager
 import im.joker.event.EventType
 import im.joker.event.MembershipType
 import im.joker.event.room.AbstractRoomEvent
@@ -35,6 +36,12 @@ class RoomSubscribeManager {
 
     @Autowired
     private lateinit var roomHandler: RoomHandler
+
+    @Autowired
+    private lateinit var deviceManager: DeviceManager
+
+    @Autowired
+    private lateinit var roomMessageHelper: RoomMessageHelper
 
     /**
      * 用户上线时,需调用此方法, 将自己的deviceId注册到感兴趣的房间
@@ -77,18 +84,28 @@ class RoomSubscribeManager {
     }
 
 
-    suspend fun updateRelation(device: Device, ev: AbstractRoomEvent) {
+    suspend fun updateRelation(ev: AbstractRoomEvent) {
         // 如果不是membership事件,那么无需更新房间订阅关系
         if (!EventType.Membership.`is`(ev.type)) {
             return
         }
-        val evMembershipType = (ev as MembershipEvent).content.membership
-
-        if (MembershipType.Join.`is`(evMembershipType) || MembershipType.Invite.`is`(evMembershipType)) {
-            redisTemplate.opsForSet().addAndAwait(ROOM_SUBSCRIBERS_OF_DEVICE.format(ev.roomId), device.deviceId)
+        ev as MembershipEvent
+        // 先把所有涉及到的人加入到订阅上
+        val deviceIds = deviceManager.findDeviceIdsByUserId(ev.sender)
+        var beOperatedDeviceIds: Set<String>? = null
+        if (ev.sender != ev.stateKey) {
+            beOperatedDeviceIds = deviceManager.findDeviceIdsByUserId(ev.stateKey)
+            deviceIds.addAll(beOperatedDeviceIds)
         }
-        if (MembershipType.Ban.`is`(evMembershipType) || MembershipType.Leave.`is`(evMembershipType)) {
-            redisTemplate.opsForSet().removeAndAwait(ROOM_SUBSCRIBERS_OF_DEVICE.format(ev.roomId), device.deviceId)
+        for (deviceId in deviceIds) {
+            redisTemplate.opsForSet().addAndAwait(ROOM_SUBSCRIBERS_OF_DEVICE.format(ev.roomId), deviceId)
+        }
+        // 对他人做出操作
+        beOperatedDeviceIds?.let {
+            // 当踢人和ban人的时候, 应该做一些事情,设置这些设备在此房间中能读取的最大stream_id
+            if (MembershipType.Leave.`is`(ev.content.membership) || MembershipType.Ban.`is`(ev.content.membership)) {
+                roomMessageHelper.setMaxStreamId(ev.stateKey, ev.roomId,ev.streamId)
+            }
         }
 
     }

@@ -42,8 +42,6 @@ class AuthManager {
     @Autowired
     private lateinit var presenceHandler: PresenceHandler
 
-    @Autowired
-    private lateinit var idGenerator: IdGenerator
 
 
     suspend fun login(request: LoginRequest): LoginResponse {
@@ -79,7 +77,7 @@ class AuthManager {
 
     suspend fun logoutAll(device: Device) {
         log.info("收到设备登出全部请求,其username:{},deviceId:{}", device.username, device.deviceId)
-        val devices = deviceManager.findDeviceTokens(device.username)
+        val devices = deviceManager.findDevices(device)
         val presenceRequest = PresenceRequest()
         presenceRequest.presence = PresenceType.ONLINE.id
         devices.forEach {
