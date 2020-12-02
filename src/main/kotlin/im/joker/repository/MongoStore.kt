@@ -9,8 +9,10 @@ import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.other.FullReadMarkerEvent
 import im.joker.room.Room
+import im.joker.room.RoomReadMarker
 import im.joker.upload.UploadFile
 import im.joker.user.User
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactive.awaitSingleOrDefault
 import kotlinx.coroutines.reactive.awaitSingleOrNull
@@ -28,6 +30,7 @@ import org.springframework.data.mongodb.core.query.Update
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 import javax.annotation.PostConstruct
+import kotlin.math.max
 
 /**
  * @Author: mkCen
@@ -173,7 +176,9 @@ class MongoStore {
 
     suspend fun findLatestStreamId(): Long {
         val query = Query().with(Sort.by(Sort.Direction.DESC, "stream_id"))
-        return mongoTemplate.findOne(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).map { it.streamId }.awaitSingleOrDefault(-1L)
+        val s1 = mongoTemplate.findOne(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).map { it.streamId }.awaitSingleOrDefault(-1L)
+        val s2 = mongoTemplate.findOne(query, RoomReadMarker::class.java, COLLECTION_ROOM_FULL_READ_MARKER).map { it.streamId!! }.awaitSingleOrDefault(-1L)
+        return max(s1, s2)
     }
 
 
@@ -263,9 +268,10 @@ class MongoStore {
         val query = Query().addCriteria(Criteria.where("user_id").`is`(ev.sender).and("room_id").`is`(ev.roomId))
         val update = Update().set("event_id", ev.eventId)
                 .set("user_id", ev.sender)
+                .set("stream_id", ev.streamId)
                 .set("room_id", ev.roomId)
                 .set("read_marker_time", ev.originServerTs)
-        mongoTemplate.upsert(query, update, COLLECTION_ROOM_FULL_READ_MARKER)
+        mongoTemplate.upsert(query, update, COLLECTION_ROOM_FULL_READ_MARKER).awaitSingleOrNull()
 
     }
 

@@ -18,5 +18,7 @@ class RoomReadMarker {
 
     lateinit var eventId: String
 
+    var streamId: Long? = null
+
 
 }

@@ -5,6 +5,7 @@ import im.joker.api.vo.e2e.DeviceLists;
 import im.joker.api.vo.e2e.ToDevice;
 import im.joker.event.room.AbstractRoomEvent;
 import im.joker.event.room.AbstractRoomStateEvent;
+import im.joker.event.room.other.FullReadMarkerEvent;
 
 import java.util.List;
 import java.util.Map;
@@ -357,14 +358,14 @@ public class SyncResponse {
         }
     }
 
-    private static class AccountData {
-        private List<Map<String,Object>> events;
+    public static class AccountData {
+        private List<FullReadMarkerEvent> events;
 
-        public List<Map<String,Object>> getEvents() {
+        public List<FullReadMarkerEvent> getEvents() {
             return events;
         }
 
-        public void setEvents(List<Map<String,Object>> events) {
+        public void setEvents(List<FullReadMarkerEvent> events) {
             this.events = events;
         }
     }

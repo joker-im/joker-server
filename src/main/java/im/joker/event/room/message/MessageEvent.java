@@ -4,9 +4,11 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import im.joker.event.content.AbstractMessageContent;
 import im.joker.event.room.AbstractRoomEvent;
 
+import static com.fasterxml.jackson.annotation.JsonTypeInfo.As.EXISTING_PROPERTY;
+
 public class MessageEvent extends AbstractRoomEvent {
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "msgtype", visible = true)
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "msgtype", visible = true, include = EXISTING_PROPERTY)
     private AbstractMessageContent content;
 
     @Override

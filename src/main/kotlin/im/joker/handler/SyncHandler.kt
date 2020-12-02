@@ -6,6 +6,8 @@ import im.joker.device.Device
 import im.joker.event.MembershipType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
+import im.joker.event.room.other.FullReadMarkerEvent
+import im.joker.event.room.other.ReceiptEvent
 import im.joker.event.room.other.TypingEvent
 import im.joker.helper.*
 import im.joker.repository.MongoStore
@@ -165,10 +167,13 @@ class SyncHandler {
     }
 
     private fun fillRetEvents(timelineOfStartState: RoomState, device: Device, invitedMap: HashMap<String, SyncResponse.InvitedRooms>,
-                              roomId: String, timelineEvent: List<AbstractRoomEvent>, joinedMap: HashMap<String, SyncResponse.JoinedRooms>, leftMap:
+                              roomId: String, timeline: List<AbstractRoomEvent>, joinedMap: HashMap<String, SyncResponse.JoinedRooms>, leftMap:
                               HashMap<String, SyncResponse.LeftRooms>, limited: Boolean = true) {
 
-        val ephemeralEvent = timelineEvent.filterIsInstance<TypingEvent>()
+        val ephemeralEvent = timeline.filterIsInstance<TypingEvent>()
+        val timelineEvent = timeline.filter { it !is TypingEvent && it !is ReceiptEvent && it !is FullReadMarkerEvent }
+        val readMarkerEvent = timeline.filterIsInstance<FullReadMarkerEvent>()
+        if (timelineEvent.isEmpty()) return
 
         // 判断同步的这个人在此房间处于什么状态
         when (timelineOfStartState.latestMembershipType(device.userId)) {
@@ -203,6 +208,9 @@ class SyncHandler {
                     this.ephemeral = SyncResponse.Ephemeral().apply {
                         this.events = ephemeralEvent
                     }
+                    this.accountData = SyncResponse.AccountData().apply {
+                        this.events = readMarkerEvent
+                    }
                 }
                 joinedMap[roomId] = joined
             }
@@ -219,6 +227,9 @@ class SyncHandler {
                         this.state = SyncResponse.State().apply {
                             events = timelineOfStartState.distinctStateEvents()
                         }
+                    }
+                    this.accountData = SyncResponse.AccountData().apply {
+                        this.events = readMarkerEvent
                     }
                 }
                 leftMap[roomId] = left

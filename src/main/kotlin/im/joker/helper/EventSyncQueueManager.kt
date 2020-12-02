@@ -3,6 +3,8 @@ package im.joker.helper
 import im.joker.constants.ImConstants.Companion.ACTIVE_ROOM_LATEST_EVENTS
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
+import im.joker.event.room.other.FullReadMarkerEvent
+import im.joker.event.room.other.ReceiptEvent
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -61,11 +63,11 @@ class EventSyncQueueManager {
         list.awaitAll().forEach { it1 ->
             val roomEvents = it1.map { requestProcessor.toBean(it, AbstractRoomEvent::class.java) }
                     .filter {
-                        val inRange = it.streamId in gteStreamId..lteStreamId
-                        val isStateEvent = it is AbstractRoomStateEvent
-                        val isSender = it.sender == sender
-                        // 在范围内,如果是状态事件直接可以返回.但不是状态事件不能返回与自己相关的事件
-                        inRange && (isStateEvent || !isSender)
+                        val range = it.streamId in gteStreamId..lteStreamId
+                        if (it is FullReadMarkerEvent) {
+                            return@filter range && it.sender == sender
+                        }
+                        range
                     }
             if (roomEvents.isNotEmpty()) eventMap[roomEvents[0].roomId] = roomEvents
         }

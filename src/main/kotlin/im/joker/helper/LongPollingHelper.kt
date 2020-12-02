@@ -49,11 +49,7 @@ class LongPollingHelper {
 
     suspend fun notifySyncDevice(event: AbstractRoomEvent, device: Device): Unit = coroutineScope {
         val deviceIds = roomSubscribeManager.searchRoomSubscriber(event.roomId)
-        // 自己发的事件不唤醒自己,只唤醒别人.(除了状态事件)
         val deferredList = deviceIds
-                .filter {
-                    event is AbstractRoomStateEvent || it != device.deviceId
-                }
                 .map {
                     async { redissonReactiveClient.getTopic(ROOM_SYNC_DEVICE).publish(it).awaitSingleOrNull() }
                 }
