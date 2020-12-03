@@ -24,7 +24,7 @@ spring:
 
 
 im:
-  web-domain: www.jokerim.org
+  web-domain: jokerim.org
   # 上传文件的路径
   file-root-dir: joker_files
 
