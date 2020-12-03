@@ -6,6 +6,8 @@ import im.joker.device.Device
 import im.joker.event.MembershipType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
+import im.joker.event.room.UnsignedData
+import im.joker.event.room.message.MessageEvent
 import im.joker.event.room.other.FullReadMarkerEvent
 import im.joker.event.room.other.ReceiptEvent
 import im.joker.event.room.other.TypingEvent
@@ -20,6 +22,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import java.time.LocalDateTime
 
 @Service
 class SyncHandler {
@@ -171,7 +174,16 @@ class SyncHandler {
                               HashMap<String, SyncResponse.LeftRooms>, limited: Boolean = true) {
 
         val ephemeralEvent = timeline.filterIsInstance<TypingEvent>()
-        val timelineEvent = timeline.filter { it !is TypingEvent && it !is ReceiptEvent && it !is FullReadMarkerEvent }
+        val now = LocalDateTime.now()
+        val timelineEvent = timeline
+                .filter { it !is TypingEvent && it !is ReceiptEvent && it !is FullReadMarkerEvent }
+                .onEach {
+                    it.unsigned = UnsignedData().apply {
+                        age = now.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() - it.originServerTs.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        transactionId = it.transactionId
+                    }
+                }
+
         val readMarkerEvent = timeline.filterIsInstance<FullReadMarkerEvent>()
         if (timelineEvent.isEmpty()) return
 

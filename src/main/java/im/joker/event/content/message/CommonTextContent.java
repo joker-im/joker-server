@@ -1,5 +1,6 @@
 package im.joker.event.content.message;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import im.joker.event.content.AbstractMessageContent;
 
 
@@ -8,8 +9,9 @@ import im.joker.event.content.AbstractMessageContent;
  */
 public class CommonTextContent extends AbstractMessageContent {
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String format;
-
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String formattedBody;
 
     public String getFormat() {
