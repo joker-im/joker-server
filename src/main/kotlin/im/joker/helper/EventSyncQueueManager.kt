@@ -2,13 +2,10 @@ package im.joker.helper
 
 import im.joker.constants.ImConstants.Companion.ACTIVE_ROOM_LATEST_EVENTS
 import im.joker.event.room.AbstractRoomEvent
-import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.other.FullReadMarkerEvent
-import im.joker.event.room.other.ReceiptEvent
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.slf4j.Logger
@@ -52,7 +49,7 @@ class EventSyncQueueManager {
      * 从设备相关的房间中拿取limitOfRoom条数据,其返回值key是roomId,value是redis队列中提取的
      * 过滤其本人说的话
      */
-    suspend fun takeRelatedEvent(deviceId: String, sender: String, gteStreamId: Long, lteStreamId: Long): Map<String, List<AbstractRoomEvent>> = coroutineScope {
+    suspend fun takeRelatedEvent(deviceId: String, sender: String, gteStreamId: Long, lteStreamId: Long): HashMap<String, List<AbstractRoomEvent>> = coroutineScope {
         val roomIds = roomSubscribeManager.searchJoinRoomIds(deviceId)
         val list = roomIds.map {
             async {
@@ -60,8 +57,8 @@ class EventSyncQueueManager {
             }
         }
         val eventMap = HashMap<String, List<AbstractRoomEvent>>()
-        list.awaitAll().forEach { it1 ->
-            val roomEvents = it1.map { requestProcessor.toBean(it, AbstractRoomEvent::class.java) }
+        list.awaitAll().forEach { eventJson ->
+            val roomEvents = eventJson.map { requestProcessor.toBean(it, AbstractRoomEvent::class.java) }
                     .filter {
                         val range = it.streamId in gteStreamId..lteStreamId
                         if (it is FullReadMarkerEvent) {
@@ -73,6 +70,9 @@ class EventSyncQueueManager {
         }
         return@coroutineScope eventMap
     }
+
+
+
 
 }
 

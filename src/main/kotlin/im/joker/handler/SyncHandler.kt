@@ -7,7 +7,6 @@ import im.joker.event.MembershipType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.UnsignedData
-import im.joker.event.room.message.MessageEvent
 import im.joker.event.room.other.FullReadMarkerEvent
 import im.joker.event.room.other.ReceiptEvent
 import im.joker.event.room.other.TypingEvent
@@ -60,7 +59,7 @@ class SyncHandler {
     private suspend fun incrementSync(request: SyncRequest, device: Device, channel: Channel<Boolean> = Channel()): SyncResponse = coroutineScope {
         log.debug("userId:{},deviceId:{},触发增量同步", device.userId, device.deviceId)
         longPollingHelper.addWaitingDevice(device.deviceId, channel)
-        var ret = SyncResponse()
+        val ret = SyncResponse()
         val sinceId = request.since.toLong()
         val joinedMap = HashMap<String, SyncResponse.JoinedRooms>()
         val invitedMap = HashMap<String, SyncResponse.InvitedRooms>()
@@ -79,34 +78,32 @@ class SyncHandler {
 
         // 从感兴趣的房间里面拿到最新的消息
         val latestRoomEventMap = eventSyncQueueManager.takeRelatedEvent(device.deviceId, device.userId, sinceId, latestStreamId)
+                .filter { entry ->
+                    val roomId = entry.key
+                    val events = entry.value
+                    var latestRoomEvents = events
+                    // 该用户在该房间能读的最大的streamId
+                    val maxStreamId = roomMessageHelper.getRoomMaxStreamId(device.userId, roomId)
+                    // 保证该用户只能sync到maxStreamId之间的事件
+                    maxStreamId?.let { max ->
+                        // 小于max的事件留下
+                        latestRoomEvents = events.filter { it.streamId < max }
+                    }
+                    // 如果过滤后房间事件为0,那么跳过本房间处理
+                    latestRoomEvents.isNotEmpty()
+                }
+
         // 为空的时候,waiting timeout
         if (latestRoomEventMap.isEmpty()) {
-            try {
-                withTimeout(request.timeout.toLong()) {
-                    channel.receive()
-                    ret = incrementSync(request, device, channel)
-                }
-            } catch (e: Exception) {
-                channel.cancel()
-            }
-            longPollingHelper.removeWaitingDevice(device.deviceId)
-            return@coroutineScope ret
+            return@coroutineScope waitEvent(request, channel, ret, device)
         }
         // 不为空的时候,每个房间都要补充消息,不过需要先拿到当前的roomState,用于判断device所属的membership
         latestRoomEventMap.forEach { (roomId, events) ->
             var latestRoomEvents = events
-            // 该用户在该房间能读的最大的streamId
-            val maxStreamId = roomMessageHelper.getRoomMaxStreamId(device.userId, roomId)
-            // 保证该用户只能sync到maxStreamId之间的事件
-            maxStreamId?.let { max ->
-                latestRoomEvents = events.filter { it.streamId < max }
-            }
-            // 如果过滤后房间事件为0,那么跳过本房间处理
-            if (latestRoomEvents.isEmpty()) return@forEach
             val fullRoomState = imCache.getRoomState(roomId)
             val queueMinStreamId = latestRoomEvents.first().streamId
 
-            val timelineOfStartState = RoomState.fromEvents(fullRoomState.descStateEvent.filter { it.streamId < queueMinStreamId })
+            val startOfTimelineState = RoomState.fromEvents(fullRoomState.descStateEvent.filter { it.streamId < queueMinStreamId })
             var limited = false
             // 队列里面最小的streamId,但是最多只取limitOfRoom条
             if (latestRoomEvents.size > limitOfRoom) {
@@ -114,10 +111,24 @@ class SyncHandler {
                 // 比队列里面最小的streamId还要小的作为timelineOfStartState
                 limited = true
             }
-            fillRetEvents(timelineOfStartState, device, invitedMap, roomId, latestRoomEvents, joinedMap, leftMap, limited)
+            fillRetEvents(startOfTimelineState, device, invitedMap, roomId, latestRoomEvents, joinedMap, leftMap, limited)
         }
 
         ret
+    }
+
+    private suspend fun waitEvent(request: SyncRequest, channel: Channel<Boolean>, syncResponse: SyncResponse, device: Device): SyncResponse {
+        var ret = syncResponse
+        try {
+            withTimeout(request.timeout.toLong()) {
+                channel.receive()
+                ret = incrementSync(request, device, channel)
+            }
+        } catch (e: Exception) {
+            channel.cancel()
+        }
+        longPollingHelper.removeWaitingDevice(device.deviceId)
+        return ret
     }
 
     private suspend fun initSync(device: Device): SyncResponse = coroutineScope {
@@ -160,11 +171,11 @@ class SyncHandler {
             //  timeline = topK - timelineOfStartState 最新的一条状态消息
             // 过滤掉比topK最旧的streamId还要大的stateEvents即为 timelineOfStartState
             val topKMinStreamId = topK.sliceLastEvents.last().streamId
-            val timelineOfStartState = RoomState.fromEvents(latestRoomStateEvents.getValue(topK.roomId).filter { it.streamId < topKMinStreamId })
+            val startOfTimelineState = RoomState.fromEvents(latestRoomStateEvents.getValue(topK.roomId).filter { it.streamId < topKMinStreamId })
             val timelineEvent = topK.sliceLastEvents.sortedBy { it.streamId }
             val roomId = topK.roomId
             // 填充事件到结果中
-            fillRetEvents(timelineOfStartState, device, invitedMap, roomId, timelineEvent, joinedMap, leftMap)
+            fillRetEvents(startOfTimelineState, device, invitedMap, roomId, timelineEvent, joinedMap, leftMap)
         }
         ret
     }

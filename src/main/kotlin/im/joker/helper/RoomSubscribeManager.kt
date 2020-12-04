@@ -99,13 +99,12 @@ class RoomSubscribeManager {
         }
         for (deviceId in deviceIds) {
             redisTemplate.opsForSet().addAndAwait(ROOM_SUBSCRIBERS_OF_DEVICE.format(ev.roomId), deviceId)
+            // 清除当前人的最大可读数,如果存在的话
+            roomMessageHelper.clearMaxStreamId(ev.sender, ev.roomId)
         }
-        // 对他人做出操作
+        // 对他人做出操作,他人设置最大可读数
         beOperatedDeviceIds?.let {
-            // 当踢人和ban人的时候, 应该做一些事情,设置这些设备在此房间中能读取的最大stream_id
-            if (MembershipType.Leave.`is`(ev.content.membership) || MembershipType.Ban.`is`(ev.content.membership)) {
-                roomMessageHelper.setMaxStreamId(ev.stateKey, ev.roomId,ev.streamId)
-            }
+            roomMessageHelper.setMaxStreamId(ev.stateKey, ev.roomId, ev.streamId)
         }
 
     }
@@ -142,5 +141,6 @@ class RoomSubscribeManager {
         return redisTemplate.opsForSet().members(ROOM_SUBSCRIBERS_OF_DEVICE.format(roomId)).collectList().awaitSingleOrNull()
     }
 
+    // todo 定时将每个房间中最小的event StreamId 与每个userId的最大可读的数进行对比,如果比可读数要大,那么T出订阅房间
 
 }

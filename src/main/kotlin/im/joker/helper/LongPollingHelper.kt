@@ -36,7 +36,7 @@ class LongPollingHelper {
     @PostConstruct
     fun init() {
         redissonReactiveClient.getTopic(ROOM_SYNC_DEVICE).addListener(String::class.java) { _, deviceId ->
-            log.info("唤醒device:{}", deviceId)
+            log.debug("唤醒device:{}", deviceId)
             waitingSyncMap[deviceId]?.offer(true)
             removeWaitingDevice(deviceId)
         }.subscribe()

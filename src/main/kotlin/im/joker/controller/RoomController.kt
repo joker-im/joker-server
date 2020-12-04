@@ -28,8 +28,6 @@ class RoomController : BaseController() {
     @Autowired
     private lateinit var requestProcessor: RequestProcessor
 
-    @Autowired
-    private lateinit var imCache: ImCache
 
     /**
      * 创建房间
