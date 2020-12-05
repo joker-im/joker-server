@@ -1,10 +1,9 @@
 package im.joker.helper
 
-import im.joker.constants.ImConstants.Companion.ROOM_SUBSCRIBERS_OF_DEVICE
+import im.joker.constants.ImConstants.Companion.ROOM_SUBSCRIBERS_OF_DEVICE_SET
 import im.joker.device.Device
 import im.joker.device.DeviceManager
 import im.joker.event.EventType
-import im.joker.event.MembershipType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.state.MembershipEvent
 import im.joker.presence.PresenceType
@@ -50,7 +49,7 @@ class RoomSubscribeManager {
         log.info("更新设备房间订阅:deviceId:{},PresenceType:{}", device.deviceId, type.id)
         when (type) {
             PresenceType.OFFLINE, PresenceType.UNAVAILABLE -> {
-                val scanOptions = ScanOptions.scanOptions().match(ROOM_SUBSCRIBERS_OF_DEVICE.format("*"))
+                val scanOptions = ScanOptions.scanOptions().match(ROOM_SUBSCRIBERS_OF_DEVICE_SET.format("*"))
                         .build()
                 // 先得到所有的房间
                 val roomSubscribeKeys = redisTemplate.scan(scanOptions).collectList().awaitSingleOrNull()
@@ -73,7 +72,7 @@ class RoomSubscribeManager {
                 val asyncList = ArrayList<Deferred<Long>>()
                 joinRoomIds.forEach {
                     val async = async {
-                        redisTemplate.opsForSet().addAndAwait(ROOM_SUBSCRIBERS_OF_DEVICE.format(it), device.deviceId)
+                        redisTemplate.opsForSet().addAndAwait(ROOM_SUBSCRIBERS_OF_DEVICE_SET.format(it), device.deviceId)
                     }
                     asyncList.add(async)
                 }
@@ -98,7 +97,7 @@ class RoomSubscribeManager {
             deviceIds.addAll(beOperatedDeviceIds)
         }
         for (deviceId in deviceIds) {
-            redisTemplate.opsForSet().addAndAwait(ROOM_SUBSCRIBERS_OF_DEVICE.format(ev.roomId), deviceId)
+            redisTemplate.opsForSet().addAndAwait(ROOM_SUBSCRIBERS_OF_DEVICE_SET.format(ev.roomId), deviceId)
             // 清除当前人的最大可读数,如果存在的话
             roomMessageHelper.clearMaxStreamId(ev.sender, ev.roomId)
         }
@@ -114,7 +113,7 @@ class RoomSubscribeManager {
      * 实时查询device关心的房间id
      */
     suspend fun searchJoinRoomIds(deviceId: String): List<String> = coroutineScope {
-        val scanOptions = ScanOptions.scanOptions().match(ROOM_SUBSCRIBERS_OF_DEVICE.format("*"))
+        val scanOptions = ScanOptions.scanOptions().match(ROOM_SUBSCRIBERS_OF_DEVICE_SET.format("*"))
                 .build()
         // 先得到所有的房间
         val roomSubscribeKeys = redisTemplate.scan(scanOptions).collectList().awaitSingleOrNull()
@@ -125,7 +124,7 @@ class RoomSubscribeManager {
                 // 查看deviceId是不是每个房间的成员
                 val member = redisTemplate.opsForSet().isMemberAndAwait(it, deviceId)
                 if (member) {
-                    roomIds.add(it.replace(ROOM_SUBSCRIBERS_OF_DEVICE.format(""), ""))
+                    roomIds.add(it.replace(ROOM_SUBSCRIBERS_OF_DEVICE_SET.format(""), ""))
                 }
             }
             asyncList.add(async)
@@ -138,7 +137,7 @@ class RoomSubscribeManager {
      * 查询该房间的订阅的设备id
      */
     suspend fun searchRoomSubscriber(roomId: String): List<String> {
-        return redisTemplate.opsForSet().members(ROOM_SUBSCRIBERS_OF_DEVICE.format(roomId)).collectList().awaitSingleOrNull()
+        return redisTemplate.opsForSet().members(ROOM_SUBSCRIBERS_OF_DEVICE_SET.format(roomId)).collectList().awaitSingleOrNull()
     }
 
     // todo 定时将每个房间中最小的event StreamId 与每个userId的最大可读的数进行对比,如果比可读数要大,那么T出订阅房间

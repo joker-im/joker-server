@@ -5,7 +5,6 @@ import im.joker.api.vo.sync.SyncResponse
 import im.joker.device.Device
 import im.joker.event.MembershipType
 import im.joker.event.room.AbstractRoomEvent
-import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.UnsignedData
 import im.joker.event.room.other.FullReadMarkerEvent
 import im.joker.event.room.other.ReceiptEvent
@@ -47,6 +46,9 @@ class SyncHandler {
     @Autowired
     private lateinit var imCache: ImCache
 
+    @Autowired
+    private lateinit var idGenerator: IdGenerator
+
     private val limitOfRoom = 30
 
 
@@ -65,7 +67,7 @@ class SyncHandler {
         val invitedMap = HashMap<String, SyncResponse.InvitedRooms>()
         val leftMap = HashMap<String, SyncResponse.LeftRooms>()
         // 查询最新的streamId
-        val latestStreamId = mongodbStore.findLatestStreamId()
+        val latestStreamId = idGenerator.findLatestStreamId()
 
         ret.apply {
             this.rooms = SyncResponse.Rooms().apply {
@@ -86,8 +88,8 @@ class SyncHandler {
                     val maxStreamId = roomMessageHelper.getRoomMaxStreamId(device.userId, roomId)
                     // 保证该用户只能sync到maxStreamId之间的事件
                     maxStreamId?.let { max ->
-                        // 小于max的事件留下
-                        latestRoomEvents = events.filter { it.streamId < max }
+                        // 最多能读到这么多条数据
+                        latestRoomEvents = events.filter { it.streamId <= max }
                     }
                     // 如果过滤后房间事件为0,那么跳过本房间处理
                     latestRoomEvents.isNotEmpty()
@@ -111,7 +113,7 @@ class SyncHandler {
                 // 比队列里面最小的streamId还要小的作为timelineOfStartState
                 limited = true
             }
-            fillRetEvents(startOfTimelineState, device, invitedMap, roomId, latestRoomEvents, joinedMap, leftMap, limited)
+            fillRetEvents(latestStreamId, fullRoomState, device, startOfTimelineState, invitedMap, roomId, latestRoomEvents, joinedMap, leftMap, limited)
         }
 
         ret
@@ -134,7 +136,7 @@ class SyncHandler {
     private suspend fun initSync(device: Device): SyncResponse = coroutineScope {
         log.info("userId:{},deviceId:{},触发全量同步event", device.userId, device.deviceId)
         // 查询最新的streamId
-        val t1 = async { mongodbStore.findLatestStreamId() }
+        val t1 = async { idGenerator.findLatestStreamId() }
         // 拿取感兴趣的房间
         val t2 = async { roomSubscribeManager.searchJoinRoomIds(device.deviceId) }
         val latestStreamId = t1.await()
@@ -173,63 +175,71 @@ class SyncHandler {
             val topKMinStreamId = topK.sliceLastEvents.last().streamId
             val startOfTimelineState = RoomState.fromEvents(latestRoomStateEvents.getValue(topK.roomId).filter { it.streamId < topKMinStreamId })
             val timelineEvent = topK.sliceLastEvents.sortedBy { it.streamId }
-            val roomId = topK.roomId
+            val fullRoomState = imCache.getRoomState(topK.roomId)
             // 填充事件到结果中
-            fillRetEvents(startOfTimelineState, device, invitedMap, roomId, timelineEvent, joinedMap, leftMap)
+            fillRetEvents(latestStreamId, fullRoomState, device, startOfTimelineState, invitedMap, topK.roomId, timelineEvent, joinedMap, leftMap)
         }
         ret
     }
 
-    private fun fillRetEvents(timelineOfStartState: RoomState, device: Device, invitedMap: HashMap<String, SyncResponse.InvitedRooms>,
-                              roomId: String, timeline: List<AbstractRoomEvent>, joinedMap: HashMap<String, SyncResponse.JoinedRooms>, leftMap:
+    private fun fillRetEvents(latestStreamId: Long, fullRoomState: RoomState, device: Device, startOfTimelineState: RoomState, invitedMap: HashMap<String, SyncResponse.InvitedRooms>, roomId: String,
+                              timeline: List<AbstractRoomEvent>, joinedMap: HashMap<String, SyncResponse.JoinedRooms>, leftMap:
                               HashMap<String, SyncResponse.LeftRooms>, limited: Boolean = true) {
 
-        val ephemeralEvent = timeline.filterIsInstance<TypingEvent>()
         val now = LocalDateTime.now()
+        val ephemeralEvents = ephemeralEventHandle(timeline, now, device)
+
         val timelineEvent = timeline
                 .filter { it !is TypingEvent && it !is ReceiptEvent && it !is FullReadMarkerEvent }
                 .onEach {
                     it.unsigned = UnsignedData().apply {
-                        age = now.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli() - it.originServerTs.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+                        age = ImTools.toMill(now) - ImTools.toMill(it.originServerTs)
                         transactionId = it.transactionId
                     }
                 }
 
         val readMarkerEvent = timeline.filterIsInstance<FullReadMarkerEvent>()
-        if (timelineEvent.isEmpty()) return
+        // 加这个为了防止startOfTimelineState数据可能是不存在的
+        var startOfTimelineStateEvent = startOfTimelineState.distinctStateEvents()
+        if (startOfTimelineStateEvent.isEmpty()) {
+            startOfTimelineStateEvent = RoomState.fromEvents(timelineEvent).distinctStateEvents()
+        }
 
         // 判断同步的这个人在此房间处于什么状态
-        when (timelineOfStartState.latestMembershipType(device.userId)) {
+        when (fullRoomState.latestMembershipType(device.userId)) {
 
             MembershipType.Invite -> {
                 val invited = SyncResponse.InvitedRooms().apply {
                     this.inviteState = SyncResponse.State().apply {
-                        events = timelineOfStartState.distinctStateEvents()
+                        events = startOfTimelineStateEvent
                     }
                 }
                 invitedMap[roomId] = invited
             }
             MembershipType.Join -> {
-                // topK - lastStateEvent(MaxStreamId)
                 val joined = SyncResponse.JoinedRooms().apply {
                     this.timeline = SyncResponse.Timeline().apply {
                         this.limited = limited
                         events = timelineEvent
-                        prevBatch = (timelineEvent.last().streamId + 1).toString()
+                    }
+                    if (timelineEvent.isNotEmpty()) {
+                        this.timeline.prevBatch = (timelineEvent.last().streamId + 1).toString()
+                    } else {
+                        this.timeline.prevBatch = latestStreamId.toString()
                     }
                     if (limited) {
                         this.state = SyncResponse.State().apply {
-                            events = timelineOfStartState.distinctStateEvents()
+                            events = startOfTimelineStateEvent
                         }
                     }
                     this.summary = SyncResponse.RoomSummary().apply {
-                        val joinMembers = timelineOfStartState.findSpecificStateMembers(MembershipType.Join).take(4)
+                        val joinMembers = fullRoomState.findSpecificStateMembers(MembershipType.Join).take(4)
                         this.heroes = joinMembers
                         this.joinedMemberCount = joinMembers.size
-                        this.invitedMemberCount = timelineOfStartState.findSpecificStateMembers(MembershipType.Invite).size
+                        this.invitedMemberCount = fullRoomState.findSpecificStateMembers(MembershipType.Invite).size
                     }
                     this.ephemeral = SyncResponse.Ephemeral().apply {
-                        this.events = ephemeralEvent
+                        this.events = ephemeralEvents
                     }
                     this.accountData = SyncResponse.AccountData().apply {
                         this.events = readMarkerEvent
@@ -244,11 +254,17 @@ class SyncHandler {
                     this.timeline = SyncResponse.Timeline().apply {
                         events = timelineEvent
                         this.limited = limited
-                        prevBatch = (timelineEvent.last().streamId + 1).toString()
                     }
+
+                    if (timelineEvent.isNotEmpty()) {
+                        this.timeline.prevBatch = (timelineEvent.last().streamId + 1).toString()
+                    } else {
+                        this.timeline.prevBatch = latestStreamId.toString()
+                    }
+
                     if (limited) {
                         this.state = SyncResponse.State().apply {
-                            events = timelineOfStartState.distinctStateEvents()
+                            events = startOfTimelineStateEvent
                         }
                     }
                     this.accountData = SyncResponse.AccountData().apply {
@@ -257,12 +273,30 @@ class SyncHandler {
                 }
                 leftMap[roomId] = left
             }
-            // 这种情况是队列中和数据库中保持一致,只发生在房间事件很少的时候,全部放timeline
-            else -> {
-                val timeLineState = RoomState.fromEvents(timelineEvent.filterIsInstance<AbstractRoomStateEvent>())
-                fillRetEvents(timeLineState, device, invitedMap, roomId, timelineEvent, joinedMap, leftMap, limited)
-            }
+            else -> return
         }
+    }
+
+    private fun ephemeralEventHandle(timeline: List<AbstractRoomEvent>, now: LocalDateTime, device: Device): List<TypingEvent> {
+        var ephemeralEvents = timeline.filterIsInstance<TypingEvent>()
+        if (ephemeralEvents.isNotEmpty()) {
+            val destEphemeral = ephemeralEvents.first()
+            ephemeralEvents.forEach {
+                if (!typing(it, now)) {
+                    destEphemeral.content.userIds.removeAll(it.content.userIds)
+                } else {
+                    destEphemeral.content.userIds.addAll(it.content.userIds)
+                }
+            }
+            destEphemeral.content.userIds.remove(device.userId)
+            ephemeralEvents = listOf(destEphemeral)
+        }
+        return ephemeralEvents
+    }
+
+    private fun typing(event: TypingEvent, now: LocalDateTime): Boolean {
+        return event.content.typing &&
+                ImTools.toMill(event.originServerTs) + event.content.timeout < ImTools.toMill(now)
     }
 
 }

@@ -1,12 +1,13 @@
 package im.joker.event.room;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import im.joker.event.content.IContent;
 
 
 public abstract class AbstractRoomStateEvent extends AbstractRoomEvent implements IRoomStateEvent {
 
     protected String stateKey;
-
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     protected IContent prevContent;
 
 

@@ -7,7 +7,6 @@ import im.joker.event.EventType
 import im.joker.event.MembershipType
 import im.joker.event.PresetType
 import im.joker.event.RoomJoinRuleType
-import im.joker.event.content.state.MembershipContent
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.other.FullReadMarkerEvent
@@ -222,27 +221,31 @@ class RoomHandler {
         val latestMembershipType = roomState.latestMembershipType(loginDevice.userId)
         if (latestMembershipType == null || latestMembershipType != MembershipType.Join) throw ImException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "您无权限查询该房间的消息")
         // 该用户join的时候最新的那条streamId
-        val userLatestJoinStreamId = roomState.latestMembershipEvent(loginDevice.userId)!!.streamId
+        val userEarliestJoinStreamId = roomState.latestMembershipEvent(loginDevice.userId)!!.streamId
         // 无论往前拉还是往后拉,from都不能比join的streamId小
-        if (messageRequest.from < userLatestJoinStreamId) {
-            throw ImException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "您无权限查询该房间更早的消息")
+        if (messageRequest.from < userEarliestJoinStreamId) {
+            return MessageResponse().apply {
+                chunk = emptyList()
+                start = messageRequest.from
+                end = messageRequest.to
+            }
         }
         // 一次最多只给拉100
         messageRequest.limit = min(messageRequest.limit, 100)
 
         if (messageRequest.dir == "b") {
-            val backwardEvents = mongoStore.findBackwardEvents(messageRequest.roomId, userLatestJoinStreamId, messageRequest.from, messageRequest.limit)
-            val retStart = if (backwardEvents.isEmpty()) userLatestJoinStreamId else backwardEvents.last().streamId - 1
+            val backwardEvents = mongoStore.findBackwardEvents(messageRequest.roomId, userEarliestJoinStreamId, messageRequest.from, messageRequest.limit)
+            val retStart = if (backwardEvents.isEmpty()) userEarliestJoinStreamId else backwardEvents.last().streamId - 1
             // 往后拉的时候应该是不需要状态消息的. 并且start的位置最多是到join为止
             return MessageResponse().apply {
                 chunk = backwardEvents
-                start = retStart
-                end = userLatestJoinStreamId
+                start = userEarliestJoinStreamId
+                end = retStart
             }
 
         } else {
             val forwardEvents = mongoStore.findForwardRoomEvents(messageRequest.roomId, messageRequest.from, messageRequest.limit)
-            val latestStreamId = mongoStore.findLatestStreamId()
+            val latestStreamId = idGenerator.findLatestStreamId()
             val retStart = if (forwardEvents.isEmpty()) latestStreamId else forwardEvents.last().streamId + 1
             val stateEvents = forwardEvents.filterIsInstance<AbstractRoomStateEvent>()
             val handledStateEvents = RoomState.fromEvents(stateEvents).distinctStateEvents()
@@ -311,10 +314,8 @@ class RoomHandler {
     }
 
     suspend fun sendTypingEvent(typingRequest: TypingRequest, loginDevice: Device) {
-        if (typingRequest.typing) {
-            val typingEvent = eventBuilder.typingEvent(loginDevice.userId, typingRequest.roomId, LocalDateTime.now())
-            imCache.getRoom(typingEvent.roomId).injectEvent(typingEvent, loginDevice)
-        }
+//        val typingEvent = eventBuilder.typingEvent(loginDevice.userId, typingRequest, LocalDateTime.now())
+//        imCache.getRoom(typingEvent.roomId).injectEvent(typingEvent, loginDevice)
     }
 
 

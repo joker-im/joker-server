@@ -174,13 +174,6 @@ class MongoStore {
                 .awaitSingleOrNull()
     }
 
-    suspend fun findLatestStreamId(): Long {
-        val query = Query().with(Sort.by(Sort.Direction.DESC, "stream_id"))
-        val s1 = mongoTemplate.findOne(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).map { it.streamId }.awaitSingleOrDefault(-1L)
-        val s2 = mongoTemplate.findOne(query, RoomReadMarker::class.java, COLLECTION_ROOM_FULL_READ_MARKER).map { it.streamId!! }.awaitSingleOrDefault(-1L)
-        return max(s1, s2)
-    }
-
 
     suspend fun findEventGroupByRoomTopK(joinRoomIds: List<String>, k: Int, beforeStreamId: Long, asc: Boolean = false): List<RoomEvents> {
         if (joinRoomIds.isEmpty()) {

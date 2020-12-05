@@ -15,17 +15,17 @@ class ImConstants {
          */
         const val TOKEN_USER_HASH = "im.joker:token_user:%s"
 
-        const val TOKEN_USER_HASH_KEY_USERNAME = "username"
+        const val TOKEN_USER_HASH_KEY_USERNAME_KEY = "username"
 
-        const val TOKEN_USER_HASH_KEY_DEVICE_ID = "device_id"
+        const val TOKEN_USER_HASH_KEY_DEVICE_ID_KEY = "device_id"
 
-        const val TOKEN_USER_HASH_KEY_USER_ID = "user_id"
+        const val TOKEN_USER_HASH_KEY_USER_ID_KEY = "user_id"
 
-        const val TOKEN_USER_HASH_KEY_DEVICE_NAME = "device_name"
+        const val TOKEN_USER_HASH_KEY_DEVICE_NAME_KEY = "device_name"
 
-        const val TOKEN_USER_HASH_KEY_USER_AVATAR = "user_avatar"
+        const val TOKEN_USER_HASH_KEY_USER_AVATAR_KEY = "user_avatar"
 
-        const val TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME = "user_display_name"
+        const val TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME_KEY = "user_display_name"
 
         /**
          * 状态键,用来定位当前用户的登录状态
@@ -39,11 +39,6 @@ class ImConstants {
          */
         const val EVENT_STREAM_SEQUENCE = "im.joker:event_stream_sequence"
 
-        /**
-         * 用户名序列
-         */
-        const val USER_DISPLAY_NAME_SEQUENCE = "im.joker:user_display_name_sequence"
-
 
         /**
          * 活动房间最新的事件集合
@@ -55,7 +50,7 @@ class ImConstants {
         /**
          * 房间的订阅者, 是一个set集合,%s是roomId,value是deviceIds
          */
-        const val ROOM_SUBSCRIBERS_OF_DEVICE = "im.joker:room_subscribers_of_device:%s"
+        const val ROOM_SUBSCRIBERS_OF_DEVICE_SET = "im.joker:room_subscribers_of_device:%s"
 
 
         /**
@@ -79,6 +74,11 @@ class ImConstants {
          * 其key是roomId,其value是streamId
          */
         const val ROOM_MESSAGE_LIMIT_HASH = "im.joker:room_message_limit:%s"
+
+        /**
+         * 房间此时发生的瞬时事件,比如说打字
+         */
+        const val ROOM_EPHEMERAL_SET = "im.joker:room_ephemeral"
     }
 }
 

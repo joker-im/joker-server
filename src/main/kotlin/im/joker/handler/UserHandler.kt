@@ -61,7 +61,7 @@ class UserHandler {
             registerDeviceId = StringUtils.defaultIfBlank(request.deviceId, UUID.randomUUID().toString())
             username = request.username
             avatar = "default_user_avatar"
-            displayName = "im.joker:" + idGenerator.nextUserSequence()
+            displayName = request.username
         }
         try {
             user = mongoStore.addUser(user)

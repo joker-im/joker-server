@@ -23,7 +23,7 @@ class EventSyncQueueManager {
     private lateinit var redisTemplate: ReactiveStringRedisTemplate
 
     // 每个房间的事件队列为n条消息
-    private val limit = 100
+    private val limit = 100L
 
     @Autowired
     private lateinit var roomSubscribeManager: RoomSubscribeManager
@@ -40,8 +40,8 @@ class EventSyncQueueManager {
         redisTemplate.opsForList().rightPush(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId), requestProcessor.toJson(ev)).awaitSingleOrNull()
         val queueSize = redisTemplate.opsForList().size(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId)).awaitSingle()
         // 当超过limit条事件的时候,修整该房间队列,删除最老的消息,以维持队列保证limit条
-        if (limit > queueSize) {
-            redisTemplate.opsForList().trim(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId), queueSize - limit, -1).awaitSingleOrNull()
+        if (queueSize > limit) {
+            redisTemplate.opsForList().trim(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId), -1 * limit, -1).awaitSingleOrNull()
         }
     }
 
@@ -70,8 +70,6 @@ class EventSyncQueueManager {
         }
         return@coroutineScope eventMap
     }
-
-
 
 
 }

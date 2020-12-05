@@ -1,5 +1,6 @@
 package im.joker.event.room;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.time.LocalDateTime;
@@ -15,15 +16,15 @@ import static com.fasterxml.jackson.annotation.JsonTypeInfo.As.EXISTING_PROPERTY
 public abstract class AbstractRoomEvent implements IRoomEvent {
 
     protected String roomId;
-
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     protected String eventId;
 
     protected String type;
-
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     protected LocalDateTime originServerTs;
-
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     protected String transactionId;
-
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     protected UnsignedData unsigned;
 
     protected String sender;

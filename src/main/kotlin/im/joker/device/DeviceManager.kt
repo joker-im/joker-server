@@ -1,12 +1,12 @@
 package im.joker.device
 
 import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH
-import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_USER_AVATAR
-import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_DEVICE_ID
-import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_DEVICE_NAME
-import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_USERNAME
-import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME
-import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_USER_ID
+import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_USER_AVATAR_KEY
+import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_DEVICE_ID_KEY
+import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_DEVICE_NAME_KEY
+import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_USERNAME_KEY
+import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME_KEY
+import im.joker.constants.ImConstants.Companion.TOKEN_USER_HASH_KEY_USER_ID_KEY
 import im.joker.constants.ImConstants.Companion.USER_DEVICES_TOKENS_HASH
 import im.joker.exception.ErrorCode
 import im.joker.exception.ImException
@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.redis.core.ReactiveStringRedisTemplate
 import org.springframework.data.redis.core.deleteAndAwait
-import org.springframework.data.redis.core.getAndAwait
 import org.springframework.data.redis.core.removeAndAwait
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
@@ -71,12 +70,12 @@ class DeviceManager {
         val token = UUID.randomUUID().toString()
         val duration = Duration.ofDays(7L)
         val tokenDeviceMap = mapOf(
-                TOKEN_USER_HASH_KEY_USERNAME to username,
-                TOKEN_USER_HASH_KEY_USER_ID to userId,
-                TOKEN_USER_HASH_KEY_USER_AVATAR to userAvatar,
-                TOKEN_USER_HASH_KEY_DEVICE_NAME to deviceName,
-                TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME to userDisplayName,
-                TOKEN_USER_HASH_KEY_DEVICE_ID to deviceId
+                TOKEN_USER_HASH_KEY_USERNAME_KEY to username,
+                TOKEN_USER_HASH_KEY_USER_ID_KEY to userId,
+                TOKEN_USER_HASH_KEY_USER_AVATAR_KEY to userAvatar,
+                TOKEN_USER_HASH_KEY_DEVICE_NAME_KEY to deviceName,
+                TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME_KEY to userDisplayName,
+                TOKEN_USER_HASH_KEY_DEVICE_ID_KEY to deviceId
         )
         val deviceTokenMap = mapOf(deviceId to token)
 
@@ -101,13 +100,13 @@ class DeviceManager {
                 .switchIfEmpty(Mono.error(ImException(ErrorCode.UNKNOWN_TOKEN, HttpStatus.FORBIDDEN)))
                 .collectMap({ it.key }, { it.value })
                 .map {
-                    Device(it[TOKEN_USER_HASH_KEY_DEVICE_ID]!!,
+                    Device(it[TOKEN_USER_HASH_KEY_DEVICE_ID_KEY]!!,
                             token,
-                            it[TOKEN_USER_HASH_KEY_USERNAME]!!,
-                            it[TOKEN_USER_HASH_KEY_DEVICE_NAME]!!,
-                            it[TOKEN_USER_HASH_KEY_USER_AVATAR]!!,
-                            it[TOKEN_USER_HASH_KEY_USER_ID]!!,
-                            it[TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME]!!
+                            it[TOKEN_USER_HASH_KEY_USERNAME_KEY]!!,
+                            it[TOKEN_USER_HASH_KEY_DEVICE_NAME_KEY]!!,
+                            it[TOKEN_USER_HASH_KEY_USER_AVATAR_KEY]!!,
+                            it[TOKEN_USER_HASH_KEY_USER_ID_KEY]!!,
+                            it[TOKEN_USER_HASH_KEY_USER_DISPLAY_NAME_KEY]!!
                     )
                 }
 

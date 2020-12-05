@@ -1,6 +1,8 @@
 package im.joker.helper
 
 import com.google.common.collect.Lists
+import com.google.common.collect.Sets
+import im.joker.api.vo.room.TypingRequest
 import im.joker.device.Device
 import im.joker.event.EventType
 import im.joker.event.MembershipType
@@ -238,19 +240,19 @@ class ImEventBuilder {
         }
     }
 
-    suspend fun typingEvent(sender: String, roomId: String, time: LocalDateTime): TypingEvent {
+    suspend fun typingEvent(sender: String, typingRequest: TypingRequest, time: LocalDateTime): TypingEvent {
         val typingContent = TypingContent().apply {
-            this.userIds = Lists.newArrayList(sender)
+            this.userIds = Sets.newHashSet(sender)
+            this.timeout = typingRequest.timeout
+            this.typing = typingRequest.typing
         }
         return TypingEvent().apply {
             this.content = typingContent
-            this.roomId = roomId
+            this.roomId = typingRequest.roomId
             type = EventType.Typing.id
             this.sender = sender
             streamId = idGenerator.nextEventStreamId()
-            transactionId = UUID.randomUUID().toString()
             originServerTs = time
-            this.eventId = UUID.randomUUID().toString()
         }
     }
 

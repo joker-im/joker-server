@@ -9,6 +9,7 @@ import im.joker.event.room.other.TypingEvent
 import im.joker.exception.ErrorCode
 import im.joker.exception.ImException
 import im.joker.helper.GlobalStateHolder
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
@@ -50,7 +51,7 @@ class Room {
                 // fullReadMarker 存Mongodb
                 globalStateHolder.mongoStore.setFullReadEvent(ev)
             } else if (ev !is TypingEvent && ev !is ReceiptEvent) {
-                // 回执事件和打字事件不存到mongo
+                // 阅读事件,回执事件和打字事件不存到mongo
                 globalStateHolder.mongoStore.addEvent(ev)
             }
             // 更新设备和房间的订阅消息

@@ -3,6 +3,7 @@ package im.joker.event.content.other;
 import im.joker.event.content.IContent;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * @Author: mkCen
@@ -12,13 +13,34 @@ import java.util.List;
  */
 public class TypingContent implements IContent {
 
-    private List<String> userIds;
+    private Set<String> userIds;
 
-    public List<String> getUserIds() {
+    private Integer timeout;
+
+    private Boolean typing;
+
+
+    public Integer getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(Integer timeout) {
+        this.timeout = timeout;
+    }
+
+    public Boolean getTyping() {
+        return typing;
+    }
+
+    public void setTyping(Boolean typing) {
+        this.typing = typing;
+    }
+
+    public Set<String> getUserIds() {
         return userIds;
     }
 
-    public void setUserIds(List<String> userIds) {
+    public void setUserIds(Set<String> userIds) {
         this.userIds = userIds;
     }
 }

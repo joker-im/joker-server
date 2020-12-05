@@ -3,6 +3,7 @@ package im.joker.room
 import im.joker.event.EventType
 import im.joker.event.MembershipType
 import im.joker.event.content.state.MembershipContent
+import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
 import im.joker.event.room.state.MembershipEvent
 import im.joker.event.room.state.PowerLevelEvent
@@ -31,19 +32,12 @@ class RoomState {
 
         }
 
-        fun fromEvents(list: List<AbstractRoomStateEvent>): RoomState {
-            val handledStateEvents = list.sortedByDescending { it.streamId }
+        fun fromEvents(list: List<AbstractRoomEvent>): RoomState {
+            val handledStateEvents = list.filterIsInstance<AbstractRoomStateEvent>().sortedByDescending { it.streamId }
             val stateMap = toStateMap(handledStateEvents)
             return RoomState().apply {
                 descStateEvent = handledStateEvents
                 descStateMap = stateMap
-            }
-        }
-
-        fun build(): RoomState {
-            return RoomState().apply {
-                descStateEvent = ArrayList()
-                descStateMap = HashMap()
             }
         }
 
