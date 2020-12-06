@@ -30,7 +30,7 @@ class GlobalStateHolder {
     lateinit var eventAuthorizationValidator: EventAuthorizationValidator
 
     @Autowired
-    lateinit var eventSyncQueueManager: EventSyncQueueManager
+    lateinit var syncEventManager: SyncEventManager
 
     @Autowired
     lateinit var imCache: ImCache

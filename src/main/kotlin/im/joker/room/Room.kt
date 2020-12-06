@@ -9,7 +9,6 @@ import im.joker.event.room.other.TypingEvent
 import im.joker.exception.ErrorCode
 import im.joker.exception.ImException
 import im.joker.helper.GlobalStateHolder
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.springframework.data.annotation.Id
 import org.springframework.data.mongodb.core.mapping.Document
@@ -59,7 +58,7 @@ class Room {
             // 更新房间状态消息
             globalStateHolder.imCache.notifyStateChange(ev)
             // 添加事件到redis队列
-            globalStateHolder.eventSyncQueueManager.addToEventQueue(ev)
+            globalStateHolder.syncEventManager.addToEventQueue(ev,device)
             // 长轮询唤醒
             globalStateHolder.longPollingHelper.notifySyncDevice(ev, device)
         } finally {
@@ -76,7 +75,7 @@ class Room {
             // 更新设备和房间的订阅消息
             globalStateHolder.roomSubscribeManager.updateRelation(it)
             // 添加事件到redis队列
-            globalStateHolder.eventSyncQueueManager.addToEventQueue(it)
+            globalStateHolder.syncEventManager.addToEventQueue(it, device)
         }
         // 长轮询唤醒
         globalStateHolder.longPollingHelper.notifySyncDevice(evs[0], device)

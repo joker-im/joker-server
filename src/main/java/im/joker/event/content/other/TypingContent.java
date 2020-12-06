@@ -1,5 +1,6 @@
 package im.joker.event.content.other;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import im.joker.event.content.IContent;
 
 import java.util.List;
@@ -14,9 +15,9 @@ import java.util.Set;
 public class TypingContent implements IContent {
 
     private Set<String> userIds;
-
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Integer timeout;
-
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Boolean typing;
 
 

@@ -14,11 +14,11 @@ import static com.fasterxml.jackson.annotation.JsonTypeInfo.As.EXISTING_PROPERTY
  **/
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = EXISTING_PROPERTY, property = "type", visible = true)
 public abstract class AbstractRoomEvent implements IRoomEvent {
-
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     protected String roomId;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     protected String eventId;
-
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     protected String type;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     protected LocalDateTime originServerTs;
@@ -26,9 +26,9 @@ public abstract class AbstractRoomEvent implements IRoomEvent {
     protected String transactionId;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     protected UnsignedData unsigned;
-
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     protected String sender;
-
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     protected Long streamId;
 
     @Override

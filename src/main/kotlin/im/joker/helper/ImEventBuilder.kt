@@ -242,7 +242,6 @@ class ImEventBuilder {
 
     suspend fun typingEvent(sender: String, typingRequest: TypingRequest, time: LocalDateTime): TypingEvent {
         val typingContent = TypingContent().apply {
-            this.userIds = Sets.newHashSet(sender)
             this.timeout = typingRequest.timeout
             this.typing = typingRequest.typing
         }
@@ -251,7 +250,6 @@ class ImEventBuilder {
             this.roomId = typingRequest.roomId
             type = EventType.Typing.id
             this.sender = sender
-            streamId = idGenerator.nextEventStreamId()
             originServerTs = time
         }
     }

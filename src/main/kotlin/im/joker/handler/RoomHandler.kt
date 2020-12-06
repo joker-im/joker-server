@@ -314,8 +314,8 @@ class RoomHandler {
     }
 
     suspend fun sendTypingEvent(typingRequest: TypingRequest, loginDevice: Device) {
-//        val typingEvent = eventBuilder.typingEvent(loginDevice.userId, typingRequest, LocalDateTime.now())
-//        imCache.getRoom(typingEvent.roomId).injectEvent(typingEvent, loginDevice)
+        val typingEvent = eventBuilder.typingEvent(loginDevice.userId, typingRequest, LocalDateTime.now())
+        imCache.getRoom(typingEvent.roomId).injectEvent(typingEvent, loginDevice)
     }
 
 

@@ -6,8 +6,8 @@ import im.joker.device.DeviceManager
 import im.joker.event.EventType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.state.MembershipEvent
-import im.joker.presence.PresenceType
 import im.joker.handler.RoomHandler
+import im.joker.presence.PresenceType
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -48,7 +48,7 @@ class RoomSubscribeManager {
     suspend fun updateRelation(device: Device, type: PresenceType): Unit = coroutineScope {
         log.info("更新设备房间订阅:deviceId:{},PresenceType:{}", device.deviceId, type.id)
         when (type) {
-            PresenceType.OFFLINE, PresenceType.UNAVAILABLE -> {
+            PresenceType.OFFLINE -> {
                 val scanOptions = ScanOptions.scanOptions().match(ROOM_SUBSCRIBERS_OF_DEVICE_SET.format("*"))
                         .build()
                 // 先得到所有的房间
@@ -79,6 +79,7 @@ class RoomSubscribeManager {
                 asyncList.awaitAll()
             }
 
+            else -> return@coroutineScope
         }
     }
 
@@ -108,30 +109,6 @@ class RoomSubscribeManager {
 
     }
 
-
-    /**
-     * 实时查询device关心的房间id
-     */
-    suspend fun searchJoinRoomIds(deviceId: String): List<String> = coroutineScope {
-        val scanOptions = ScanOptions.scanOptions().match(ROOM_SUBSCRIBERS_OF_DEVICE_SET.format("*"))
-                .build()
-        // 先得到所有的房间
-        val roomSubscribeKeys = redisTemplate.scan(scanOptions).collectList().awaitSingleOrNull()
-        val roomIds = ArrayList<String>()
-        val asyncList = ArrayList<Deferred<Any>>()
-        roomSubscribeKeys.forEach {
-            val async = async {
-                // 查看deviceId是不是每个房间的成员
-                val member = redisTemplate.opsForSet().isMemberAndAwait(it, deviceId)
-                if (member) {
-                    roomIds.add(it.replace(ROOM_SUBSCRIBERS_OF_DEVICE_SET.format(""), ""))
-                }
-            }
-            asyncList.add(async)
-        }
-        asyncList.awaitAll()
-        return@coroutineScope roomIds
-    }
 
     /**
      * 查询该房间的订阅的设备id

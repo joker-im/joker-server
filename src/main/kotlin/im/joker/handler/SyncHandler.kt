@@ -32,13 +32,10 @@ class SyncHandler {
     private lateinit var longPollingHelper: LongPollingHelper
 
     @Autowired
-    private lateinit var eventSyncQueueManager: EventSyncQueueManager
+    private lateinit var syncEventManager: SyncEventManager
 
     @Autowired
     private lateinit var mongodbStore: MongoStore
-
-    @Autowired
-    private lateinit var roomSubscribeManager: RoomSubscribeManager
 
     @Autowired
     private lateinit var roomMessageHelper: RoomMessageHelper
@@ -48,6 +45,10 @@ class SyncHandler {
 
     @Autowired
     private lateinit var idGenerator: IdGenerator
+
+    @Autowired
+    private lateinit var roomHandler: RoomHandler
+
 
     private val limitOfRoom = 30
 
@@ -77,9 +78,10 @@ class SyncHandler {
             }
             nextBatch = (latestStreamId + 1).toString()
         }
+        val careRoomIds = roomHandler.searchRelatedRoomFromDb(device.userId)
 
         // 从感兴趣的房间里面拿到最新的消息
-        val latestRoomEventMap = eventSyncQueueManager.takeRelatedEvent(device.deviceId, device.userId, sinceId, latestStreamId)
+        val latestRoomEventMap = syncEventManager.takeRelatedEvent(careRoomIds, device, sinceId, latestStreamId)
                 .filter { entry ->
                     val roomId = entry.key
                     val events = entry.value
@@ -103,9 +105,9 @@ class SyncHandler {
         latestRoomEventMap.forEach { (roomId, events) ->
             var latestRoomEvents = events
             val fullRoomState = imCache.getRoomState(roomId)
-            val queueMinStreamId = latestRoomEvents.first().streamId
+            val queueMinStreamId = latestRoomEvents.filter { it.streamId != null }.map { it.streamId }.firstOrNull()
 
-            val startOfTimelineState = RoomState.fromEvents(fullRoomState.descStateEvent.filter { it.streamId < queueMinStreamId })
+            val startOfTimelineState = RoomState.fromEvents(fullRoomState.descStateEvent.filter { queueMinStreamId == null || it.streamId < queueMinStreamId })
             var limited = false
             // 队列里面最小的streamId,但是最多只取limitOfRoom条
             if (latestRoomEvents.size > limitOfRoom) {
@@ -138,7 +140,7 @@ class SyncHandler {
         // 查询最新的streamId
         val t1 = async { idGenerator.findLatestStreamId() }
         // 拿取感兴趣的房间
-        val t2 = async { roomSubscribeManager.searchJoinRoomIds(device.deviceId) }
+        val t2 = async { roomHandler.searchRelatedRoomFromDb(device.userId) }
         val latestStreamId = t1.await()
         val joinRoomIds = t2.await()
         // 查询每个房间的最新状态消息
@@ -187,7 +189,7 @@ class SyncHandler {
                               HashMap<String, SyncResponse.LeftRooms>, limited: Boolean = true) {
 
         val now = LocalDateTime.now()
-        val ephemeralEvents = ephemeralEventHandle(timeline, now, device)
+        val ephemeralEvents = timeline.filterIsInstance<TypingEvent>()
 
         val timelineEvent = timeline
                 .filter { it !is TypingEvent && it !is ReceiptEvent && it !is FullReadMarkerEvent }
@@ -275,28 +277,6 @@ class SyncHandler {
             }
             else -> return
         }
-    }
-
-    private fun ephemeralEventHandle(timeline: List<AbstractRoomEvent>, now: LocalDateTime, device: Device): List<TypingEvent> {
-        var ephemeralEvents = timeline.filterIsInstance<TypingEvent>()
-        if (ephemeralEvents.isNotEmpty()) {
-            val destEphemeral = ephemeralEvents.first()
-            ephemeralEvents.forEach {
-                if (!typing(it, now)) {
-                    destEphemeral.content.userIds.removeAll(it.content.userIds)
-                } else {
-                    destEphemeral.content.userIds.addAll(it.content.userIds)
-                }
-            }
-            destEphemeral.content.userIds.remove(device.userId)
-            ephemeralEvents = listOf(destEphemeral)
-        }
-        return ephemeralEvents
-    }
-
-    private fun typing(event: TypingEvent, now: LocalDateTime): Boolean {
-        return event.content.typing &&
-                ImTools.toMill(event.originServerTs) + event.content.timeout < ImTools.toMill(now)
     }
 
 }

@@ -78,7 +78,13 @@ class ImConstants {
         /**
          * 房间此时发生的瞬时事件,比如说打字
          */
-        const val ROOM_EPHEMERAL_SET = "im.joker:room_ephemeral"
+        const val ROOM_TYPING_USER_Z_SET = "im.joker:room_typing_user:%s"
+
+        /**
+         * 某房间typing的设备读取标志
+         * %s : roomId
+         */
+        const val ROOM_TYPING_FLAG_SET = "im.joker:room_typing_flag:%s"
     }
 }
 
