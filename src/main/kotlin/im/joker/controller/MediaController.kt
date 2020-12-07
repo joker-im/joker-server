@@ -11,8 +11,10 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.io.File
 import java.net.URLEncoder
+import java.util.*
+import kotlin.collections.HashMap
 
-@RequestMapping(path = ["/_matrix/client/r0"], produces = [MediaType.APPLICATION_JSON_VALUE])
+@RequestMapping(path = ["/_matrix/media/r0"], produces = [MediaType.APPLICATION_JSON_VALUE])
 @RestController
 class MediaController : BaseController() {
 
@@ -25,10 +27,18 @@ class MediaController : BaseController() {
     @Autowired
     private lateinit var mediaHandler: MediaHandler
 
-    @PostMapping("/upload", consumes = [MediaType.APPLICATION_OCTET_STREAM_VALUE])
-    suspend fun upload(@RequestBody body: ByteArray, @RequestParam("filename", required = false) filename: String?): UploadResponse {
+    @GetMapping("/_matrix/media/r0/config")
+    suspend fun config(): Map<String, Int> {
+        return mapOf("m.upload.size" to 209715200)
+    }
 
-        return mediaHandler.upload(getLoginDevice(), body, filename)
+
+    @PostMapping("/upload")
+    suspend fun upload(@RequestBody body: ByteArray,
+                       @RequestParam("filename", required = false) filename: String?,
+                       @RequestHeader(HttpHeaders.CONTENT_TYPE) contentType: String): UploadResponse {
+
+        return mediaHandler.upload(getLoginDevice(), body, filename ?: UUID.randomUUID().toString(),contentType)
 
     }
 

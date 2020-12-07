@@ -31,7 +31,7 @@ class MediaHandler {
     lateinit var fileDir: String
 
 
-    suspend fun upload(device: Device, body: ByteArray, filename: String?): UploadResponse {
+    suspend fun upload(device: Device, body: ByteArray, filename: String, contentType: String): UploadResponse {
         return withContext(Dispatchers.IO) {
             log.debug("上传的文件为:file:{}", filename)
             val dir = File(fileDir + "/" + LocalDate.now(), device.username)
@@ -42,9 +42,10 @@ class MediaHandler {
                 this.filePath = file.absolutePath
                 this.uploadTime = LocalDateTime.now()
                 // 客户端不给名字就自己命名
-                this.filename = filename ?: file.name
+                this.filename = filename
                 this.username = device.username
-                this.servername = webDomain.removePrefix("www.")
+                this.servername = webDomain
+                this.contentType = contentType
             }
             mongoStore.addUploadFile(uploadFile)
 
@@ -61,7 +62,7 @@ class MediaHandler {
     }
 
     fun toMediaUrl(id: String): String {
-        return "mxc://${webDomain.removePrefix("www.")}/${id}"
+        return "mxc://${webDomain}/${id}"
     }
 
 }

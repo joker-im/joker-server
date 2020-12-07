@@ -46,7 +46,8 @@ class AuthFilter : WebFilter {
             Tuples.of(HttpMethod.POST, "/_matrix/client/r0/login"),
             Tuples.of(HttpMethod.GET, "/_matrix/client/versions/test"),
             Tuples.of(HttpMethod.GET, "/favicon.ico"),
-            Tuples.of(HttpMethod.GET,"/_matrix/client/r0/download/**")
+            Tuples.of(HttpMethod.GET, "/_matrix/media/r0/download/**"),
+            Tuples.of(HttpMethod.GET, "/_matrix/media/r0/config")
     )
 
     private val antMatcher = AntPathMatcher()
