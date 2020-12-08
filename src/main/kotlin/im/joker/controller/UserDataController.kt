@@ -2,7 +2,7 @@ package im.joker.controller
 
 import im.joker.api.vo.user.UserDirectoryRequest
 import im.joker.api.vo.user.UserDirectoryResponse
-import im.joker.api.vo.user.UserProfileResponse
+import im.joker.api.vo.user.UserProfileDTO
 import im.joker.exception.ErrorCode
 import im.joker.exception.ImException
 import im.joker.handler.MediaHandler
@@ -33,13 +33,21 @@ class UserDataController : BaseController() {
     @Autowired
     private lateinit var requestProcessor: RequestProcessor
 
-    @GetMapping("/profile/{userId}")
-    suspend fun retrieveProfile(@PathVariable userId: String): UserProfileResponse {
+    @GetMapping("/profile/{userId}", "/profile/{userId}/avatar_url")
+    suspend fun retrieveProfile(@PathVariable userId: String): UserProfileDTO {
         val user = userHandler.findUser(userId)
         user ?: throw ImException(ErrorCode.NOT_FOUND, HttpStatus.NOT_FOUND, "用户不存在")
-        return UserProfileResponse().apply {
+        return UserProfileDTO().apply {
             displayName = user.displayName
             avatarUrl = user.avatar
+        }
+    }
+
+    @PutMapping("/profile/{userId}/avatar_url")
+    suspend fun setAvatarUrl(@PathVariable userId: String, @RequestBody avatarInfo: UserProfileDTO): UserProfileDTO {
+        val updateProfile = userHandler.updateProfile(getLoginDevice(), null, avatarInfo.avatarUrl)
+        return UserProfileDTO().apply {
+            this.avatarUrl = updateProfile.avatar
         }
     }
 
@@ -54,7 +62,7 @@ class UserDataController : BaseController() {
             }
             this.results = users.map {
                 return@map UserDirectoryResponse.UserInfo().apply {
-                    avatarUrl = mediaHandler.toMediaUrl(it.avatar)
+                    avatarUrl = it.avatar
                     displayName = it.displayName
                     userId = it.userId
                 }

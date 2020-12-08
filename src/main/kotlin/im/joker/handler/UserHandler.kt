@@ -50,6 +50,9 @@ class UserHandler {
     @Autowired
     private lateinit var authManager: AuthManager
 
+    @Autowired
+    private lateinit var mediaHandler: MediaHandler
+
     private val log: Logger = LoggerFactory.getLogger(UserHandler::class.java)
 
     suspend fun register(request: RegisterRequest): RegisterResponse {
@@ -60,8 +63,9 @@ class UserHandler {
             createTime = LocalDateTime.now()
             registerDeviceId = StringUtils.defaultIfBlank(request.deviceId, UUID.randomUUID().toString())
             username = request.username
-            avatar = "default_user_avatar"
+            avatar = mediaHandler.toMediaUrl("default_user_avatar")
             displayName = request.username
+            version = 0
         }
         try {
             user = mongoStore.addUser(user)
@@ -96,8 +100,23 @@ class UserHandler {
         return mongoStore.findUserByUserId(userId)
     }
 
+    suspend fun updateProfile(loginDevice: Device, displayName: String?, avatarUrl: String?): User {
+        if (displayName == null && avatarUrl == null) {
+            throw ImException(ErrorCode.MISSING_PARAM, HttpStatus.FORBIDDEN)
+        }
+        val user = findUser(loginDevice.userId)
+                ?: throw ImException(ErrorCode.NOT_FOUND, HttpStatus.FORBIDDEN, "找不到此用户")
+        displayName?.let {
+            user.displayName = it
+        }
+        avatarUrl?.let {
+            user.avatar = it
+        }
+        return mongoStore.updateUser(user)
+    }
+
     suspend fun findUsersByTerm(searchTerm: String, limit: Int): List<User> {
-        return mongoStore.findUsersBySearchTerm(searchTerm,limit)
+        return mongoStore.findUsersBySearchTerm(searchTerm, limit)
     }
 
 }

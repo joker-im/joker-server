@@ -1,7 +1,7 @@
 package im.joker.user
 
-import im.joker.helper.GlobalStateHolder
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Version
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.LocalDateTime
 
@@ -31,6 +31,9 @@ class User {
     lateinit var registerDeviceId: String
 
     lateinit var password: String
+
+    @Version
+    var version: Int = 0
 
 
 }

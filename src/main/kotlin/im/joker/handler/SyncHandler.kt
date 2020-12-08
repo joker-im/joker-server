@@ -60,7 +60,7 @@ class SyncHandler {
     }
 
     private suspend fun incrementSync(request: SyncRequest, device: Device, channel: Channel<Boolean> = Channel()): SyncResponse = coroutineScope {
-        log.debug("userId:{},deviceId:{},触发增量同步", device.userId, device.deviceId)
+//        log.debug("userId:{},deviceId:{},触发增量同步", device.userId, device.deviceId)
         longPollingHelper.addWaitingDevice(device.deviceId, channel)
         val ret = SyncResponse()
         val sinceId = request.since.toLong()
@@ -68,7 +68,7 @@ class SyncHandler {
         val invitedMap = HashMap<String, SyncResponse.InvitedRooms>()
         val leftMap = HashMap<String, SyncResponse.LeftRooms>()
         // 查询最新的streamId
-        val latestStreamId = idGenerator.findLatestStreamId()
+        val latestStreamId = mongodbStore.findLatestStreamId()
 
         ret.apply {
             this.rooms = SyncResponse.Rooms().apply {
@@ -225,7 +225,7 @@ class SyncHandler {
                         events = timelineEvent
                     }
                     if (timelineEvent.isNotEmpty()) {
-                        this.timeline.prevBatch = (timelineEvent.last().streamId + 1).toString()
+                        this.timeline.prevBatch = (timelineEvent.last().streamId).toString()
                     } else {
                         this.timeline.prevBatch = latestStreamId.toString()
                     }

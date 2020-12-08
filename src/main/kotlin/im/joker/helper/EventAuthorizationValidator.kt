@@ -30,7 +30,7 @@ class EventAuthorizationValidator {
      * 检测是否可以发送此消息
      */
     suspend fun canPost(ev: AbstractRoomEvent, device: Device): Boolean {
-        log.debug("发送的事件类型为:{},roomId:{} ,sender:{},检测stateKey为:{}", ev.type, ev.roomId, ev.sender)
+//        log.debug("发送的事件类型为:{},roomId:{} ,sender:{},检测stateKey为:{}", ev.type, ev.roomId, ev.sender)
         val postEventType = EventType.findByType(ev.type)
         // 如果发送的消息为不支持的类型,那么直接false
         postEventType ?: return false

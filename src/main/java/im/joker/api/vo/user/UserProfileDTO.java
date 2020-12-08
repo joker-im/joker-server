@@ -1,5 +1,6 @@
 package im.joker.api.vo.user;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -8,11 +9,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @Time: 21:53
  * @Desc:
  */
-public class UserProfileResponse {
+public class UserProfileDTO {
 
 
     private String avatarUrl;
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonProperty("displayname")
     private String displayName;
 

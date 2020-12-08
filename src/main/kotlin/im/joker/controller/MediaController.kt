@@ -1,7 +1,9 @@
 package im.joker.controller
 
+import im.joker.api.vo.media.ThumbnailRequest
 import im.joker.api.vo.media.UploadResponse
 import im.joker.handler.MediaHandler
+import im.joker.helper.RequestProcessor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.beans.factory.annotation.Autowired
@@ -27,6 +29,9 @@ class MediaController : BaseController() {
     @Autowired
     private lateinit var mediaHandler: MediaHandler
 
+    @Autowired
+    private lateinit var requestProcessor: RequestProcessor
+
     @GetMapping("/_matrix/media/r0/config")
     suspend fun config(): Map<String, Int> {
         return mapOf("m.upload.size" to 209715200)
@@ -36,23 +41,37 @@ class MediaController : BaseController() {
     @PostMapping("/upload")
     suspend fun upload(@RequestBody body: ByteArray,
                        @RequestParam("filename", required = false) filename: String?,
-                       @RequestHeader(HttpHeaders.CONTENT_TYPE) contentType: String): UploadResponse {
+                       @RequestHeader(HttpHeaders.CONTENT_TYPE) contentType: String?): UploadResponse {
 
-        return mediaHandler.upload(getLoginDevice(), body, filename ?: UUID.randomUUID().toString(),contentType)
+        return mediaHandler.upload(getLoginDevice(), body, filename ?: UUID.randomUUID().toString(), contentType)
 
     }
 
     @GetMapping("/download/{serverName}/{mediaId}", produces = [MediaType.APPLICATION_OCTET_STREAM_VALUE])
     suspend fun download(@PathVariable serverName: String, @PathVariable mediaId: String): ResponseEntity<ByteArray> {
         if (defaultAvatarMap[mediaId] != null) {
-            return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, getAttachmentValue("$mediaId.png")).body(defaultAvatarMap[mediaId]!!)
+            return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, getAttachmentValue("$mediaId.png"))
+                    .header(HttpHeaders.CONTENT_TYPE, "image/png")
+                    .body(defaultAvatarMap[mediaId]!!)
         }
         val uploadFile = mediaHandler.getFile(mediaId)
         uploadFile ?: return ResponseEntity.notFound().build()
         return withContext(Dispatchers.IO) {
             val retFile = File(uploadFile.filePath)
-            return@withContext ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, getAttachmentValue(uploadFile.filename)).body(retFile.readBytes());
+            val builder = ResponseEntity.ok()
+            uploadFile.contentType?.let {
+                builder.header(HttpHeaders.CONTENT_TYPE, it)
+            }
+            return@withContext builder.header(HttpHeaders.CONTENT_DISPOSITION, getAttachmentValue(uploadFile.filename)).body(retFile.readBytes())
         }
+    }
+
+
+    @GetMapping("/thumbnail/{serverName}/{mediaId}")
+    suspend fun downloadThumbnail(@PathVariable serverName: String,
+                                  @PathVariable mediaId: String,
+                                  @RequestParam param: Map<String, Any>): ResponseEntity<ByteArray> {
+        return download(serverName, mediaId)
     }
 
     /**

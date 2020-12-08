@@ -254,4 +254,8 @@ class ImEventBuilder {
         }
     }
 
+    fun roomAvatarEvent(): RoomAvatarEvent? {
+        return null
+    }
+
 }

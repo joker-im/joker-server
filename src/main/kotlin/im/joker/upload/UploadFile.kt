@@ -19,7 +19,7 @@ class UploadFile {
 
     lateinit var username: String
 
-    lateinit var contentType : String
+    var contentType: String? = null
 
     lateinit var uploadTime: LocalDateTime
 

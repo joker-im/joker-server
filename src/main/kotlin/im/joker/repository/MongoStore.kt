@@ -27,6 +27,7 @@ import org.springframework.data.mongodb.core.query.BasicQuery
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.data.mongodb.core.query.Update
+import org.springframework.data.mongodb.core.update
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 import javax.annotation.PostConstruct
@@ -269,9 +270,22 @@ class MongoStore {
     }
 
     suspend fun findUsersBySearchTerm(searchItem: String, limit: Int): List<User> {
-        val query = BasicQuery("""{${'$'}or:[ { "user_id" : /$searchItem/},{"display_name":/$searchItem/}]}""")
+        val query = BasicQuery("""{${'$'}or:[{"user_id":/$searchItem/},{"display_name":/$searchItem/}]}""")
                 .limit(limit)
         return mongoTemplate.find(query, User::class.java, COLLECTION_USER).collectList().awaitSingleOrNull()
     }
+
+    suspend fun updateUser(user: User): User {
+        return mongoTemplate.save(user, COLLECTION_USER).awaitSingle()
+
+    }
+
+    suspend fun findLatestStreamId(): Long {
+        val query = Query().with(Sort.by(Sort.Direction.DESC, "stream_id"))
+        val s1 = mongoTemplate.findOne(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).map { it.streamId }.awaitSingleOrDefault(-1L)
+        val s2 = mongoTemplate.findOne(query, RoomReadMarker::class.java, COLLECTION_ROOM_FULL_READ_MARKER).map { it.streamId!! }.awaitSingleOrDefault(-1L)
+        return max(s1, s2)
+    }
+
 
 }

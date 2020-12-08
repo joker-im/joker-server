@@ -13,7 +13,6 @@ import im.joker.handler.RoomHandler
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactive.awaitSingleOrDefault
 import kotlinx.coroutines.reactive.awaitSingleOrNull
 import org.slf4j.Logger
@@ -23,7 +22,6 @@ import org.springframework.data.domain.Range
 import org.springframework.data.redis.core.*
 import org.springframework.stereotype.Component
 import java.time.Duration
-import java.util.concurrent.atomic.AtomicReference
 
 @Component
 class SyncEventManager {
@@ -54,11 +52,11 @@ class SyncEventManager {
             return
         }
 
-        redisTemplate.opsForList().rightPush(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId), requestProcessor.toJson(ev)).awaitSingleOrNull()
-        val queueSize = redisTemplate.opsForList().size(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId)).awaitSingle()
+        redisTemplate.opsForList().rightPushAndAwait(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId), requestProcessor.toJson(ev))
+        val queueSize = redisTemplate.opsForList().sizeAndAwait(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId))
         // 当超过limit条事件的时候,修整该房间队列,删除最老的消息,以维持队列保证limit条
         if (queueSize > limit) {
-            redisTemplate.opsForList().trim(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId), -1 * limit, -1).awaitSingleOrNull()
+            redisTemplate.opsForList().trimAndAwait(ACTIVE_ROOM_LATEST_EVENTS.format(ev.roomId), -1 * limit, -1)
         }
     }
 
@@ -69,12 +67,12 @@ class SyncEventManager {
     suspend fun takeRelatedEvent(roomIds: List<String>, device: Device, gteStreamId: Long, lteStreamId: Long): HashMap<String, List<AbstractRoomEvent>> = coroutineScope {
         val list = roomIds.map {
             async {
-                redisTemplate.opsForList().range(ACTIVE_ROOM_LATEST_EVENTS.format(it), 0, -1).collectList().awaitSingleOrNull()
+                redisTemplate.opsForList().range(ACTIVE_ROOM_LATEST_EVENTS.format(it), -1 * limit, -1).collectList().awaitSingleOrNull()
             }
         }
         val eventMap = HashMap<String, List<AbstractRoomEvent>>()
         list.awaitAll().forEach { eventJson ->
-            var currentRoomId :String ?= null
+            var currentRoomId: String? = null
             val roomEvents = eventJson.map { requestProcessor.toBean(it, AbstractRoomEvent::class.java) }
                     .filter {
                         if (currentRoomId == null) {
@@ -100,7 +98,8 @@ class SyncEventManager {
     suspend fun setEphemeralEvent(ev: TypingEvent, device: Device) {
         redisTemplate.deleteAndAwait(ROOM_TYPING_FLAG_SET.format(ev.roomId))
         if (ev.content.typing) {
-            redisTemplate.opsForZSet().addAndAwait(ImConstants.ROOM_TYPING_USER_Z_SET.format(ev.roomId), ev.sender, (ev.content.timeout + System.currentTimeMillis()).toDouble())
+            redisTemplate.opsForZSet().addAndAwait(ImConstants.ROOM_TYPING_USER_Z_SET.format(ev.roomId), ev.sender,
+                    (ev.content.timeout + System.currentTimeMillis()).toDouble())
         } else {
             redisTemplate.opsForZSet().removeAndAwait(ImConstants.ROOM_TYPING_USER_Z_SET.format(ev.roomId), ev.sender)
         }

@@ -284,21 +284,21 @@ class RoomHandler {
     }
 
     suspend fun setReadMarker(roomId: String, readMarkerRequest: ReadMarkerRequest, loginDevice: Device) {
-        val now = LocalDateTime.now()
-        var fullReadMarkerEvent: FullReadMarkerEvent? = null
-        var receiptEvent: ReceiptEvent? = null
-        readMarkerRequest.fullRead?.let {
-            fullReadMarkerEvent = eventBuilder.fullReadMarkerEvent(roomId, readMarkerRequest.fullRead, now, loginDevice)
-        }
-        readMarkerRequest.read?.let {
-            receiptEvent = eventBuilder.receiptEvent(roomId, readMarkerRequest.read, now, loginDevice)
-        }
-        val room = imCache.getRoom(roomId)
-        listOf(fullReadMarkerEvent, receiptEvent).forEach {
-            it?.let {
-                room.injectEvent(it, loginDevice)
-            }
-        }
+//        val now = LocalDateTime.now()
+//        var fullReadMarkerEvent: FullReadMarkerEvent? = null
+//        var receiptEvent: ReceiptEvent? = null
+//        readMarkerRequest.fullRead?.let {
+//            fullReadMarkerEvent = eventBuilder.fullReadMarkerEvent(roomId, readMarkerRequest.fullRead, now, loginDevice)
+//        }
+//        readMarkerRequest.read?.let {
+//            receiptEvent = eventBuilder.receiptEvent(roomId, readMarkerRequest.read, now, loginDevice)
+//        }
+//        val room = imCache.getRoom(roomId)
+//        listOf(fullReadMarkerEvent, receiptEvent).forEach {
+//            it?.let {
+//                room.injectEvent(it, loginDevice)
+//            }
+//        }
 
     }
 

@@ -31,7 +31,7 @@ class MediaHandler {
     lateinit var fileDir: String
 
 
-    suspend fun upload(device: Device, body: ByteArray, filename: String, contentType: String): UploadResponse {
+    suspend fun upload(device: Device, body: ByteArray, filename: String, contentType: String?): UploadResponse {
         return withContext(Dispatchers.IO) {
             log.debug("上传的文件为:file:{}", filename)
             val dir = File(fileDir + "/" + LocalDate.now(), device.username)
