@@ -47,13 +47,12 @@ class Room {
     private val log: Logger = LoggerFactory.getLogger(Room::class.java)
 
     suspend fun injectEvent(ev: AbstractRoomEvent, device: Device): AbstractRoomEvent {
-        try {
-            if (ev.roomId == null || roomId != ev.roomId) throw ImException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "房间不存在,无法发送")
 
-            val stopwatch = Stopwatch.createStarted()
-            // 房间上锁
-            globalStateHolder.redissonClient.getLock(EVENT_LOCK.format(ev.roomId)).lock(1).awaitSingleOrNull()
+        if (ev.roomId == null || roomId != ev.roomId) throw ImException(ErrorCode.FORBIDDEN, HttpStatus.FORBIDDEN, "房间不存在,无法发送")
 
+        val stopwatch = Stopwatch.createStarted()
+
+        globalStateHolder.roomLock.getRoomLock(ev.roomId).withLock {
             log.debug("roomId:${ev.roomId} 开始inject 事件,其类型:${ev.type}, 其streamId:${ev.streamId} ")
 
             // 校验权限
@@ -77,11 +76,8 @@ class Room {
             globalStateHolder.longPollingHelper.notifySyncDevice(ev, device)
 
             log.debug("inject type: ${ev.type}, streamId: ${ev.streamId} 耗时为: ${stopwatch.elapsed(TimeUnit.MILLISECONDS)} ms")
-
-        } finally {
-            // 解锁
-            globalStateHolder.redissonClient.getLock(EVENT_LOCK.format(ev.roomId)).unlock(1).awaitSingleOrNull()
         }
+
         return ev
     }
 

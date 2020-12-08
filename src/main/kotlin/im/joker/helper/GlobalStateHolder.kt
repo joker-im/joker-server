@@ -2,6 +2,7 @@ package im.joker.helper
 
 import im.joker.device.DeviceManager
 import im.joker.repository.MongoStore
+import im.joker.room.RoomLock
 import org.redisson.api.RedissonReactiveClient
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -38,5 +39,7 @@ class GlobalStateHolder {
     @Autowired
     lateinit var longPollingHelper: LongPollingHelper
 
+    @Autowired
+    lateinit var roomLock: RoomLock
 
 }
