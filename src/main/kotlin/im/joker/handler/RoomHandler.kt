@@ -9,15 +9,15 @@ import im.joker.event.PresetType
 import im.joker.event.RoomJoinRuleType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
-import im.joker.event.room.other.FullReadMarkerEvent
-import im.joker.event.room.other.ReceiptEvent
 import im.joker.event.room.state.MembershipEvent
 import im.joker.exception.ErrorCode
 import im.joker.exception.ImException
 import im.joker.helper.*
 import im.joker.repository.MongoStore
 import im.joker.room.Room
+import im.joker.room.RoomReadMarker
 import im.joker.room.RoomState
+import kotlinx.coroutines.delay
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -284,21 +284,44 @@ class RoomHandler {
     }
 
     suspend fun setReadMarker(roomId: String, readMarkerRequest: ReadMarkerRequest, loginDevice: Device) {
-//        val now = LocalDateTime.now()
-//        var fullReadMarkerEvent: FullReadMarkerEvent? = null
-//        var receiptEvent: ReceiptEvent? = null
-//        readMarkerRequest.fullRead?.let {
-//            fullReadMarkerEvent = eventBuilder.fullReadMarkerEvent(roomId, readMarkerRequest.fullRead, now, loginDevice)
-//        }
-//        readMarkerRequest.read?.let {
-//            receiptEvent = eventBuilder.receiptEvent(roomId, readMarkerRequest.read, now, loginDevice)
-//        }
-//        val room = imCache.getRoom(roomId)
-//        listOf(fullReadMarkerEvent, receiptEvent).forEach {
-//            it?.let {
-//                room.injectEvent(it, loginDevice)
-//            }
-//        }
+        // 设备有可能会传2种, 一种是只读某条消息, 一种是此消息以及之前都做为已读.但是在这里处理,都是以某条消息以及之前作为已读
+        val newReadEventId = readMarkerRequest.fullRead ?: readMarkerRequest.read
+        ?: throw ImException(ErrorCode.MISSING_PARAM, HttpStatus.BAD_REQUEST)
+        var alreadyReadMarker = mongoStore.findAlreadyReadEventId(roomId, loginDevice.userId)
+        val eventList = listOfNotNull(newReadEventId, alreadyReadMarker?.eventId)
+        val eventMap = mongoStore.findByEventIds(eventList).associateBy { it.eventId }
+        // 只有当新的读事件大于旧的才去inject
+        eventMap[newReadEventId] ?: throw ImException(ErrorCode.UNKNOWN, HttpStatus.INTERNAL_SERVER_ERROR, "找不到新的已读事件")
+        val now = LocalDateTime.now()
+        if (alreadyReadMarker == null) {
+            // 发送回执事件
+            val receiptEvent = eventBuilder.receiptEvent(roomId, readMarkerRequest.read, now, loginDevice)
+            alreadyReadMarker = RoomReadMarker().apply {
+                this.eventId = receiptEvent.eventId
+                this.userId = loginDevice.userId
+                this.readMarkerTime = now
+                this.roomId = roomId
+                this.version = 0
+            }
+            mongoStore.insertFullReadEvent(alreadyReadMarker)
+            val room = imCache.getRoom(roomId)
+            room.injectEvent(receiptEvent, loginDevice)
+        } else if (eventMap.getValue(newReadEventId).streamId > eventMap.getValue(alreadyReadMarker.eventId).streamId) {
+            // 发送回执事件
+            val receiptEvent = eventBuilder.receiptEvent(roomId, readMarkerRequest.read, now, loginDevice)
+            for (i in 0..5) {
+                val updateCount = mongoStore.updateFullReadEvent(receiptEvent, alreadyReadMarker.version)
+                if (updateCount == 0L) {
+                    delay(1000)
+                    log.warn("设置userId:${loginDevice.userId} readMarker消息失败,将再次进行尝试..")
+                    continue
+                }
+                val room = imCache.getRoom(roomId)
+                room.injectEvent(receiptEvent, loginDevice)
+                return
+            }
+            throw ImException(ErrorCode.USER_IN_USE, HttpStatus.FORBIDDEN, "此用户readMarker修改频繁,现暂无法修改,请稍后再试")
+        }
 
     }
 

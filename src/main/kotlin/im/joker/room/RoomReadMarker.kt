@@ -1,6 +1,7 @@
 package im.joker.room
 
 import org.springframework.data.annotation.Id
+import org.springframework.data.annotation.Version
 import org.springframework.data.mongodb.core.mapping.Document
 import java.time.LocalDateTime
 
@@ -18,7 +19,7 @@ class RoomReadMarker {
 
     lateinit var eventId: String
 
-    var streamId: Long? = null
-
+    @Version
+    var version: Int = 0
 
 }

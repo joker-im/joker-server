@@ -4,6 +4,7 @@ import im.joker.api.vo.sync.SyncRequest
 import im.joker.api.vo.sync.SyncResponse
 import im.joker.device.Device
 import im.joker.event.MembershipType
+import im.joker.event.content.other.FullReadContent
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.UnsignedData
 import im.joker.event.room.other.FullReadMarkerEvent
@@ -192,7 +193,7 @@ class SyncHandler {
         val ephemeralEvents = timeline.filterIsInstance<TypingEvent>()
 
         val timelineEvent = timeline
-                .filter { it !is TypingEvent && it !is ReceiptEvent && it !is FullReadMarkerEvent }
+                .filter { it !is TypingEvent && it !is ReceiptEvent }
                 .onEach {
                     it.unsigned = UnsignedData().apply {
                         age = ImTools.toMill(now) - ImTools.toMill(it.originServerTs)
@@ -200,7 +201,15 @@ class SyncHandler {
                     }
                 }
 
-        val readMarkerEvent = timeline.filterIsInstance<FullReadMarkerEvent>()
+        val readMarkerEvent = timeline
+                .filter { it is ReceiptEvent && it.sender == device.userId }
+                .map {
+                    FullReadMarkerEvent().apply {
+                        this.content = FullReadContent().apply {
+                            this.eventId = it.eventId
+                        }
+                    }
+                }
         // 加这个为了防止startOfTimelineState数据可能是不存在的
         var startOfTimelineStateEvent = startOfTimelineState.distinctStateEvents()
         if (startOfTimelineStateEvent.isEmpty()) {

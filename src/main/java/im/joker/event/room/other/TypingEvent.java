@@ -1,7 +1,6 @@
 package im.joker.event.room.other;
 
 import im.joker.event.content.other.TypingContent;
-import im.joker.event.room.AbstractRoomEvent;
 
 /**
  * @Author: mkCen
@@ -9,7 +8,7 @@ import im.joker.event.room.AbstractRoomEvent;
  * @Time: 0:14
  * @Desc:
  */
-public class TypingEvent extends AbstractRoomEvent {
+public class TypingEvent extends EphemeralEvent {
 
 
     private TypingContent content;

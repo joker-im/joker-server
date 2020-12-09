@@ -3,7 +3,6 @@ package im.joker.helper
 import im.joker.constants.ImConstants.Companion.ROOM_SYNC_DEVICE
 import im.joker.device.Device
 import im.joker.event.room.AbstractRoomEvent
-import im.joker.event.room.other.FullReadMarkerEvent
 import im.joker.event.room.other.ReceiptEvent
 import im.joker.event.room.other.TypingEvent
 import kotlinx.coroutines.async
@@ -53,7 +52,7 @@ class LongPollingHelper {
         val deviceIds = roomSubscribeManager.searchRoomSubscriber(event.roomId)
                 .filter {
                     // 如果是打字事件,回执事件不唤醒自己
-                    if (event is TypingEvent || event is ReceiptEvent || event is FullReadMarkerEvent) it != device.deviceId else true
+                    if (event is TypingEvent || event is ReceiptEvent) it != device.deviceId else true
                 }
 
         val deferredList = deviceIds

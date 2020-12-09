@@ -2,7 +2,6 @@ package im.joker.event;
 
 import im.joker.event.room.message.MessageEvent;
 import im.joker.event.room.message.RedactionEvent;
-import im.joker.event.room.other.FullReadMarkerEvent;
 import im.joker.event.room.other.ReceiptEvent;
 import im.joker.event.room.other.TypingEvent;
 import im.joker.event.room.state.*;

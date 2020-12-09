@@ -7,12 +7,11 @@ import im.joker.api.vo.RoomEvents
 import im.joker.event.EventType
 import im.joker.event.room.AbstractRoomEvent
 import im.joker.event.room.AbstractRoomStateEvent
-import im.joker.event.room.other.FullReadMarkerEvent
+import im.joker.event.room.other.ReceiptEvent
 import im.joker.room.Room
 import im.joker.room.RoomReadMarker
 import im.joker.upload.UploadFile
 import im.joker.user.User
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.reactive.awaitSingleOrDefault
 import kotlinx.coroutines.reactive.awaitSingleOrNull
@@ -27,11 +26,9 @@ import org.springframework.data.mongodb.core.query.BasicQuery
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
 import org.springframework.data.mongodb.core.query.Update
-import org.springframework.data.mongodb.core.update
 import org.springframework.stereotype.Component
 import reactor.core.publisher.Mono
 import javax.annotation.PostConstruct
-import kotlin.math.max
 
 /**
  * @Author: mkCen
@@ -66,10 +63,10 @@ class MongoStore {
     private fun createEventCollection(): Mono<String> {
         return mongoTemplate.createCollection(COLLECTION_NAME_EVENTS)
                 .flatMap {
-                    val index1 = IndexModel(Document.parse("{room_id: 1,stream_id:1}"))
+                    val index1 = IndexModel(Document.parse("{stream_id:1,room_id: 1}"))
                     val index2 = IndexModel(Document.parse("{event_id: 1}"), IndexOptions().unique(true))
-                    val index3 = IndexModel(Document.parse("{room_id: 1, type: 1, sender: 1}"))
-                    val index4 = IndexModel(Document.parse("{stream_id:1}"), IndexOptions().unique(true))
+                    val index3 = IndexModel(Document.parse("{sender: 1,room_id: 1, type: 1}"))
+                    val index4 = IndexModel(Document.parse("{room_id:1}"))
                     val index5 = IndexModel(Document.parse("{transaction_id:1}"), IndexOptions().unique(true))
                     Mono.from(it.createIndexes(listOf(index1, index2, index3, index4, index5)))
                 }
@@ -155,6 +152,12 @@ class MongoStore {
 
     suspend fun addEvent(ev: AbstractRoomEvent): AbstractRoomEvent {
         return mongoTemplate.insert(ev, COLLECTION_NAME_EVENTS).awaitSingle()
+    }
+
+    suspend fun findByEventIds(eventIds: List<String>): List<AbstractRoomEvent> {
+        val query = Query()
+        query.addCriteria(Criteria.where("event_id").`in`(eventIds))
+        return mongoTemplate.find(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).collectList().awaitSingleOrNull()
     }
 
     suspend fun findRoomStateEvents(roomId: String): List<AbstractRoomStateEvent> {
@@ -258,15 +261,20 @@ class MongoStore {
     /**
      * 设置完全读标志
      */
-    suspend fun setFullReadEvent(ev: FullReadMarkerEvent) {
-        val query = Query().addCriteria(Criteria.where("user_id").`is`(ev.sender).and("room_id").`is`(ev.roomId))
+    suspend fun insertFullReadEvent(roomReadMarker: RoomReadMarker) {
+        mongoTemplate.insert(roomReadMarker, COLLECTION_ROOM_FULL_READ_MARKER).awaitSingleOrNull()
+    }
+
+    suspend fun updateFullReadEvent(ev: ReceiptEvent, oldVersion: Int): Long {
+        val query = Query().addCriteria(Criteria.where("user_id")
+                .`is`(ev.sender).and("room_id")
+                .`is`(ev.roomId).and("version").`is`(oldVersion))
         val update = Update().set("event_id", ev.eventId)
                 .set("user_id", ev.sender)
-                .set("stream_id", ev.streamId)
                 .set("room_id", ev.roomId)
                 .set("read_marker_time", ev.originServerTs)
-        mongoTemplate.upsert(query, update, COLLECTION_ROOM_FULL_READ_MARKER).awaitSingleOrNull()
-
+                .set("version", oldVersion + 1)
+        return mongoTemplate.updateFirst(query, update, COLLECTION_ROOM_FULL_READ_MARKER).awaitSingle().modifiedCount
     }
 
     suspend fun findUsersBySearchTerm(searchItem: String, limit: Int): List<User> {
@@ -275,16 +283,35 @@ class MongoStore {
         return mongoTemplate.find(query, User::class.java, COLLECTION_USER).collectList().awaitSingleOrNull()
     }
 
-    suspend fun updateUser(user: User): User {
-        return mongoTemplate.save(user, COLLECTION_USER).awaitSingle()
+    suspend fun updateUserProfile(oldVersion: Int, userId: String, displayName: String?, avatarUrl: String?): Long {
+        val query = Query()
+        query.addCriteria(Criteria.where("user_id").`is`(userId))
+        query.addCriteria(Criteria.where("version").`is`(oldVersion))
+        val update = Update()
+                .set("version", oldVersion + 1)
+        displayName?.let {
+            update.set("display_name", it)
+        }
+        avatarUrl?.let {
+            update.set("avatar", it)
+        }
+        return mongoTemplate.updateFirst(query, update, COLLECTION_USER).awaitSingle().modifiedCount
 
     }
 
     suspend fun findLatestStreamId(): Long {
         val query = Query().with(Sort.by(Sort.Direction.DESC, "stream_id"))
-        val s1 = mongoTemplate.findOne(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).map { it.streamId }.awaitSingleOrDefault(-1L)
-        val s2 = mongoTemplate.findOne(query, RoomReadMarker::class.java, COLLECTION_ROOM_FULL_READ_MARKER).map { it.streamId!! }.awaitSingleOrDefault(-1L)
-        return max(s1, s2)
+        return mongoTemplate.findOne(query, AbstractRoomEvent::class.java, COLLECTION_NAME_EVENTS).map { it.streamId }.awaitSingleOrDefault(-1L)
+    }
+
+    /**
+     * 查询某用户某房间读取的消息
+     */
+    suspend fun findAlreadyReadEventId(roomId: String, userId: String): RoomReadMarker? {
+        val query = Query()
+                .addCriteria(Criteria.where("user_id").`is`(userId))
+                .addCriteria(Criteria.where("room_id").`is`(roomId))
+        return mongoTemplate.findOne(query, RoomReadMarker::class.java, COLLECTION_ROOM_FULL_READ_MARKER).awaitSingle()
     }
 
 

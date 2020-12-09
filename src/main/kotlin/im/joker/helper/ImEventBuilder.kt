@@ -1,7 +1,5 @@
 package im.joker.helper
 
-import com.google.common.collect.Lists
-import com.google.common.collect.Sets
 import im.joker.api.vo.room.TypingRequest
 import im.joker.device.Device
 import im.joker.event.EventType
@@ -11,7 +9,6 @@ import im.joker.event.content.other.FullReadContent
 import im.joker.event.content.other.ReceiptContent
 import im.joker.event.content.other.TypingContent
 import im.joker.event.content.state.*
-import im.joker.event.room.other.FullReadMarkerEvent
 import im.joker.event.room.other.ReceiptEvent
 import im.joker.event.room.other.TypingEvent
 import im.joker.event.room.state.*
@@ -199,23 +196,6 @@ class ImEventBuilder {
         }
     }
 
-    suspend fun fullReadMarkerEvent(roomId: String, eventId: String, time: LocalDateTime, loginDevice: Device): FullReadMarkerEvent {
-        val content = FullReadContent().apply {
-            this.eventId = eventId
-        }
-        return FullReadMarkerEvent().apply {
-            this.content = content
-            this.roomId = roomId
-            type = EventType.MFullRead.id
-            this.sender = loginDevice.userId
-            streamId = idGenerator.nextEventStreamId()
-            transactionId = UUID.randomUUID().toString()
-            originServerTs = time
-            this.eventId = UUID.randomUUID().toString()
-
-        }
-
-    }
 
     suspend fun receiptEvent(roomId: String, read: String, now: LocalDateTime, loginDevice: Device): ReceiptEvent {
         val eventId = UUID.randomUUID().toString()

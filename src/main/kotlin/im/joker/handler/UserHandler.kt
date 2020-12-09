@@ -14,6 +14,7 @@ import im.joker.helper.PasswordEncoder
 import im.joker.helper.RequestProcessor
 import im.joker.repository.MongoStore
 import im.joker.user.User
+import kotlinx.coroutines.delay
 import org.apache.commons.lang3.StringUtils
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -104,15 +105,21 @@ class UserHandler {
         if (displayName == null && avatarUrl == null) {
             throw ImException(ErrorCode.MISSING_PARAM, HttpStatus.FORBIDDEN)
         }
-        val user = findUser(loginDevice.userId)
-                ?: throw ImException(ErrorCode.NOT_FOUND, HttpStatus.FORBIDDEN, "找不到此用户")
-        displayName?.let {
-            user.displayName = it
+
+        for (i in 0..5) {
+            val user = findUser(loginDevice.userId)
+                    ?: throw ImException(ErrorCode.NOT_FOUND, HttpStatus.FORBIDDEN, "找不到此用户")
+            val updateCount = mongoStore.updateUserProfile(user.version, user.id, displayName, avatarUrl)
+            if (updateCount == 0L) {
+                log.warn("更新${loginDevice.userId} 的profile影响行数为0,将尝试再次更新,目前已尝试${i + 1}次")
+                delay(1000)
+                continue
+            }
+            return user
+
         }
-        avatarUrl?.let {
-            user.avatar = it
-        }
-        return mongoStore.updateUser(user)
+        throw ImException(ErrorCode.USER_IN_USE, HttpStatus.FORBIDDEN, "此用户修改频繁,现暂无法修改,请稍后再试")
+
     }
 
     suspend fun findUsersByTerm(searchTerm: String, limit: Int): List<User> {
